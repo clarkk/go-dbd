@@ -8,7 +8,6 @@ import (
 	"database/sql"
 	"github.com/go-errors/errors"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/clarkk/go-dbd/dbt"
 )
 
 const (
@@ -41,10 +40,6 @@ func Connect(dsn string, conn_cpu int){
 	}
 	
 	connected = true
-}
-
-func Map(table dbt.Table_map){
-	
 }
 
 func Begin(ctx context.Context) *sql.Tx {

@@ -1,18 +1,18 @@
 package dbt
 
 const (
-	LEFT_JOIN 	= "LEFT JOIN"
-	INNER_JOIN 	= "INNER JOIN"
+	LEFT_JOIN 	join_mode = "LEFT JOIN"
+	INNER_JOIN 	join_mode = "INNER JOIN"
 )
 
 type (
 	Field struct {
-		Tbl 	string
+		Table 	string
 		Col 	string
 	}
 	
 	Join struct {
-		Mode 	string
+		Mode 	join_mode
 		Col 	string
 		Foreign string
 	}
@@ -21,13 +21,16 @@ type (
 	Joins 		map[string]Join
 	
 	Table struct {
+		Name 	string
 		Fields 	Fields
 		Joins 	Joins
 	}
 	
-	Table_map struct {
+	Collect struct {
 		External 	bool
-		Table 		Table
-		Name 		string
+		Table 		*Table
+		As 			string
 	}
+	
+	join_mode 	string
 )
