@@ -3,11 +3,12 @@ package dbd
 import (
 	"fmt"
 	"context"
+	"github.com/go-errors/errors"
 	"github.com/clarkk/go-dbd/dbt"
 )
 
 type (
-	list map[*dbt.Table]dbt.Collect
+	list map[string]dbt.Collect
 	
 	Collection struct {
 		list list
@@ -20,23 +21,26 @@ func NewCollection() *Collection {
 	}
 }
 
-func (c *Collection) Add(table dbt.Collect) *Collection {
-	if _, ok := c.list[table.Table]; ok {
-		panic("Table is already added to collection: "+table.Table.Name)
+func (c *Collection) Add(collect dbt.Collect) *Collection {
+	name := collect.Table().Name()
+	if _, ok := c.list[name]; ok {
+		panic("Table is already added to collection: "+name)
 	}
-	
-	c.list[table.Table] = table
+	c.list[name] = collect
 	return c
 }
 
-func (c *Collection) Get(ctx context.Context, table *dbt.Table){
-	target, ok := c.list[table]
+func (c *Collection) Get(ctx context.Context, name string) (*Get, error) {
+	collect, ok := c.list[name]
 	if !ok {
-		panic("Table is not found in this collection: "+table.Name)
+		return nil, errors.New("Invalid table")
 	}
 	
-	fmt.Println("get target: "+table.Name)
-	fmt.Println(target)
+	g := &Get{}
+	
+	fmt.Println("get target: "+collect.Table().Name())
+	
+	return g, nil
 	
 	/*stmt, err := tx.PrepareContext(ctx, "SELECT id, timeout, lang FROM client WHERE id=?")
 	if err != nil {

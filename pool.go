@@ -12,18 +12,21 @@ import (
 )
 
 const (
-	DRIVER = "mysql"
+	DRIVER 			= "mysql"
 	
-	CTX_TX 	ctx_key = ""
+	CTX_TX ctx_key 	= ""
 )
 
 var (
-	db 			*sql.DB
-	connected 	bool
+	db 				*sql.DB
+	connected 		bool
 )
 
 type (
-	ctx_key 	string
+	Select 			[]string
+	Where 			map[string]string
+	
+	ctx_key 		string
 )
 
 func Connect(dsn string, conn_cpu int){
@@ -57,11 +60,11 @@ func Begin(ctx context.Context) *sql.Tx {
 	return tx
 }
 
-func Wrap(r *http.Request, tx *sql.Tx) *http.Request {
+func Apply(r *http.Request, tx *sql.Tx) *http.Request {
 	return r.WithContext(context.WithValue(r.Context(), CTX_TX, tx))
 }
 
-func Wrapped(r *http.Request) *sql.Tx {
+func Applied(r *http.Request) *sql.Tx {
 	return r.Context().Value(CTX_TX).(*sql.Tx)
 }
 
