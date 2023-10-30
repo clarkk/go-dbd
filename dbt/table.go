@@ -20,13 +20,18 @@ type (
 	Fields 		map[string]Field
 	Joins 		map[string]Join
 	
+	Get 		[]string
+	Put 		map[string]string
+	
 	Table struct {
 		name 	string
 		fields 	Fields
 		joins 	Joins
+		get 	Get
+		put 	Put
 	}
 	
-	Collect struct {
+	View struct {
 		table 	*Table
 		as 		string
 		public 	bool
@@ -35,16 +40,18 @@ type (
 	join_mode 	string
 )
 
-func NewTable(name string, fields Fields, joins Joins) *Table {
+func NewTable(name string, fields Fields, joins Joins, get Get, put Put) *Table {
 	return &Table{
 		name,
 		fields,
 		joins,
+		get,
+		put,
 	}
 }
 
-func NewCollect(table *Table, as string, public bool) Collect {
-	return Collect{
+func NewView(table *Table, as string, public bool) View {
+	return View{
 		table,
 		as,
 		public,
@@ -55,6 +62,20 @@ func (t *Table) Name() string {
 	return t.name
 }
 
-func (c Collect) Table() *Table {
-	return c.table
+func (t *Table) Fields() []string {
+	fields := make([]string, len(t.fields))
+	i := 0
+	for k := range t.fields {
+		fields[i] = k
+		i++
+	}
+	return fields
+}
+
+func (v View) Table() *Table {
+	return v.table
+}
+
+func (v View) Public() bool {
+	return v.public
 }
