@@ -25,15 +25,15 @@ var (
 
 type (
 	Collection struct {
-		list 		list
+		list 		views
 	}
 	
-	list 			map[string]dbt.View
+	views 			map[string]dbt.View
 )
 
 func NewCollection() *Collection {
 	return &Collection{
-		list: list{},
+		list: views{},
 	}
 }
 
@@ -47,7 +47,7 @@ func (c *Collection) Add(view dbt.View) *Collection {
 	}
 	
 	//	Check for reserved keywords
-	for _, k := range table.Fields() {
+	for k, _ := range table.Fields() {
 		if _, ok := reserved[k]; ok {
 			panic("Reserved keyword in: "+name+"."+k)
 		}
@@ -65,9 +65,8 @@ func (c *Collection) Get(ctx context.Context, name string) (*query_get, error) {
 	
 	return &query_get{
 		query: query{
-			
+			view:	view,
 		},
 		ctx:	ctx,
-		view:	view,
 	}, nil
 }

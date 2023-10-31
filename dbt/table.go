@@ -62,18 +62,28 @@ func (t *Table) Name() string {
 	return t.name
 }
 
-func (t *Table) Fields() []string {
-	fields := make([]string, len(t.fields))
-	i := 0
-	for k := range t.fields {
-		fields[i] = k
-		i++
-	}
-	return fields
+func (t *Table) Fields() Fields {
+	return t.fields
+}
+
+func (t *Table) Joins() Joins {
+	return t.joins
+}
+
+func (t *Table) Get() Get {
+	return t.get
+}
+
+func (t *Table) Put() Put {
+	return t.put
 }
 
 func (v View) Table() *Table {
 	return v.table
+}
+
+func (v View) As() string {
+	return v.as
 }
 
 func (v View) Public() bool {

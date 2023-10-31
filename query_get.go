@@ -3,14 +3,11 @@ package dbd
 import (
 	"context"
 	"database/sql"
-	"github.com/clarkk/go-dbd/dbt"
 )
 
 type query_get struct {
 	query
 	ctx 		context.Context
-	public 		bool
-	view 		dbt.View
 	stmt 		*sql.Stmt
 }
 
@@ -34,6 +31,13 @@ func (q *query_get) Prepare(tx *sql.Tx) error {
 	if q.public && !q.view.Public() {
 		return ERR_PRIVATE
 	}
+	
+	/*table 	:= q.view.Table()
+	as 		:= q.view.As()
+	fields 	:= table.Fields()
+	joins 	:= table.Joins()
+	get 	:= table.Get()
+	fmt.Println("table:", as, fields, joins, get)*/
 	
 	q.parse_select()
 	q.parse_where()
