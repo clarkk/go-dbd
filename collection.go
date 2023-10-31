@@ -1,7 +1,6 @@
 package dbd
 
 import (
-	"fmt"
 	"context"
 	"github.com/go-errors/errors"
 	"github.com/clarkk/go-dbd/dbt"
@@ -13,11 +12,16 @@ const (
 	SQL_LIMIT 	= "limit"
 )
 
-var reserved = map[string]bool{
-	SQL_SELECT:	true,
-	SQL_ORDER:	true,
-	SQL_LIMIT:	true,
-}
+var (
+	ERR_TABLE 		= errors.New("Table invalid")
+	ERR_PRIVATE 	= errors.New("Table private")
+	
+	reserved = map[string]bool{
+		SQL_SELECT:	true,
+		SQL_ORDER:	true,
+		SQL_LIMIT:	true,
+	}
+)
 
 type (
 	list map[string]dbt.View
@@ -56,21 +60,11 @@ func (c *Collection) Add(view dbt.View) *Collection {
 func (c *Collection) Get(ctx context.Context, name string) (*Get, error) {
 	view, ok := c.list[name]
 	if !ok {
-		return nil, errors.New("Invalid table")
+		return nil, ERR_TABLE
 	}
 	
-	query := &Get{
-		view: view,
-	}
-	
-	fmt.Println("get target: "+view.Table().Name())
-	//fmt.Println("pub:", g.view.Public())
-	
-	return query, nil
-	
-	/*stmt, err := tx.PrepareContext(ctx, "SELECT id, timeout, lang FROM client WHERE id=?")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer stmt.Close()*/
+	return &Get{
+		ctx:	ctx,
+		view:	view,
+	}, nil
 }

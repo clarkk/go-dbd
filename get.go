@@ -2,33 +2,64 @@ package dbd
 
 import (
 	"fmt"
+	"context"
+	"database/sql"
 	"github.com/clarkk/go-dbd/dbt"
 )
 
 type Get struct {
-	view 	dbt.View
+	ctx 		context.Context
+	public 		bool
+	view 		dbt.View
+	
+	sql_select 	Select
+	sql_where 	Where
+	
+	stmt 		*sql.Stmt
+}
+
+func (g *Get) Public() *Get {
+	g.public = true
+	return g
 }
 
 func (g *Get) Select(fields Select) *Get {
-	fmt.Println("select:", fields)
+	g.sql_select = fields
 	return g
 }
 
 func (g *Get) Where(fields Where) *Get {
-	fmt.Println("where:", fields)
+	g.sql_where = fields
 	return g
 }
 
-func (g *Get) Result(){
+func (g *Get) Prepare(tx *sql.Tx) error {
+	if g.public && !g.view.Public() {
+		return ERR_PRIVATE
+	}
+	
+	fmt.Println("select:", g.sql_select)
+	fmt.Println("where:", g.sql_where)
+	
+	var err error
+	sql := "SELECT id, timeout, lang FROM block WHERE id=?"
+	g.stmt, err = tx.PrepareContext(g.ctx, sql)
+	if err != nil {
+		panic("SQL prepare "+sql+": "+err.Error())
+	}
+	return nil
+}
+
+func (g *Get) Result() (bool, error) {
+	if g.public && !g.view.Public() {
+		return false, ERR_PRIVATE
+	}
+	
 	fmt.Println(g.view.Table())
 	
-	/*stmt, err := tx.PrepareContext(ctx, "SELECT id, timeout, lang FROM client WHERE id=?")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer stmt.Close()
+	return true, nil
 	
-	rows, err := stmt.QueryContext(ctx, 1)
+	/*rows, err := stmt.QueryContext(ctx, 1)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -58,4 +89,8 @@ func (g *Get) Result(){
 	if err = rows.Err(); err != nil {
 		log.Fatal(err)
 	}*/
+}
+
+func (g *Get) Close(){
+	g.stmt.Close()
 }
