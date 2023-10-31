@@ -24,11 +24,19 @@ var (
 )
 
 type (
-	list map[string]dbt.View
-	
 	Collection struct {
 		list list
 	}
+	
+	list 			map[string]dbt.View
+	
+	select_field struct {
+		fn 			string
+		field 		string
+		as 			string
+	}
+	
+	select_clause 	[]select_field
 )
 
 func NewCollection() *Collection {
@@ -57,13 +65,16 @@ func (c *Collection) Add(view dbt.View) *Collection {
 	return c
 }
 
-func (c *Collection) Get(ctx context.Context, name string) (*Get, error) {
+func (c *Collection) Get(ctx context.Context, name string) (*query_get, error) {
 	view, ok := c.list[name]
 	if !ok {
 		return nil, ERR_TABLE
 	}
 	
-	return &Get{
+	return &query_get{
+		query: query{
+			
+		},
 		ctx:	ctx,
 		view:	view,
 	}, nil
