@@ -25,18 +25,10 @@ var (
 
 type (
 	Collection struct {
-		list list
+		list 		list
 	}
 	
 	list 			map[string]dbt.View
-	
-	select_field struct {
-		fn 			string
-		field 		string
-		as 			string
-	}
-	
-	select_clause 	[]select_field
 )
 
 func NewCollection() *Collection {

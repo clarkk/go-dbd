@@ -1,29 +1,18 @@
 package dbd
 
 import (
-	"fmt"
-	"strings"
 	"context"
 	"database/sql"
 	"github.com/clarkk/go-dbd/dbt"
 )
 
-type (
-	query struct {
-		in_select 	Select
-		in_where 	Where
-		
-		out_select 	select_clause
-	}
-	
-	query_get struct {
-		query
-		ctx 		context.Context
-		public 		bool
-		view 		dbt.View
-		stmt 		*sql.Stmt
-	}
-)
+type query_get struct {
+	query
+	ctx 		context.Context
+	public 		bool
+	view 		dbt.View
+	stmt 		*sql.Stmt
+}
 
 func (q *query_get) Public() *query_get {
 	q.public = true
@@ -47,9 +36,7 @@ func (q *query_get) Prepare(tx *sql.Tx) error {
 	}
 	
 	q.parse_select()
-	fmt.Println("select out:", q.out_select)
-	//g.parse_where()
-	//fmt.Println("where:", g.in_where)
+	q.parse_where()
 	
 	var err error
 	sql := "SELECT id, timeout, lang FROM block WHERE id=?"
@@ -62,23 +49,6 @@ func (q *query_get) Prepare(tx *sql.Tx) error {
 
 func (q *query_get) Close(){
 	q.stmt.Close()
-}
-
-func (q *query_get) parse_select(){
-	q.out_select = make(select_clause, len(q.in_select))
-	for k, v := range q.in_select {
-		if s1, s2, found := strings.Cut(v, "|"); found {
-			q.out_select[k].fn 		= s1
-			q.out_select[k].field 	= s2
-		}else{
-			q.out_select[k].field 	= v
-		}
-		
-		if s1, s2, found := strings.Cut(q.out_select[k].field, "="); found {
-			q.out_select[k].field 	= s1
-			q.out_select[k].as 		= s2
-		}
-	}
 }
 
 /*rows, err := stmt.QueryContext(ctx, 1)
