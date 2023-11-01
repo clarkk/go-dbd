@@ -1,5 +1,9 @@
 package dbt
 
+import (
+	"slices"
+)
+
 const (
 	LEFT_JOIN join_mode 	= "LEFT JOIN"
 	INNER_JOIN join_mode 	= "INNER JOIN"
@@ -58,24 +62,27 @@ func NewView(table *Table, as string, public bool) View {
 	}
 }
 
+func (t *Table) Exists(field string) bool {
+	if _, found := t.fields[field]; found {
+		return true
+	}
+	return false
+}
+
+func (t *Table) Exists_public(field string) bool {
+	return slices.Contains(t.get, field)
+}
+
+func (t *Table) Joined(field string) bool {
+	return t.name != t.fields[field].Table
+}
+
+func (t *Table) Col(field string) string {
+	return t.fields[field].Col
+}
+
 func (t *Table) Name() string {
 	return t.name
-}
-
-func (t *Table) Fields() Fields {
-	return t.fields
-}
-
-func (t *Table) Joins() Joins {
-	return t.joins
-}
-
-func (t *Table) Get() Get {
-	return t.get
-}
-
-func (t *Table) Put() Put {
-	return t.put
 }
 
 func (v View) Table() *Table {

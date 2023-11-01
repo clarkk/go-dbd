@@ -3,7 +3,6 @@ package dbq
 import(
 	"fmt"
 	"strings"
-	"slices"
 	//"github.com/go-errors/errors"
 	"github.com/clarkk/go-dbd/dbt"
 )
@@ -25,17 +24,22 @@ type (
 	Where 			map[string]string
 	
 	query struct {
-		public 		bool
-		view 		dbt.View
+		public 			bool
 		
-		in_select 	Select
-		in_where 	Where
+		view 			dbt.View
+		table 			*dbt.Table
+		table_as 		string
 		
-		out_select 	select_clause
-		out_where 	where_clause
+		in_select 		Select
+		in_where 		Where
 		
-		error_code 			error_code
-		invalid_fields 		map[string]string
+		out_select 		select_clause
+		out_where 		where_clause
+		
+		joined 			bool
+		
+		error_code 		error_code
+		invalid_fields 	map[string]string
 	}
 	
 	select_field struct {
@@ -57,10 +61,6 @@ type (
 )
 
 func (q *query) parse_select(){
-	table 	:= q.view.Table()
-	fields 	:= table.Fields()
-	get 	:= table.Get()
-	
 	q.out_select = make(select_clause, len(q.in_select))
 	for k, v := range q.in_select {
 		//	Parse field
@@ -75,23 +75,13 @@ func (q *query) parse_select(){
 			q.out_select[k].as 		= s2
 		}
 		
-		//	Check if field exists
-		if q.public {
-			if !slices.Contains(get, q.out_select[k].field) {
-				q.error_invalid_field(q.out_select[k].field)
-			}
-		}else{
-			if _, found := fields[q.out_select[k].field]; !found {
-				q.error_invalid_field(q.out_select[k].field)
-			}
-		}
+		q.field_exists(q.out_select[k].field)
 		
 		if q.error_code != 0 {
 			continue
 		}
 		
-		//	Translate field
-		
+		q.field_translate(q.out_select[k].field)
 	}
 }
 
@@ -99,5 +89,26 @@ func (q *query) parse_where(){
 	q.out_where = make(where_clause, len(q.in_where))
 	for k, v := range q.in_where {
 		fmt.Println("where:", k, v)
+	}
+}
+
+func (q *query) field_translate(name string){
+	//	Joined tables
+	if q.table.Joined(name) {
+		q.joined = true
+		
+		fmt.Println(q.table_as, q.table.Col(name))
+	}else{
+		fmt.Println(q.table_as, q.table.Col(name))
+	}
+}
+
+func (q *query) field_exists(name string){
+	if q.public && !q.table.Exists_public(name) {
+		q.error_invalid_field(name)
+	}
+	
+	if !q.table.Exists(name) {
+		q.error_invalid_field(name)
 	}
 }

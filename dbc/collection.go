@@ -1,4 +1,4 @@
-package dbd
+package dbc
 
 import (
 	"fmt"
@@ -15,10 +15,10 @@ const (
 )
 
 var (
-	reserved = map[string]bool{
-		SQL_SELECT:	true,
-		SQL_ORDER:	true,
-		SQL_LIMIT:	true,
+	reserved = []string{
+		SQL_SELECT,
+		SQL_ORDER,
+		SQL_LIMIT,
 	}
 )
 
@@ -46,8 +46,8 @@ func (c *Collection) Add(view dbt.View) *Collection {
 	}
 	
 	//	Check for reserved keywords
-	for k, _ := range table.Fields() {
-		if _, ok := reserved[k]; ok {
+	for _, k := range reserved {
+		if table.Exists(k) {
 			panic("Reserved keyword in: "+name+"."+k)
 		}
 	}

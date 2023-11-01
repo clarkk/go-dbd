@@ -16,7 +16,9 @@ type Query_get struct {
 func NewQuery_get(ctx context.Context, view dbt.View) *Query_get {
 	return &Query_get{
 		query: query{
-			view: view,
+			view:		view,
+			table:		view.Table(),
+			table_as:	view.As(),
 		},
 		ctx: ctx,
 	}
