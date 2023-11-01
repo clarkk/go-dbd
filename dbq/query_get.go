@@ -1,33 +1,43 @@
-package dbd
+package dbq
 
 import (
 	"context"
 	"database/sql"
 	//"github.com/go-errors/errors"
+	"github.com/clarkk/go-dbd/dbt"
 )
 
-type query_get struct {
+type Query_get struct {
 	query
 	ctx 		context.Context
 	stmt 		*sql.Stmt
 }
 
-func (q *query_get) Public() *query_get {
+func NewQuery_get(ctx context.Context, view dbt.View) *Query_get {
+	return &Query_get{
+		query: query{
+			view: view,
+		},
+		ctx: ctx,
+	}
+}
+
+func (q *Query_get) Public() *Query_get {
 	q.public = true
 	return q
 }
 
-func (q *query_get) Select(fields Select) *query_get {
+func (q *Query_get) Select(fields Select) *Query_get {
 	q.in_select = fields
 	return q
 }
 
-func (q *query_get) Where(fields Where) *query_get {
+func (q *Query_get) Where(fields Where) *Query_get {
 	q.in_where = fields
 	return q
 }
 
-func (q *query_get) Prepare(tx *sql.Tx) (error_code, error) {
+func (q *Query_get) Prepare(tx *sql.Tx) (error_code, error) {
 	//	Check if table is private
 	if q.public && !q.view.Public() {
 		q.error_private()
@@ -58,7 +68,7 @@ func (q *query_get) Prepare(tx *sql.Tx) (error_code, error) {
 	return 0, nil
 }
 
-func (q *query_get) Close(){
+func (q *Query_get) Close(){
 	if q.stmt != nil {
 		q.stmt.Close()
 	}

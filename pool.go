@@ -23,9 +23,6 @@ var (
 )
 
 type (
-	Select 			[]string
-	Where 			map[string]string
-	
 	ctx_key 		string
 )
 

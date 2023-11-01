@@ -1,4 +1,4 @@
-package dbd
+package dbq
 
 import(
 	"fmt"
@@ -21,6 +21,9 @@ var (
 )
 
 type (
+	Select 			[]string
+	Where 			map[string]string
+	
 	query struct {
 		public 		bool
 		view 		dbt.View

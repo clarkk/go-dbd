@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"context"
 	"github.com/go-errors/errors"
+	"github.com/clarkk/go-dbd/dbq"
 	"github.com/clarkk/go-dbd/dbt"
 )
 
@@ -55,16 +56,11 @@ func (c *Collection) Add(view dbt.View) *Collection {
 	return c
 }
 
-func (c *Collection) Get(ctx context.Context, name string) (*query_get, error) {
+func (c *Collection) Get(ctx context.Context, name string) (*dbq.Query_get, error) {
 	view, ok := c.list[name]
 	if !ok {
 		return nil, errors.New(fmt.Sprintf("Table invalid: %s", name))
 	}
 	
-	return &query_get{
-		query: query{
-			view:	view,
-		},
-		ctx:	ctx,
-	}, nil
+	return dbq.NewQuery_get(ctx, view), nil
 }

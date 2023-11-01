@@ -1,4 +1,4 @@
-package dbd
+package dbq
 
 import(
 	"fmt"
