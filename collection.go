@@ -1,6 +1,7 @@
 package dbd
 
 import (
+	"fmt"
 	"context"
 	"github.com/go-errors/errors"
 	"github.com/clarkk/go-dbd/dbt"
@@ -13,9 +14,6 @@ const (
 )
 
 var (
-	ERR_TABLE 		= errors.New("Table invalid")
-	ERR_PRIVATE 	= errors.New("Table private")
-	
 	reserved = map[string]bool{
 		SQL_SELECT:	true,
 		SQL_ORDER:	true,
@@ -60,7 +58,7 @@ func (c *Collection) Add(view dbt.View) *Collection {
 func (c *Collection) Get(ctx context.Context, name string) (*query_get, error) {
 	view, ok := c.list[name]
 	if !ok {
-		return nil, ERR_TABLE
+		return nil, errors.New(fmt.Sprintf("Table invalid: %s", name))
 	}
 	
 	return &query_get{

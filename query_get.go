@@ -3,6 +3,7 @@ package dbd
 import (
 	"context"
 	"database/sql"
+	//"github.com/go-errors/errors"
 )
 
 type query_get struct {
@@ -26,10 +27,11 @@ func (q *query_get) Where(fields Where) *query_get {
 	return q
 }
 
-func (q *query_get) Prepare(tx *sql.Tx) error {
+func (q *query_get) Prepare(tx *sql.Tx) (error_code, error) {
 	//	Check if table is private
 	if q.public && !q.view.Public() {
-		return ERR_PRIVATE
+		q.error_private()
+		return q.error()
 	}
 	
 	/*table 	:= q.view.Table()
@@ -39,8 +41,13 @@ func (q *query_get) Prepare(tx *sql.Tx) error {
 	get 	:= table.Get()
 	fmt.Println("table:", as, fields, joins, get)*/
 	
+	q.invalid_fields = map[string]string{}
 	q.parse_select()
 	q.parse_where()
+	
+	if code, err := q.error(); code != 0 {
+		return code, err
+	}
 	
 	var err error
 	sql := "SELECT id, timeout, lang FROM block WHERE id=?"
@@ -48,11 +55,13 @@ func (q *query_get) Prepare(tx *sql.Tx) error {
 	if err != nil {
 		panic("SQL prepare "+sql+": "+err.Error())
 	}
-	return nil
+	return 0, nil
 }
 
 func (q *query_get) Close(){
-	q.stmt.Close()
+	if q.stmt != nil {
+		q.stmt.Close()
+	}
 }
 
 /*rows, err := stmt.QueryContext(ctx, 1)
