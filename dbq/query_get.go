@@ -39,22 +39,17 @@ func (q *Query_get) Prepare(tx *sql.Tx) (Error_code, error) {
 	
 	q.prepare()
 	q.parse_select()
-	
-	fmt.Println("ok")
-	
-	//table 	:= q.view.Table()
-	//as 		:= q.view.As()
-	//fields 	:= table.Fields()
-	//joins 	:= table.Joins()
-	//get 	:= table.Get()
-	//fmt.Println("table:", as, fields, joins, get)
-	
-	/*q.parse_where()
+	q.parse_where()
 	
 	if code, err := q.error(); code != 0 {
 		return code, err
 	}
 	
+	fmt.Println("ok")
+	fmt.Println("select:", q.out_select)
+	fmt.Println("where:", q.out_where)
+	
+	/*
 	var err error
 	sql := "SELECT id, timeout, lang FROM block WHERE id=?"
 	q.stmt, err = tx.PrepareContext(q.ctx, sql)
@@ -85,7 +80,7 @@ func (q *Query_get) parse_select(){
 			continue
 		}
 		
-		q.field_translate(q.out_select[k].field)
+		q.out_select[k].sql_exp = q.field_translate(q.out_select[k].field)
 	}
 }
 
@@ -96,12 +91,6 @@ func (q *Query_get) parse_select(){
 			table:		view.Table(),
 		},
 		ctx: ctx,
-	}
-}
-
-func (q *Query_get) Close(){
-	if q.stmt != nil {
-		q.stmt.Close()
 	}
 }*/
 

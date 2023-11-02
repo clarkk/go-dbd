@@ -2,7 +2,7 @@ package dbq
 
 import(
 	"fmt"
-	//"strings"
+	"strings"
 	"context"
 	"database/sql"
 	//"github.com/go-errors/errors"
@@ -49,12 +49,19 @@ type (
 		error_code 		Error_code
 		invalid_fields 	map[string]string
 		
-		//out_where 		where_clause
+		out_where 		where_clause
 		
 		joined 			bool
 	}
 	
+	sql_exp struct {
+		table 		string
+		abbr 		string
+		col 		string
+	}
+	
 	select_field struct {
+		sql_exp
 		fn 			string
 		field 		string
 		as 			string
@@ -62,13 +69,15 @@ type (
 	
 	select_clause 	[]select_field
 	
-	/*where_field struct {
-		clause 		string
+	where_field struct {
+		sql_exp
+		fn 			string
 		field 		string
-		as 			string
+		op 			string
+		value 		string
 	}
 	
-	where_clause 	[]where_field*/
+	where_clause 	[]where_field
 )
 
 func (q *Query) Public(){
@@ -90,6 +99,36 @@ func (q *Query) prepare(){
 	q.invalid_fields 	= map[string]string{}
 }
 
+func (q *Query) parse_where(){
+	q.out_where = make(where_clause, len(q.in_where))
+	i := 0
+	for k, v := range q.in_where {
+		q.out_where[i].value = v
+		
+		//	Parse field
+		if s1, s2, found := strings.Cut(k, "|"); found {
+			q.out_where[i].fn 		= s1
+			q.out_where[i].field 	= s2
+		}else{
+			q.out_where[i].field 	= k
+		}
+		if s1, s2, found := strings.Cut(q.out_where[i].field, " "); found {
+			q.out_where[i].field 	= s1
+			q.out_where[i].op 		= s2
+		}
+		fmt.Println(q.out_where[i])
+		q.field_exists(q.out_where[i].field)
+		
+		i++
+		
+		if q.error_code != 0 {
+			continue
+		}
+		
+		//q.out_where[i].sql_exp = q.field_translate(q.out_where[i].field)
+	}
+}
+
 func (q *Query) field_exists(name string){
 	if q.public && !q.table.Exists_public(name) {
 		q.error_invalid_field(name)
@@ -100,15 +139,26 @@ func (q *Query) field_exists(name string){
 	}
 }
 
-func (q *Query) field_translate(name string){
+func (q *Query) field_translate(name string) sql_exp {
 	//	Joined tables
+	var sql sql_exp
 	if q.table.Joined(name) {
 		q.joined = true
 		
-		fmt.Println(q.table.Table(name), q.table_as(q.table.Table(name)), q.table.Col(name))
+		sql = sql_exp{
+			table:	q.table.Table(name),
+			abbr:	q.table_as(q.table.Table(name)),
+			col:	q.table.Col(name),
+		}
 	}else{
-		fmt.Println(q.table_name, q.table_as(q.table_name), q.table.Col(name))
+		sql = sql_exp{
+			table:	q.table_name,
+			abbr:	q.table_as(q.table_name),
+			col:	q.table.Col(name),
+		}
 	}
+	
+	return sql
 }
 
 func (q *Query) table_as(name string) string {
@@ -127,10 +177,3 @@ func (q *Query) table_as(name string) string {
 		return q.table_as_map[name]
 	}
 }
-
-/*func (q *query) parse_where(){
-	q.out_where = make(where_clause, len(q.in_where))
-	for k, v := range q.in_where {
-		fmt.Println("where:", k, v)
-	}
-}*/
