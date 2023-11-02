@@ -35,12 +35,6 @@ type (
 		put 	Put
 	}
 	
-	View struct {
-		table 	*Table
-		as 		string
-		public 	bool
-	}
-	
 	join_mode 	string
 )
 
@@ -54,12 +48,8 @@ func NewTable(name string, fields Fields, joins Joins, get Get, put Put) *Table 
 	}
 }
 
-func NewView(table *Table, as string, public bool) View {
-	return View{
-		table,
-		as,
-		public,
-	}
+func (t *Table) Name() string {
+	return t.name
 }
 
 func (t *Table) Exists(field string) bool {
@@ -79,20 +69,4 @@ func (t *Table) Joined(field string) bool {
 
 func (t *Table) Col(field string) string {
 	return t.fields[field].Col
-}
-
-func (t *Table) Name() string {
-	return t.name
-}
-
-func (v View) Table() *Table {
-	return v.table
-}
-
-func (v View) As() string {
-	return v.as
-}
-
-func (v View) Public() bool {
-	return v.public
 }

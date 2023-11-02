@@ -1,10 +1,17 @@
 package dbq
 
 import(
-	"fmt"
-	"strings"
+	//"fmt"
+	//"strings"
+	"context"
+	"database/sql"
 	//"github.com/go-errors/errors"
-	"github.com/clarkk/go-dbd/dbt"
+	"github.com/clarkk/go-dbd/dbv"
+)
+
+/*const (
+	RUNE_START 	= 97
+	RUNE_END 	= 122
 )
 
 var (
@@ -17,29 +24,36 @@ var (
 		"bt":	"BETWEEN ? AND ?",
 		"!bt":	"NOT BETWEEN ? AND ?",
 	}
-)
+)*/
 
 type (
 	Select 			[]string
 	Where 			map[string]string
 	
-	query struct {
+	Query struct {
+		ctx 			context.Context
+		table_name 		string
+		views 			dbv.Views
+		view 			dbv.View
+		
 		public 			bool
 		
-		view 			dbt.View
-		table 			*dbt.Table
-		table_as 		string
+		table_as_i 		rune
+		table_as_map 	map[string]rune
 		
-		in_select 		Select
 		in_where 		Where
 		
-		out_select 		select_clause
+		stmt 			*sql.Stmt
+		
+		/*
+		table 			*dbt.Table
+		
 		out_where 		where_clause
 		
 		joined 			bool
 		
-		error_code 		error_code
-		invalid_fields 	map[string]string
+		error_code 		Error_code
+		invalid_fields 	map[string]string*/
 	}
 	
 	select_field struct {
@@ -48,44 +62,37 @@ type (
 		as 			string
 	}
 	
-	where_field struct {
+	select_clause 	[]select_field
+	
+	/*where_field struct {
 		clause 		string
 		field 		string
 		as 			string
 	}
 	
-	select_clause 	[]select_field
-	where_clause 	[]where_field
-	
-	error_code 		uint8
+	where_clause 	[]where_field*/
 )
 
-func (q *query) parse_select(){
-	q.out_select = make(select_clause, len(q.in_select))
-	for k, v := range q.in_select {
-		//	Parse field
-		if s1, s2, found := strings.Cut(v, "|"); found {
-			q.out_select[k].fn 		= s1
-			q.out_select[k].field 	= s2
-		}else{
-			q.out_select[k].field 	= v
-		}
-		if s1, s2, found := strings.Cut(q.out_select[k].field, "="); found {
-			q.out_select[k].field 	= s1
-			q.out_select[k].as 		= s2
-		}
-		
-		q.field_exists(q.out_select[k].field)
-		
-		if q.error_code != 0 {
-			continue
-		}
-		
-		q.field_translate(q.out_select[k].field)
+func (q *Query) Public(){
+	q.public = true
+}
+
+func (q *Query) Where(fields Where){
+	q.in_where = fields
+}
+
+func (q *Query) Close(){
+	if q.stmt != nil {
+		q.stmt.Close()
 	}
 }
 
-func (q *query) parse_where(){
+func (q *Query) prepare(){
+	q.table_as_map 		= map[string]rune{}
+	//q.invalid_fields 	= map[string]string{}
+}
+
+/*func (q *query) parse_where(){
 	q.out_where = make(where_clause, len(q.in_where))
 	for k, v := range q.in_where {
 		fmt.Println("where:", k, v)
@@ -97,9 +104,9 @@ func (q *query) field_translate(name string){
 	if q.table.Joined(name) {
 		q.joined = true
 		
-		fmt.Println(q.table_as, q.table.Col(name))
+		fmt.Println(q.table_as(name), q.table.Col(name))
 	}else{
-		fmt.Println(q.table_as, q.table.Col(name))
+		fmt.Println(q.table_as(name), q.table.Col(name))
 	}
 }
 
@@ -112,3 +119,21 @@ func (q *query) field_exists(name string){
 		q.error_invalid_field(name)
 	}
 }
+
+func (q *query) table_as(name string) rune {
+	r, found := q.table_as_map[name]
+	if found {
+		return r
+	}else{
+		switch q.table_as_i {
+		case 0:
+			q.table_as_i = RUNE_START
+		case RUNE_END:
+			panic("Table join exceeded map limit")
+		default:
+			q.table_as_i++
+		}
+		q.table_as_map[name] = q.table_as_i
+		return q.table_as_i
+	}
+}*/

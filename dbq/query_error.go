@@ -2,21 +2,32 @@ package dbq
 
 import(
 	"fmt"
-	"strings"
+	//"strings"
 	"github.com/go-errors/errors"
 )
 
 const (
-	ERR_CODE_PRIVATE error_code 		= 1
-	ERR_CODE_INVALID_FIELDS error_code 	= 2
+	ERR_CODE_TABLE Error_code 			= 1
+	ERR_CODE_PRIVATE Error_code 		= 2
+	ERR_CODE_INVALID_FIELDS Error_code 	= 3
 )
 
-func (q *query) error() (error_code, error) {
+type (
+	Error_code 		uint8
+)
+
+func (q *Query) error_table(name string) (Error_code, error) {
+	return ERR_CODE_TABLE, errors.New(fmt.Sprintf("Table invalid: %s", name))
+}
+
+func (q *Query) error_table_private() (Error_code, error) {
+	return ERR_CODE_PRIVATE, errors.New("Table private")
+}
+
+/*func (q *query) error() (Error_code, error) {
 	if q.error_code != 0 {
 		switch q.error_code {
-		case ERR_CODE_PRIVATE:
-			return q.error_code, errors.New("Table private")
-			
+		
 		case ERR_CODE_INVALID_FIELDS:
 			var msg string
 			values := make([]string, len(q.invalid_fields))
@@ -44,11 +55,7 @@ func (q *query) error() (error_code, error) {
 	return 0, nil
 }
 
-func (q *query) error_private(){
-	q.error_code = ERR_CODE_PRIVATE
-}
-
 func (q *query) error_invalid_field(name string){
 	q.error_code 			= ERR_CODE_INVALID_FIELDS
 	q.invalid_fields[name]	= fmt.Sprintf(`Field translation missing in '%s' for field: %s`, q.view.Table().Name(), name)
-}
+}*/

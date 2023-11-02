@@ -1,11 +1,10 @@
 package dbc
 
 import (
-	"fmt"
 	"context"
-	"github.com/go-errors/errors"
+	//"github.com/go-errors/errors"
 	"github.com/clarkk/go-dbd/dbq"
-	"github.com/clarkk/go-dbd/dbt"
+	"github.com/clarkk/go-dbd/dbv"
 )
 
 const (
@@ -24,28 +23,26 @@ var (
 
 type (
 	Collection struct {
-		list 		views
+		list 	dbv.Views
 	}
-	
-	views 			map[string]dbt.View
 )
 
 func NewCollection() *Collection {
 	return &Collection{
-		list: views{},
+		list: dbv.Views{},
 	}
 }
 
-func (c *Collection) Add(view dbt.View) *Collection {
+func (c *Collection) Apply(view dbv.View) *Collection {
 	table 	:= view.Table()
 	name 	:= table.Name()
 	
 	//	Check if table is duplicated
-	if _, ok := c.list[name]; ok {
+	if _, found := c.list[name]; found {
 		panic("Table is already added to collection: "+name)
 	}
 	
-	//	Check for reserved keywords
+	//	Check for reserved keywords in fields
 	for _, k := range reserved {
 		if table.Exists(k) {
 			panic("Reserved keyword in: "+name+"."+k)
@@ -56,11 +53,8 @@ func (c *Collection) Add(view dbt.View) *Collection {
 	return c
 }
 
-func (c *Collection) Get(ctx context.Context, name string) (*dbq.Query_get, error) {
-	view, ok := c.list[name]
-	if !ok {
-		return nil, errors.New(fmt.Sprintf("Table invalid: %s", name))
+func (c *Collection) Get(ctx context.Context, table string) *get {
+	return &get{
+		query: dbq.NewQuery_get(ctx, table, c.list),
 	}
-	
-	return dbq.NewQuery_get(ctx, view), nil
 }

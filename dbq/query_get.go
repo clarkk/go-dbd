@@ -1,60 +1,63 @@
 package dbq
 
 import (
+	"fmt"
 	"context"
 	"database/sql"
 	//"github.com/go-errors/errors"
-	"github.com/clarkk/go-dbd/dbt"
+	"github.com/clarkk/go-dbd/dbv"
 )
 
 type Query_get struct {
-	query
-	ctx 		context.Context
-	stmt 		*sql.Stmt
+	Query
+	
+	in_select 		Select
+	out_select 		select_clause
 }
 
-func NewQuery_get(ctx context.Context, view dbt.View) *Query_get {
+func NewQuery_get(ctx context.Context, table string, views dbv.Views) *Query_get {
 	return &Query_get{
-		query: query{
-			view:		view,
-			table:		view.Table(),
-			table_as:	view.As(),
+		Query: Query{
+			ctx:		ctx,
+			table_name:	table,
+			views:		views,
 		},
-		ctx: ctx,
 	}
 }
 
-func (q *Query_get) Public() *Query_get {
-	q.public = true
-	return q
-}
-
-func (q *Query_get) Select(fields Select) *Query_get {
+func (q *Query_get) Select(fields Select){
 	q.in_select = fields
-	return q
 }
 
-func (q *Query_get) Where(fields Where) *Query_get {
-	q.in_where = fields
-	return q
-}
-
-func (q *Query_get) Prepare(tx *sql.Tx) (error_code, error) {
+func (q *Query_get) Prepare(tx *sql.Tx) (Error_code, error) {
+	//	Check if table exists
+	var found bool
+	q.view, found = q.views[q.table_name]
+	if !found {
+		return q.error_table(q.table_name)
+	}
+	
 	//	Check if table is private
 	if q.public && !q.view.Public() {
-		q.error_private()
-		return q.error()
+		return q.error_table_private()
 	}
 	
-	/*table 	:= q.view.Table()
-	as 		:= q.view.As()
-	fields 	:= table.Fields()
-	joins 	:= table.Joins()
-	get 	:= table.Get()
-	fmt.Println("table:", as, fields, joins, get)*/
-	
-	q.invalid_fields = map[string]string{}
+	q.prepare()
 	q.parse_select()
+	
+	fmt.Println("ok")
+	
+	
+	
+	//table 	:= q.view.Table()
+	//as 		:= q.view.As()
+	//fields 	:= table.Fields()
+	//joins 	:= table.Joins()
+	//get 	:= table.Get()
+	//fmt.Println("table:", as, fields, joins, get)
+	
+	/*
+	
 	q.parse_where()
 	
 	if code, err := q.error(); code != 0 {
@@ -66,15 +69,50 @@ func (q *Query_get) Prepare(tx *sql.Tx) (error_code, error) {
 	q.stmt, err = tx.PrepareContext(q.ctx, sql)
 	if err != nil {
 		panic("SQL prepare "+sql+": "+err.Error())
-	}
+	}*/
 	return 0, nil
+}
+
+func (q *Query) parse_select(){
+	/*q.out_select = make(select_clause, len(q.in_select))
+	for k, v := range q.in_select {
+		//	Parse field
+		if s1, s2, found := strings.Cut(v, "|"); found {
+			q.out_select[k].fn 		= s1
+			q.out_select[k].field 	= s2
+		}else{
+			q.out_select[k].field 	= v
+		}
+		if s1, s2, found := strings.Cut(q.out_select[k].field, "="); found {
+			q.out_select[k].field 	= s1
+			q.out_select[k].as 		= s2
+		}
+		
+		q.field_exists(q.out_select[k].field)
+		
+		if q.error_code != 0 {
+			continue
+		}
+		
+		q.field_translate(q.out_select[k].field)
+	}*/
+}
+
+/*func NewQuery_get(ctx context.Context, view dbt.View) *Query_get {
+	return &Query_get{
+		query: query{
+			view:		view,
+			table:		view.Table(),
+		},
+		ctx: ctx,
+	}
 }
 
 func (q *Query_get) Close(){
 	if q.stmt != nil {
 		q.stmt.Close()
 	}
-}
+}*/
 
 /*rows, err := stmt.QueryContext(ctx, 1)
 if err != nil {
