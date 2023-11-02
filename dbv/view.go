@@ -8,20 +8,20 @@ type (
 		public 	bool
 	}
 	
-	Views 		map[string]View
+	Views 		map[string]*View
 )
 
-func NewView(table *dbt.Table, public bool) View {
-	return View{
+func NewView(table *dbt.Table, public bool) *View {
+	return &View{
 		table,
 		public,
 	}
 }
 
-func (v View) Table() *dbt.Table {
+func (v *View) Table() *dbt.Table {
 	return v.table
 }
 
-func (v View) Public() bool {
+func (v *View) Public() bool {
 	return v.public
 }

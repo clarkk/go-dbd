@@ -3,6 +3,7 @@ package dbq
 import (
 	"fmt"
 	"context"
+	"strings"
 	"database/sql"
 	//"github.com/go-errors/errors"
 	"github.com/clarkk/go-dbd/dbv"
@@ -15,12 +16,13 @@ type Query_get struct {
 	out_select 		select_clause
 }
 
-func NewQuery_get(ctx context.Context, table string, views dbv.Views) *Query_get {
+func NewQuery_get(ctx context.Context, name string, view *dbv.View) *Query_get {
 	return &Query_get{
 		Query: Query{
 			ctx:		ctx,
-			table_name:	table,
-			views:		views,
+			view:		view,
+			table:		view.Table(),
+			table_name:	name,
 		},
 	}
 }
@@ -30,13 +32,6 @@ func (q *Query_get) Select(fields Select){
 }
 
 func (q *Query_get) Prepare(tx *sql.Tx) (Error_code, error) {
-	//	Check if table exists
-	var found bool
-	q.view, found = q.views[q.table_name]
-	if !found {
-		return q.error_table(q.table_name)
-	}
-	
 	//	Check if table is private
 	if q.public && !q.view.Public() {
 		return q.error_table_private()
@@ -47,8 +42,6 @@ func (q *Query_get) Prepare(tx *sql.Tx) (Error_code, error) {
 	
 	fmt.Println("ok")
 	
-	
-	
 	//table 	:= q.view.Table()
 	//as 		:= q.view.As()
 	//fields 	:= table.Fields()
@@ -56,9 +49,7 @@ func (q *Query_get) Prepare(tx *sql.Tx) (Error_code, error) {
 	//get 	:= table.Get()
 	//fmt.Println("table:", as, fields, joins, get)
 	
-	/*
-	
-	q.parse_where()
+	/*q.parse_where()
 	
 	if code, err := q.error(); code != 0 {
 		return code, err
@@ -73,8 +64,8 @@ func (q *Query_get) Prepare(tx *sql.Tx) (Error_code, error) {
 	return 0, nil
 }
 
-func (q *Query) parse_select(){
-	/*q.out_select = make(select_clause, len(q.in_select))
+func (q *Query_get) parse_select(){
+	q.out_select = make(select_clause, len(q.in_select))
 	for k, v := range q.in_select {
 		//	Parse field
 		if s1, s2, found := strings.Cut(v, "|"); found {
@@ -95,7 +86,7 @@ func (q *Query) parse_select(){
 		}
 		
 		q.field_translate(q.out_select[k].field)
-	}*/
+	}
 }
 
 /*func NewQuery_get(ctx context.Context, view dbt.View) *Query_get {

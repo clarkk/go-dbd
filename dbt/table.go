@@ -67,6 +67,10 @@ func (t *Table) Joined(field string) bool {
 	return t.name != t.fields[field].Table
 }
 
+func (t *Table) Table(field string) string {
+	return t.fields[field].Table
+}
+
 func (t *Table) Col(field string) string {
 	return t.fields[field].Col
 }

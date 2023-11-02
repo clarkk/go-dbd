@@ -1,20 +1,21 @@
 package dbq
 
 import(
-	//"fmt"
+	"fmt"
 	//"strings"
 	"context"
 	"database/sql"
 	//"github.com/go-errors/errors"
+	"github.com/clarkk/go-dbd/dbt"
 	"github.com/clarkk/go-dbd/dbv"
 )
 
-/*const (
+const (
 	RUNE_START 	= 97
 	RUNE_END 	= 122
 )
 
-var (
+/*var (
 	sql_operator_in = map[string]string{
 		"in":	"IN (?)",
 		"!in":	"NOT IN (?)",
@@ -32,28 +33,25 @@ type (
 	
 	Query struct {
 		ctx 			context.Context
+		view 			*dbv.View
+		table 			*dbt.Table
 		table_name 		string
-		views 			dbv.Views
-		view 			dbv.View
 		
 		public 			bool
 		
 		table_as_i 		rune
-		table_as_map 	map[string]rune
+		table_as_map 	map[string]string
 		
 		in_where 		Where
 		
 		stmt 			*sql.Stmt
 		
-		/*
-		table 			*dbt.Table
+		error_code 		Error_code
+		invalid_fields 	map[string]string
 		
-		out_where 		where_clause
+		//out_where 		where_clause
 		
 		joined 			bool
-		
-		error_code 		Error_code
-		invalid_fields 	map[string]string*/
 	}
 	
 	select_field struct {
@@ -88,29 +86,11 @@ func (q *Query) Close(){
 }
 
 func (q *Query) prepare(){
-	q.table_as_map 		= map[string]rune{}
-	//q.invalid_fields 	= map[string]string{}
+	q.table_as_map 		= map[string]string{}
+	q.invalid_fields 	= map[string]string{}
 }
 
-/*func (q *query) parse_where(){
-	q.out_where = make(where_clause, len(q.in_where))
-	for k, v := range q.in_where {
-		fmt.Println("where:", k, v)
-	}
-}
-
-func (q *query) field_translate(name string){
-	//	Joined tables
-	if q.table.Joined(name) {
-		q.joined = true
-		
-		fmt.Println(q.table_as(name), q.table.Col(name))
-	}else{
-		fmt.Println(q.table_as(name), q.table.Col(name))
-	}
-}
-
-func (q *query) field_exists(name string){
+func (q *Query) field_exists(name string){
 	if q.public && !q.table.Exists_public(name) {
 		q.error_invalid_field(name)
 	}
@@ -120,10 +100,20 @@ func (q *query) field_exists(name string){
 	}
 }
 
-func (q *query) table_as(name string) rune {
-	r, found := q.table_as_map[name]
-	if found {
-		return r
+func (q *Query) field_translate(name string){
+	//	Joined tables
+	if q.table.Joined(name) {
+		q.joined = true
+		
+		fmt.Println(q.table.Table(name), q.table_as(q.table.Table(name)), q.table.Col(name))
+	}else{
+		fmt.Println(q.table_name, q.table_as(q.table_name), q.table.Col(name))
+	}
+}
+
+func (q *Query) table_as(name string) string {
+	if r, found := q.table_as_map[name]; found {
+		return string(r)
 	}else{
 		switch q.table_as_i {
 		case 0:
@@ -133,7 +123,14 @@ func (q *query) table_as(name string) rune {
 		default:
 			q.table_as_i++
 		}
-		q.table_as_map[name] = q.table_as_i
-		return q.table_as_i
+		q.table_as_map[name] = string(q.table_as_i)
+		return q.table_as_map[name]
+	}
+}
+
+/*func (q *query) parse_where(){
+	q.out_where = make(where_clause, len(q.in_where))
+	for k, v := range q.in_where {
+		fmt.Println("where:", k, v)
 	}
 }*/

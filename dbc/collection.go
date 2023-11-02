@@ -1,8 +1,9 @@
 package dbc
 
 import (
+	"fmt"
 	"context"
-	//"github.com/go-errors/errors"
+	"github.com/go-errors/errors"
 	"github.com/clarkk/go-dbd/dbq"
 	"github.com/clarkk/go-dbd/dbv"
 )
@@ -33,7 +34,7 @@ func NewCollection() *Collection {
 	}
 }
 
-func (c *Collection) Apply(view dbv.View) *Collection {
+func (c *Collection) Apply(view *dbv.View) *Collection {
 	table 	:= view.Table()
 	name 	:= table.Name()
 	
@@ -53,8 +54,14 @@ func (c *Collection) Apply(view dbv.View) *Collection {
 	return c
 }
 
-func (c *Collection) Get(ctx context.Context, table string) *get {
-	return &get{
-		query: dbq.NewQuery_get(ctx, table, c.list),
+func (c *Collection) Get(ctx context.Context, name string) (*get, error) {
+	//	Check if table exists
+	view, found := c.list[name]
+	if !found {
+		return nil, errors.New(fmt.Sprintf("Table invalid: %s", name))
 	}
+	
+	return &get{
+		query: dbq.NewQuery_get(ctx, name, view),
+	}, nil
 }
