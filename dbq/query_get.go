@@ -2,9 +2,7 @@ package dbq
 
 import (
 	"fmt"
-	"context"
 	"strings"
-	"database/sql"
 	//"github.com/go-errors/errors"
 	"github.com/clarkk/go-dbd/dbv"
 )
@@ -16,10 +14,9 @@ type Query_get struct {
 	out_select 		select_clause
 }
 
-func NewQuery_get(ctx context.Context, name string, view *dbv.View) *Query_get {
+func NewQuery_get(name string, view *dbv.View) *Query_get {
 	return &Query_get{
 		Query: Query{
-			ctx:		ctx,
 			view:		view,
 			table:		view.Table(),
 			table_name:	name,
@@ -31,7 +28,7 @@ func (q *Query_get) Select(fields Select){
 	q.in_select = fields
 }
 
-func (q *Query_get) Prepare(tx *sql.Tx) (Error_code, error) {
+func (q *Query_get) Write() (Error_code, error) {
 	//	Check if table is private
 	if q.public && !q.view.Public() {
 		return q.error_table_private()
@@ -41,21 +38,24 @@ func (q *Query_get) Prepare(tx *sql.Tx) (Error_code, error) {
 	q.parse_select()
 	q.parse_where()
 	
+	//	Check if select is empty
+	if len(q.out_select) == 0 {
+		return q.error_select_empty()
+	}
+	
 	if code, err := q.error(); code != 0 {
 		return code, err
 	}
 	
-	fmt.Println("ok")
+	//SQL_CALC_FOUND_ROWS
+	
+	q.sql = `SELECT `+q.sql_select_clause(q.out_select)+`
+FROM `+q.table_name
+	
+	fmt.Println(q.sql)
 	fmt.Println("select:", q.out_select)
 	fmt.Println("where:", q.out_where)
 	
-	/*
-	var err error
-	sql := "SELECT id, timeout, lang FROM block WHERE id=?"
-	q.stmt, err = tx.PrepareContext(q.ctx, sql)
-	if err != nil {
-		panic("SQL prepare "+sql+": "+err.Error())
-	}*/
 	return 0, nil
 }
 
@@ -82,6 +82,14 @@ func (q *Query_get) parse_select(){
 		
 		q.out_select[k].sql_exp = q.field_translate(q.out_select[k].field)
 	}
+}
+
+func (q *Query) sql_select_clause(values select_clause) string {
+	sql := make([]string, len(values))
+	for k, v := range values {
+		sql[k] = v.field
+	}
+	return strings.Join(sql, ",")
 }
 
 /*func NewQuery_get(ctx context.Context, view dbt.View) *Query_get {

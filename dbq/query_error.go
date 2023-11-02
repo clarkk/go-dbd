@@ -8,7 +8,9 @@ import(
 
 const (
 	ERR_CODE_PRIVATE Error_code 		= 1
-	ERR_CODE_INVALID_FIELDS Error_code 	= 2
+	ERR_CODE_FIELDS_INVALID Error_code 	= 2
+	ERR_CODE_SELECT_EMPTY Error_code 	= 3
+	ERR_CODE_WHERE_VALUES Error_code 	= 4
 )
 
 type (
@@ -21,7 +23,7 @@ func (q *Query) error() (Error_code, error) {
 	}
 	
 	switch q.error_code {
-	case ERR_CODE_INVALID_FIELDS:
+	case ERR_CODE_FIELDS_INVALID:
 		var msg string
 		values := make([]string, len(q.invalid_fields))
 		i := 0
@@ -30,7 +32,7 @@ func (q *Query) error() (Error_code, error) {
 				values[i] = k
 				i++
 			}
-			msg = fmt.Sprintf("Invalid fields: %s", strings.Join(values, ", "))
+			msg = fmt.Sprintf("Fields invalid: %s", strings.Join(values, ", "))
 		}else{
 			for _, v := range q.invalid_fields {
 				values[i] = v
@@ -39,6 +41,11 @@ func (q *Query) error() (Error_code, error) {
 			msg = strings.Join(values, ", ")
 		}
 		return q.error_code, errors.New(msg)
+		
+	case ERR_CODE_WHERE_VALUES:
+		return q.error_code, errors.New(
+			fmt.Sprintf("Where input values invalid: %s", strings.Join(q.invalid_where, ", ")),
+		)
 		
 	default:
 		return q.error_code, errors.New("Unspecified error")
@@ -50,6 +57,15 @@ func (q *Query) error_table_private() (Error_code, error) {
 }
 
 func (q *Query) error_invalid_field(name string){
-	q.error_code 			= ERR_CODE_INVALID_FIELDS
+	q.error_code 			= ERR_CODE_FIELDS_INVALID
 	q.invalid_fields[name]	= fmt.Sprintf(`Field translation missing in '%s' for field: %s`, q.table_name, name)
+}
+
+func (q *Query) error_select_empty() (Error_code, error) {
+	return ERR_CODE_SELECT_EMPTY, errors.New("Select empty")
+}
+
+func (q *Query) error_where_value(name string){
+	q.error_code 		= ERR_CODE_WHERE_VALUES
+	q.invalid_where		= append(q.invalid_where, fmt.Sprintf(`Where input values invalid: %s`, name))
 }

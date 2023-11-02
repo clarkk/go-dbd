@@ -2,9 +2,9 @@ package dbd
 
 import (
 	"testing"
-	c "github.com/clarkk/go-dbd/dbc"
+	"github.com/clarkk/go-dbd/dbq"
 	t "github.com/clarkk/go-dbd/dbt"
-	v "github.com/clarkk/go-dbd/dbv"
+	"github.com/clarkk/go-dbd/dbv"
 )
 
 const (
@@ -47,15 +47,22 @@ var Client = t.NewTable(
 	t.Put{},
 )
 
-var App = c.NewCollection().Apply(v.NewView(
-	Block,
-	true,
-)).Apply(v.NewView(
-	Client,
-	false,
-))
-
 func Test_Query(t *testing.T){
+	var (
+		qg 		*dbq.Query_get
+		code 	dbq.Error_code
+	)
+	qg = dbq.NewQuery_get("block", dbv.NewView(
+		Block,
+		true,
+	));
+	qg.Select(
+		dbq.Select{
+			"id",
+		},
+	)
+	code, _ = qg.Write()
+	t.Log("code", code)
 	
 	/*key_bytes, pub_bytes 	:= Generate_RSA(BITS)
 	key_len 				:= len(key_bytes)

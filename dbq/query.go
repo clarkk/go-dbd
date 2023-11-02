@@ -1,18 +1,16 @@
 package dbq
 
 import(
-	"fmt"
 	"strings"
 	"context"
-	"database/sql"
 	//"github.com/go-errors/errors"
 	"github.com/clarkk/go-dbd/dbt"
 	"github.com/clarkk/go-dbd/dbv"
 )
 
 const (
-	RUNE_START 	= 97
-	RUNE_END 	= 122
+	RUNE_START 	= 97 // a
+	RUNE_END 	= 122 // z
 )
 
 /*var (
@@ -29,7 +27,7 @@ const (
 
 type (
 	Select 			[]string
-	Where 			map[string]string
+	Where 			map[string]interface{}
 	
 	Query struct {
 		ctx 			context.Context
@@ -44,19 +42,20 @@ type (
 		
 		in_where 		Where
 		
-		stmt 			*sql.Stmt
-		
 		error_code 		Error_code
 		invalid_fields 	map[string]string
+		invalid_where 	[]string
 		
 		out_where 		where_clause
 		
 		joined 			bool
+		
+		sql 			string
 	}
 	
 	sql_exp struct {
 		table 		string
-		abbr 		string
+		as 			string
 		col 		string
 	}
 	
@@ -88,10 +87,8 @@ func (q *Query) Where(fields Where){
 	q.in_where = fields
 }
 
-func (q *Query) Close(){
-	if q.stmt != nil {
-		q.stmt.Close()
-	}
+func (q *Query_get) SQL() string {
+	return q.sql
 }
 
 func (q *Query) prepare(){
@@ -103,29 +100,37 @@ func (q *Query) parse_where(){
 	q.out_where = make(where_clause, len(q.in_where))
 	i := 0
 	for k, v := range q.in_where {
-		q.out_where[i].value = v
+		var field string
 		
 		//	Parse field
 		if s1, s2, found := strings.Cut(k, "|"); found {
-			q.out_where[i].fn 		= s1
-			q.out_where[i].field 	= s2
+			q.out_where[i].fn 	= s1
+			field 				= s2
 		}else{
-			q.out_where[i].field 	= k
+			field 				= k
 		}
-		if s1, s2, found := strings.Cut(q.out_where[i].field, " "); found {
-			q.out_where[i].field 	= s1
-			q.out_where[i].op 		= s2
+		if s1, s2, found := strings.Cut(field, " "); found {
+			field 				= s1
+			q.out_where[i].op 	= s2
 		}
-		fmt.Println(q.out_where[i])
-		q.field_exists(q.out_where[i].field)
 		
-		i++
+		var ok bool
+		q.out_where[i].value, ok = v.(string)
+		if !ok {
+			q.error_where_value(field)
+		}
+		
+		q.field_exists(field)
+		
+		q.out_where[i].field = field
 		
 		if q.error_code != 0 {
+			i++
 			continue
 		}
 		
-		//q.out_where[i].sql_exp = q.field_translate(q.out_where[i].field)
+		q.out_where[i].sql_exp = q.field_translate(field)
+		i++
 	}
 }
 
@@ -147,13 +152,13 @@ func (q *Query) field_translate(name string) sql_exp {
 		
 		sql = sql_exp{
 			table:	q.table.Table(name),
-			abbr:	q.table_as(q.table.Table(name)),
+			as:		q.table_as(q.table.Table(name)),
 			col:	q.table.Col(name),
 		}
 	}else{
 		sql = sql_exp{
 			table:	q.table_name,
-			abbr:	q.table_as(q.table_name),
+			as:		q.table_as(q.table_name),
 			col:	q.table.Col(name),
 		}
 	}
@@ -169,7 +174,7 @@ func (q *Query) table_as(name string) string {
 		case 0:
 			q.table_as_i = RUNE_START
 		case RUNE_END:
-			panic("Table join exceeded map limit")
+			panic("Table joins exceeded limit")
 		default:
 			q.table_as_i++
 		}

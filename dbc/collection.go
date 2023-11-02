@@ -62,6 +62,7 @@ func (c *Collection) Get(ctx context.Context, name string) (*get, error) {
 	}
 	
 	return &get{
-		query: dbq.NewQuery_get(ctx, name, view),
+		ctx:	ctx,
+		query:	dbq.NewQuery_get(name, view),
 	}, nil
 }

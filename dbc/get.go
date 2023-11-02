@@ -1,12 +1,15 @@
 package dbc
 
 import (
+	"context"
 	"database/sql"
 	"github.com/clarkk/go-dbd/dbq"
 )
 
 type get struct {
+	ctx 	context.Context
 	query 	*dbq.Query_get
+	stmt 	*sql.Stmt
 }
 
 func (c *get) Public() *get {
@@ -25,9 +28,18 @@ func (c *get) Where(fields dbq.Where) *get {
 }
 
 func (c *get) Prepare(tx *sql.Tx) (dbq.Error_code, error) {
-	return c.query.Prepare(tx)
+	/*var err error
+	sql := "SELECT id, timeout, lang FROM block WHERE id=?"
+	q.stmt, err = tx.PrepareContext(q.ctx, sql)
+	if err != nil {
+		panic("SQL prepare "+sql+": "+err.Error())
+	}*/
+	
+	return c.query.Write()
 }
 
 func (c *get) Close(){
-	c.query.Close()
+	if c.stmt != nil {
+		c.stmt.Close()
+	}
 }
