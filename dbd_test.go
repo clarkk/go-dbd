@@ -19,6 +19,7 @@ var Block = t.NewTable(
 		"client_id":	t.Field{block, "client_id"},
 		"is_suspended":	t.Field{client, "is_suspended"},
 		"name":			t.Field{block, "name"},
+		"renamed":		t.Field{block, "name"},
 	},
 	t.Joins{
 		client:			t.Join{t.LEFT_JOIN, "client_id", "id"},
@@ -132,6 +133,34 @@ func Test_query(t *testing.T){
 	sql_get(t, g, `SELECT id
 FROM .block`)
 	
+	//	Select function
+	g = dbq.NewQuery_get("block", block_private);
+	g.Select(dbq.Select{
+		"count|id",
+	})
+	write_get(t, g, want_code)
+	sql_get(t, g, `SELECT count(id)
+FROM .block`)
+	
+	//	Select field as
+	g = dbq.NewQuery_get("block", block_private);
+	g.Select(dbq.Select{
+		"id=new_id",
+	})
+	write_get(t, g, want_code)
+	sql_get(t, g, `SELECT id new_id
+FROM .block`)
+	
+	//	Select function and field as
+	g = dbq.NewQuery_get("block", block_private);
+	g.Select(dbq.Select{
+		"count|id=new_id",
+	})
+	write_get(t, g, want_code)
+	sql_get(t, g, `SELECT count(id) new_id
+FROM .block`)
+	
+	//	Join
 	g = dbq.NewQuery_get("block", block_private);
 	g.Select(dbq.Select{
 		"id",
@@ -141,6 +170,18 @@ FROM .block`)
 	sql_get(t, g, `SELECT a.id,b.is_suspended
 FROM .block a
 LEFT JOIN .client b ON a.client_id=b.id`)
+	
+	//	Renamed field
+	/*g = dbq.NewQuery_get("block", block_private);
+	g.Select(dbq.Select{
+		"id",
+		"is_suspended",
+		"renamed",
+	})
+	write_get(t, g, want_code)
+	sql_get(t, g, `SELECT a.id,b.is_suspended,a.name renamed
+FROM .block a
+LEFT JOIN .client b ON a.client_id=b.id`)*/
 }
 
 func sql_get(t *testing.T, g *dbq.Query_get, want string){
@@ -161,6 +202,6 @@ func check_code(t *testing.T, got dbq.Error_code, want dbq.Error_code){
 
 func check_query(t *testing.T, got string, want string){
 	if want != got {
-		t.Errorf("\ngot:\n%s\nwant:\n%s", got, want)
+		t.Errorf("\ngot:\n%s\n\nwant:\n%s", got, want)
 	}
 }

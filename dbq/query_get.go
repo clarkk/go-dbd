@@ -51,8 +51,7 @@ func (q *Query_get) Write() (Error_code, error) {
 FROM `+q.sql_from_clause()
 	
 	if q.joined {
-		
-		//q.sql += "\n"
+		q.sql += "\n"+q.sql_joins()
 	}
 	
 	return 0, nil
@@ -65,19 +64,21 @@ func (q *Query_get) parse_select(){
 		
 		//	Parse field
 		if s1, s2, found := strings.Cut(v, "|"); found {
-			q.out_select[k].fn 		= s1
-			field 					= s2
+			q.out_select[k].fn 	= s1
+			field 				= s2
 		}else{
-			field 					= v
+			field 				= v
 		}
+		
+		//	Parse field as
 		if s1, s2, found := strings.Cut(field, "="); found {
-			field 					= s1
-			q.out_select[k].col_as 	= s2
+			field 						= s1
+			q.out_select[k].field_as 	= s2
 		}
 		
 		q.field_exists(field)
 		
-		q.out_select[k].col = field
+		q.out_select[k].field = field
 		
 		if q.error_code != 0 {
 			continue
@@ -90,11 +91,24 @@ func (q *Query_get) parse_select(){
 func (q *Query) sql_select_clause(values select_clause) string {
 	sql := make([]string, len(values))
 	for k, v := range values {
+		var col string
 		if q.joined {
-			sql[k] = v.table_as+"."+v.col
+			col = v.table_as+"."+v.col
 		}else{
-			sql[k] = v.col
+			col = v.col
 		}
+		
+		//	Apply function
+		if v.fn != "" {
+			col = v.fn+"("+col+")"
+		}
+		
+		//	Field as
+		if v.field_as != "" {
+			col += " "+v.field_as
+		}
+		
+		sql[k] = col
 	}
 	return strings.Join(sql, ",")
 }

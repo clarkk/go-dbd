@@ -53,12 +53,14 @@ type (
 	select_field struct {
 		sql_exp
 		fn 			string
-		col_as 		string
+		field 		string
+		field_as 	string
 	}
 	
 	where_field struct {
 		sql_exp
 		fn 			string
+		field 		string
 		op 			string
 		value 		string
 	}
@@ -97,13 +99,15 @@ func (q *Query) parse_where(){
 	for k, v := range q.in_where {
 		var field string
 		
-		//	Parse field
+		//	Parse function
 		if s1, s2, found := strings.Cut(k, "|"); found {
 			q.out_where[i].fn 	= s1
 			field 				= s2
 		}else{
 			field 				= k
 		}
+		
+		//	Parse operator
 		if s1, s2, found := strings.Cut(field, " "); found {
 			field 				= s1
 			q.out_where[i].op 	= s2
@@ -118,7 +122,7 @@ func (q *Query) parse_where(){
 		
 		q.field_exists(field)
 		
-		q.out_where[i].col = field
+		q.out_where[i].field = field
 		
 		if q.error_code != 0 {
 			i++
@@ -137,6 +141,10 @@ func (q *Query) sql_from_clause() string {
 	return "."+q.table_name
 }
 
+func (q *Query) sql_joins() string {
+	return strings.Join(q.joins, "\n")
+}
+
 func (q *Query) field_exists(name string){
 	if q.public && !q.table.Exists_public(name) {
 		q.error_invalid_field(name)
@@ -153,13 +161,14 @@ func (q *Query) field_translate(name string) sql_exp {
 	if q.table.Joined(name) {
 		q.joined = true
 		
-		//q.joins = 
-		
 		sql = sql_exp{
 			table:		q.table.Table(name),
 			table_as:	q.table_as(q.table.Table(name)),
 			col:		q.table.Col(name),
 		}
+		
+		join := q.table.Join(sql.table)
+		q.joins = append(q.joins, string(join.Mode)+" ."+sql.table+" "+sql.table_as+" ON "+q.table_as(q.table_name)+"."+join.Col+"="+sql.table_as+"."+join.Foreign)
 	}else{
 		sql = sql_exp{
 			table:		q.table_name,
