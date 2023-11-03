@@ -1,7 +1,6 @@
 package dbq
 
 import (
-	"fmt"
 	"strings"
 	//"github.com/go-errors/errors"
 	"github.com/clarkk/go-dbd/dbv"
@@ -52,9 +51,8 @@ func (q *Query_get) Write() (Error_code, error) {
 	q.sql = `SELECT `+q.sql_select_clause(q.out_select)+`
 FROM `+q.table_name
 	
-	fmt.Println(q.sql)
-	fmt.Println("select:", q.out_select)
-	fmt.Println("where:", q.out_where)
+	//fmt.Println("select:", q.out_select)
+	//fmt.Println("where:", q.out_where)
 	
 	return 0, nil
 }
@@ -91,16 +89,6 @@ func (q *Query) sql_select_clause(values select_clause) string {
 	}
 	return strings.Join(sql, ",")
 }
-
-/*func NewQuery_get(ctx context.Context, view dbt.View) *Query_get {
-	return &Query_get{
-		query: query{
-			view:		view,
-			table:		view.Table(),
-		},
-		ctx: ctx,
-	}
-}*/
 
 /*rows, err := stmt.QueryContext(ctx, 1)
 if err != nil {

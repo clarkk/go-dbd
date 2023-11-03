@@ -7,9 +7,10 @@ import(
 )
 
 const (
+	ERR_CODE_SUCCESS Error_code 		= 0
 	ERR_CODE_PRIVATE Error_code 		= 1
-	ERR_CODE_FIELDS_INVALID Error_code 	= 2
-	ERR_CODE_SELECT_EMPTY Error_code 	= 3
+	ERR_CODE_SELECT_EMPTY Error_code 	= 2
+	ERR_CODE_FIELDS_INVALID Error_code 	= 3
 	ERR_CODE_WHERE_VALUES Error_code 	= 4
 )
 
@@ -56,13 +57,13 @@ func (q *Query) error_table_private() (Error_code, error) {
 	return ERR_CODE_PRIVATE, errors.New("Table private")
 }
 
+func (q *Query) error_select_empty() (Error_code, error) {
+	return ERR_CODE_SELECT_EMPTY, errors.New("Select empty")
+}
+
 func (q *Query) error_invalid_field(name string){
 	q.error_code 			= ERR_CODE_FIELDS_INVALID
 	q.invalid_fields[name]	= fmt.Sprintf(`Field translation missing in '%s' for field: %s`, q.table_name, name)
-}
-
-func (q *Query) error_select_empty() (Error_code, error) {
-	return ERR_CODE_SELECT_EMPTY, errors.New("Select empty")
 }
 
 func (q *Query) error_where_value(name string){

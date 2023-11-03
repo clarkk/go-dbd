@@ -47,56 +47,96 @@ var Client = t.NewTable(
 	t.Put{},
 )
 
-func Test_Query(t *testing.T){
-	var (
-		qg 		*dbq.Query_get
-		code 	dbq.Error_code
-	)
-	qg = dbq.NewQuery_get("block", dbv.NewView(
+var (
+	g 			*dbq.Query_get
+	
+	got_code 	dbq.Error_code
+	want_code 	dbq.Error_code
+	
+	want 		string
+	got 		string
+	
+	block_private 	= dbv.NewView(Block, false)
+	block_public 	= dbv.NewView(Block, true)
+)
+
+func Test_errors(t *testing.T){
+	//	-------------------------------------------------------------------------
+	//	Table private
+	//	-------------------------------------------------------------------------
+	want_code = 										dbq.ERR_CODE_PRIVATE
+	
+	g = dbq.NewQuery_get("block", block_private);
+	g.Public()
+	g.Select(dbq.Select{
+		"id",
+	})
+	write_get(t, g, want_code)
+	
+	//	-------------------------------------------------------------------------
+	//	Select empty
+	//	-------------------------------------------------------------------------
+	want_code = 										dbq.ERR_CODE_SELECT_EMPTY
+	
+	g = dbq.NewQuery_get("block", block_private);
+	write_get(t, g, want_code)
+	
+	//	-------------------------------------------------------------------------
+	//	Fields invalid
+	//	-------------------------------------------------------------------------
+	want_code = 										dbq.ERR_CODE_FIELDS_INVALID
+	
+	//	Invalid select
+	g = dbq.NewQuery_get("block", block_private);
+	g.Select(dbq.Select{
+		"test",
+	})
+	write_get(t, g, want_code)
+	
+	//	Invalid where
+	g = dbq.NewQuery_get("block", block_private);
+	g.Select(dbq.Select{
+		"id",
+	})
+	g.Where(dbq.Where{
+		"test": "",
+	})
+	write_get(t, g, want_code)
+}
+
+func Test_query(t *testing.T){
+	want_code =											dbq.ERR_CODE_SUCCESS
+	
+	g = dbq.NewQuery_get("block", dbv.NewView(
 		Block,
 		true,
 	));
-	qg.Select(
-		dbq.Select{
-			"id",
-		},
-	)
-	code, _ = qg.Write()
-	t.Log("code", code)
-	
-	/*key_bytes, pub_bytes 	:= Generate_RSA(BITS)
-	key_len 				:= len(key_bytes)
-	if key_len == 0 {
-		t.Errorf("private key %d", key_len)
+	g.Select(dbq.Select{
+		"id",
+	})
+	write_get(t, g, want_code)
+	sql_get(t, g, `SELECT id
+FROM block`)
+}
+
+func sql_get(t *testing.T, g *dbq.Query_get, want string){
+	got = g.SQL()
+	check_query(t, got, want)
+}
+
+func write_get(t *testing.T, g *dbq.Query_get, want dbq.Error_code){
+	got_code, _ = g.Write()
+	check_code(t, got_code, want_code)
+}
+
+func check_code(t *testing.T, got dbq.Error_code, want dbq.Error_code){
+	if want != got {
+		t.Errorf("\ngot %d\nwant %d", got, want)
 	}
-	pub_len 				:= len(pub_bytes)
-	if pub_len == 0 {
-		t.Errorf("private key %d", pub_len)
+}
+
+func check_query(t *testing.T, got string, want string){
+	if want != got {
+		t.Errorf("\ngot %s\nwant %s", got, want)
 	}
-	
-	if !Verify_RSA(key_bytes, pub_bytes) {
-		t.Error("private and public key could not be verified")
-	}
-	
-	msg := "Hello world!"
-	
-	ciphertext := Encrypt_public(msg, pub_bytes)
-	if Decrypt_private(ciphertext, key_bytes) != msg {
-		t.Error("rsa encryption failed")
-	}
-	
-	cipher_base64 := Encrypt_public_base64(msg, pub_bytes)
-	if Decrypt_private_base64(cipher_base64, key_bytes) != msg {
-		t.Error("rsa encryption base64 failed")
-	}
-	
-	signature 	:= Sign(msg, key_bytes)
-	if !Verify(msg, signature, pub_bytes) {
-		t.Error("signature could not be verified")
-	}
-	
-	sig_base64 	:= Sign_base64(msg, key_bytes)
-	if !Verify_base64(msg, sig_base64, pub_bytes) {
-		t.Error("signature could not be verified with base64 encoding")
-	}*/
 }
