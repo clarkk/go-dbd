@@ -74,3 +74,10 @@ func (t *Table) Table(field string) string {
 func (t *Table) Col(field string) string {
 	return t.fields[field].Col
 }
+
+func (t *Table) Join(table string) Join {
+	if join, found := t.joins[table]; found {
+		return join
+	}
+	return Join{}
+}

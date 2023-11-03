@@ -2,15 +2,13 @@ package dbq
 
 import(
 	"strings"
-	"context"
-	//"github.com/go-errors/errors"
 	"github.com/clarkk/go-dbd/dbt"
 	"github.com/clarkk/go-dbd/dbv"
 )
 
 const (
-	RUNE_START 	= 97 // a
-	RUNE_END 	= 122 // z
+	RUNE_START 	= 97	// a
+	RUNE_END 	= 122	// z
 )
 
 /*var (
@@ -30,7 +28,6 @@ type (
 	Where 			map[string]interface{}
 	
 	Query struct {
-		ctx 			context.Context
 		view 			*dbv.View
 		table 			*dbt.Table
 		table_name 		string
@@ -40,42 +37,39 @@ type (
 		table_as_i 		rune
 		table_as_map 	map[string]string
 		
+		joined 			bool
+		joins 			[]string
+		
 		in_where 		Where
+		out_where 		where_clause
+		
+		sql 			string
 		
 		error_code 		Error_code
 		invalid_fields 	map[string]string
 		invalid_where 	[]string
-		
-		out_where 		where_clause
-		
-		joined 			bool
-		
-		sql 			string
-	}
-	
-	sql_exp struct {
-		table 		string
-		as 			string
-		col 		string
 	}
 	
 	select_field struct {
 		sql_exp
 		fn 			string
-		field 		string
-		as 			string
+		col_as 		string
 	}
-	
-	select_clause 	[]select_field
 	
 	where_field struct {
 		sql_exp
 		fn 			string
-		field 		string
 		op 			string
 		value 		string
 	}
 	
+	sql_exp struct {
+		table 		string
+		table_as 	string
+		col 		string
+	}
+	
+	select_clause 	[]select_field
 	where_clause 	[]where_field
 )
 
@@ -94,6 +88,7 @@ func (q *Query_get) SQL() string {
 func (q *Query) prepare(){
 	q.table_as_map 		= map[string]string{}
 	q.invalid_fields 	= map[string]string{}
+	q.joins 			= []string{}
 }
 
 func (q *Query) parse_where(){
@@ -114,6 +109,7 @@ func (q *Query) parse_where(){
 			q.out_where[i].op 	= s2
 		}
 		
+		//	Check where value
 		var ok bool
 		q.out_where[i].value, ok = v.(string)
 		if !ok {
@@ -122,7 +118,7 @@ func (q *Query) parse_where(){
 		
 		q.field_exists(field)
 		
-		q.out_where[i].field = field
+		q.out_where[i].col = field
 		
 		if q.error_code != 0 {
 			i++
@@ -132,6 +128,13 @@ func (q *Query) parse_where(){
 		q.out_where[i].sql_exp = q.field_translate(field)
 		i++
 	}
+}
+
+func (q *Query) sql_from_clause() string {
+	if q.joined {
+		return "."+q.table_name+" "+q.table_as(q.table_name)
+	}
+	return "."+q.table_name
 }
 
 func (q *Query) field_exists(name string){
@@ -150,35 +153,36 @@ func (q *Query) field_translate(name string) sql_exp {
 	if q.table.Joined(name) {
 		q.joined = true
 		
+		//q.joins = 
+		
 		sql = sql_exp{
-			table:	q.table.Table(name),
-			as:		q.table_as(q.table.Table(name)),
-			col:	q.table.Col(name),
+			table:		q.table.Table(name),
+			table_as:	q.table_as(q.table.Table(name)),
+			col:		q.table.Col(name),
 		}
 	}else{
 		sql = sql_exp{
-			table:	q.table_name,
-			as:		q.table_as(q.table_name),
-			col:	q.table.Col(name),
+			table:		q.table_name,
+			table_as:	q.table_as(q.table_name),
+			col:		q.table.Col(name),
 		}
 	}
-	
 	return sql
 }
 
 func (q *Query) table_as(name string) string {
 	if r, found := q.table_as_map[name]; found {
 		return string(r)
-	}else{
-		switch q.table_as_i {
-		case 0:
-			q.table_as_i = RUNE_START
-		case RUNE_END:
-			panic("Table joins exceeded limit")
-		default:
-			q.table_as_i++
-		}
-		q.table_as_map[name] = string(q.table_as_i)
-		return q.table_as_map[name]
 	}
+	
+	switch q.table_as_i {
+	case 0:
+		q.table_as_i = RUNE_START
+	case RUNE_END:
+		panic("Table joins exceeded limit")
+	default:
+		q.table_as_i++
+	}
+	q.table_as_map[name] = string(q.table_as_i)
+	return q.table_as_map[name]
 }

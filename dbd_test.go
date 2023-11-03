@@ -102,21 +102,45 @@ func Test_errors(t *testing.T){
 		"test": "",
 	})
 	write_get(t, g, want_code)
+	
+	//	-------------------------------------------------------------------------
+	//	Where values invalid
+	//	-------------------------------------------------------------------------
+	want_code = 										dbq.ERR_CODE_WHERE_VALUES
+	
+	//	Invalid where
+	g = dbq.NewQuery_get("block", block_private);
+	g.Select(dbq.Select{
+		"id",
+	})
+	g.Where(dbq.Where{
+		"name": []string{
+			"noget",
+		},
+	})
+	write_get(t, g, want_code)
 }
 
 func Test_query(t *testing.T){
 	want_code =											dbq.ERR_CODE_SUCCESS
 	
-	g = dbq.NewQuery_get("block", dbv.NewView(
-		Block,
-		true,
-	));
+	g = dbq.NewQuery_get("block", block_private);
 	g.Select(dbq.Select{
 		"id",
 	})
 	write_get(t, g, want_code)
 	sql_get(t, g, `SELECT id
-FROM block`)
+FROM .block`)
+	
+	g = dbq.NewQuery_get("block", block_private);
+	g.Select(dbq.Select{
+		"id",
+		"is_suspended",
+	})
+	write_get(t, g, want_code)
+	sql_get(t, g, `SELECT a.id,b.is_suspended
+FROM .block a
+LEFT JOIN .client b ON a.client_id=b.id`)
 }
 
 func sql_get(t *testing.T, g *dbq.Query_get, want string){
@@ -131,12 +155,12 @@ func write_get(t *testing.T, g *dbq.Query_get, want dbq.Error_code){
 
 func check_code(t *testing.T, got dbq.Error_code, want dbq.Error_code){
 	if want != got {
-		t.Errorf("\ngot %d\nwant %d", got, want)
+		t.Errorf("\ngot: %d\nwant: %d", got, want)
 	}
 }
 
 func check_query(t *testing.T, got string, want string){
 	if want != got {
-		t.Errorf("\ngot %s\nwant %s", got, want)
+		t.Errorf("\ngot:\n%s\nwant:\n%s", got, want)
 	}
 }
