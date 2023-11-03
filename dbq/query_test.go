@@ -132,6 +132,9 @@ func Test_errors(t *testing.T){
 func Test_query(t *testing.T){
 	want_code =											ERR_CODE_SUCCESS
 	
+	//	-------------------------------------------------------------------------
+	//	Select
+	//	-------------------------------------------------------------------------
 	g = Get("block", block_private);
 	g.Select(Select{
 		"id",
@@ -223,6 +226,34 @@ LEFT JOIN .client b ON a.client_id=b.id`)
 	sql_get(t, g, `SELECT a.id,count(b.is_suspended) new_suspend,sha1(a.name) new_name
 FROM .block a
 LEFT JOIN .client b ON a.client_id=b.id`)
+	
+	//	Read-lock
+	g = Get("block", block_private);
+	g.Lock()
+	g.Select(Select{
+		"id",
+	})
+	write_get(t, g, want_code)
+	sql_get(t, g, `SELECT id
+FROM .block
+FOR UPDATE`)
+	
+	//	-------------------------------------------------------------------------
+	//	Limit
+	//	-------------------------------------------------------------------------
+	g = Get("block", block_private);
+	g.Lock()
+	g.Select(Select{
+		"id",
+	})
+	g.Limit(Limit{
+		0,10,
+	})
+	write_get(t, g, want_code)
+	sql_get(t, g, `SELECT id
+FROM .block
+LIMIT 0,10
+FOR UPDATE`)
 }
 
 func sql_get(t *testing.T, g *Query_get, want string){

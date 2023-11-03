@@ -7,6 +7,8 @@ import(
 )
 
 const (
+	INNER_JOIN 	= "INNER JOIN"
+	
 	RUNE_START 	= 97	// a
 	RUNE_END 	= 122	// z
 )
@@ -24,10 +26,11 @@ const (
 )*/
 
 type (
-	Select 			[]string
 	Where 			map[string]interface{}
 	
 	Query struct {
+		read 			bool
+		
 		view 			*dbv.View
 		table 			*dbt.Table
 		table_name 		string
@@ -39,6 +42,7 @@ type (
 		
 		joined 			bool
 		joins 			[]string
+		joins_inner 	[]string
 		
 		in_where 		Where
 		out_where 		where_clause
@@ -91,6 +95,7 @@ func (q *Query) prepare(){
 	q.table_as_map 		= map[string]string{}
 	q.invalid_fields 	= map[string]string{}
 	q.joins 			= []string{}
+	q.joins_inner 		= []string{}
 }
 
 func (q *Query) parse_where(){
@@ -141,15 +146,11 @@ func (q *Query) sql_from_clause() string {
 	return "."+q.table_name
 }
 
-func (q *Query) sql_joins() string {
-	return strings.Join(q.joins, "\n")
-}
-
 func (q *Query) sql_where_clause() string {
 	return "test"
-	/*sql := make([]string, len(q.out_select))
-	for k, v := range q.out_select {
-		var col string
+	//sql := make([]string, len(q.out_where))
+	//for k, v := range q.out_where {
+		/*var col string
 		if q.joined {
 			col = v.table_as+"."+v.col
 		}else{
@@ -169,9 +170,9 @@ func (q *Query) sql_where_clause() string {
 			col += " "+v.field
 		}
 		
-		sql[k] = col
-	}
-	return strings.Join(sql, ",")*/
+		sql[k] = col*/
+	//}
+	//return strings.Join(sql, ",")
 }
 
 func (q *Query) field_exists(name string){
@@ -185,27 +186,31 @@ func (q *Query) field_exists(name string){
 }
 
 func (q *Query) field_translate(name string) sql_exp {
-	//	Joined tables
-	var sql sql_exp
-	if q.table.Joined(name) {
+	//	Joined tables (only select/read)
+	if q.read && q.table.Joined(name) {
 		q.joined = true
-		
-		sql = sql_exp{
+		sql := sql_exp{
 			table:		q.table.Table(name),
 			table_as:	q.table_as(q.table.Table(name)),
 			col:		q.table.Col(name),
 		}
 		
-		join := q.table.Join(sql.table)
-		q.joins = append(q.joins, string(join.Mode)+" ."+sql.table+" "+sql.table_as+" ON "+q.table_as(q.table_name)+"."+join.Col+"="+sql.table_as+"."+join.Foreign)
-	}else{
-		sql = sql_exp{
-			table:		q.table_name,
-			table_as:	q.table_as(q.table_name),
-			col:		q.table.Col(name),
+		join 		:= q.table.Join(sql.table)
+		join_mode 	:= string(join.Mode)
+		join_sql 	:= join_mode+" ."+sql.table+" "+sql.table_as+" ON "+q.table_as(q.table_name)+"."+join.Col+"="+sql.table_as+"."+join.Foreign
+		if join.Mode == INNER_JOIN {
+			q.joins_inner 	= append(q.joins_inner, join_sql)
+		}else{
+			q.joins 		= append(q.joins, join_sql)
 		}
+		return sql
 	}
-	return sql
+	
+	return sql_exp{
+		table:		q.table_name,
+		table_as:	q.table_as(q.table_name),
+		col:		q.table.Col(name),
+	}
 }
 
 func (q *Query) table_as(name string) string {

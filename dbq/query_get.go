@@ -5,25 +5,53 @@ import (
 	"github.com/clarkk/go-dbd/dbv"
 )
 
-type Query_get struct {
-	Query
+type (
+	Select 			[]string
 	
-	in_select 		Select
-	out_select 		select_clause
-}
+	Limit 			[]int
+	
+	Query_get struct {
+		Query
+		
+		read_lock 			bool
+		read_count 			bool
+		
+		in_select 			Select
+		out_select 			select_clause
+		
+		in_limit 			Limit
+		out_limit 			int
+		out_limit_offset 	int
+	}
+)
 
 func Get(name string, view *dbv.View) *Query_get {
 	return &Query_get{
 		Query: Query{
-			view:		view,
-			table:		view.Table(),
-			table_name:	name,
+			read:			true,
+			view:			view,
+			table:			view.Table(),
+			table_name:		name,
 		},
 	}
 }
 
+//	Read-lock (SELECT ... FOR UPDATE)
+func (q *Query_get) Lock(){
+	q.read_lock = true
+}
+
+//	Count all entries without LIMIT and LEFT JOIN
+func (q *Query_get) Count(){
+	q.read_count = true
+}
+
 func (q *Query_get) Select(fields Select){
 	q.in_select = fields
+}
+
+func (q *Query_get) Limit(fields Limit){
+	q.in_limit = fields
 }
 
 func (q *Query_get) Write() (Error_code, error) {
@@ -35,6 +63,7 @@ func (q *Query_get) Write() (Error_code, error) {
 	q.prepare()
 	q.parse_select()
 	q.parse_where()
+	q.parse_limit()
 	
 	//	Check if select is empty
 	if len(q.out_select) == 0 {
@@ -45,9 +74,12 @@ func (q *Query_get) Write() (Error_code, error) {
 		return code, err
 	}
 	
-	//SQL_CALC_FOUND_ROWS
-	//FOR UPDATE
+	q.create_sql()
 	
+	return 0, nil
+}
+
+func (q *Query_get) create_sql(){
 	//	Create SQL query
 	q.sql = "SELECT "+q.sql_select_clause()+"\nFROM "+q.sql_from_clause()
 	if q.joined {
@@ -56,8 +88,12 @@ func (q *Query_get) Write() (Error_code, error) {
 	if len(q.out_where) != 0 {
 		q.sql += "\n"+q.sql_where_clause()
 	}
-	
-	return 0, nil
+	/*if len(q.in_limit) != 0 {
+		fmt.Println("limit is set!!", q.in_limit)
+	}*/
+	if q.read_lock {
+		q.sql += "\nFOR UPDATE"
+	}
 }
 
 func (q *Query_get) parse_select(){
@@ -91,7 +127,18 @@ func (q *Query_get) parse_select(){
 	}
 }
 
+func (q *Query_get) parse_limit(){
+	/*if len(q.in_limit) > 2 {
+		fmt.Println("limit fail")
+	}
+	fmt.Println("limit", q.in_limit)*/
+}
+
 func (q *Query_get) sql_select_clause() string {
+	if q.read_count {
+		return "count(*)"
+	}
+	
 	sql := make([]string, len(q.out_select))
 	for k, v := range q.out_select {
 		var col string
@@ -117,4 +164,19 @@ func (q *Query_get) sql_select_clause() string {
 		sql[k] = col
 	}
 	return strings.Join(sql, ",")
+}
+
+func (q *Query_get) sql_joins() string {
+	if q.read_count {
+		return strings.Join(q.joins_inner, "\n")
+	}
+	return strings.Join(append(q.joins_inner, q.joins...), "\n")
+}
+
+func (q *Query_get) sql_limit_clause() string {
+	if q.read_count {
+		return ""
+	}
+	
+	return ""
 }

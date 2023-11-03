@@ -12,6 +12,18 @@ type get struct {
 	stmt 	*sql.Stmt
 }
 
+//	Read-lock (SELECT ... FOR UPDATE)
+func (c *get) Lock() *get {
+	c.query.Lock()
+	return c
+}
+
+//	Count all entries without LIMIT and LEFT JOIN
+func (c *get) Count() *get {
+	c.query.Count()
+	return c
+}
+
 func (c *get) Public() *get {
 	c.query.Public()
 	return c
@@ -24,6 +36,11 @@ func (c *get) Select(fields dbq.Select) *get {
 
 func (c *get) Where(fields dbq.Where) *get {
 	c.query.Where(fields)
+	return c
+}
+
+func (c *get) Limit(fields dbq.Limit) *get {
+	c.query.Limit(fields)
 	return c
 }
 
