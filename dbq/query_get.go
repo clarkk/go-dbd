@@ -12,7 +12,7 @@ type Query_get struct {
 	out_select 		select_clause
 }
 
-func NewQuery_get(name string, view *dbv.View) *Query_get {
+func Get(name string, view *dbv.View) *Query_get {
 	return &Query_get{
 		Query: Query{
 			view:		view,
@@ -46,12 +46,15 @@ func (q *Query_get) Write() (Error_code, error) {
 	}
 	
 	//SQL_CALC_FOUND_ROWS
+	//FOR UPDATE
 	
-	q.sql = `SELECT `+q.sql_select_clause(q.out_select)+`
-FROM `+q.sql_from_clause()
-	
+	//	Create SQL query
+	q.sql = "SELECT "+q.sql_select_clause()+"\nFROM "+q.sql_from_clause()
 	if q.joined {
 		q.sql += "\n"+q.sql_joins()
+	}
+	if len(q.out_where) != 0 {
+		q.sql += "\n"+q.sql_where_clause()
 	}
 	
 	return 0, nil
@@ -88,9 +91,9 @@ func (q *Query_get) parse_select(){
 	}
 }
 
-func (q *Query) sql_select_clause(values select_clause) string {
-	sql := make([]string, len(values))
-	for k, v := range values {
+func (q *Query_get) sql_select_clause() string {
+	sql := make([]string, len(q.out_select))
+	for k, v := range q.out_select {
 		var col string
 		if q.joined {
 			col = v.table_as+"."+v.col
@@ -103,9 +106,12 @@ func (q *Query) sql_select_clause(values select_clause) string {
 			col = v.fn+"("+col+")"
 		}
 		
-		//	Field as
+		//	Apply "field as"
 		if v.field_as != "" {
 			col += " "+v.field_as
+		//	Renamed in table map
+		}else if v.field != v.col {
+			col += " "+v.field
 		}
 		
 		sql[k] = col

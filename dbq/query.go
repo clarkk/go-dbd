@@ -83,7 +83,7 @@ func (q *Query) Where(fields Where){
 	q.in_where = fields
 }
 
-func (q *Query_get) SQL() string {
+func (q *Query) SQL() string {
 	return q.sql
 }
 
@@ -143,6 +143,35 @@ func (q *Query) sql_from_clause() string {
 
 func (q *Query) sql_joins() string {
 	return strings.Join(q.joins, "\n")
+}
+
+func (q *Query) sql_where_clause() string {
+	return "test"
+	/*sql := make([]string, len(q.out_select))
+	for k, v := range q.out_select {
+		var col string
+		if q.joined {
+			col = v.table_as+"."+v.col
+		}else{
+			col = v.col
+		}
+		
+		//	Apply function
+		if v.fn != "" {
+			col = v.fn+"("+col+")"
+		}
+		
+		//	Apply "field as"
+		if v.field_as != "" {
+			col += " "+v.field_as
+		//	Renamed in table map
+		}else if v.field != v.col {
+			col += " "+v.field
+		}
+		
+		sql[k] = col
+	}
+	return strings.Join(sql, ",")*/
 }
 
 func (q *Query) field_exists(name string){
