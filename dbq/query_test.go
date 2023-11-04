@@ -8,20 +8,23 @@ import (
 )
 
 const (
-	block 	= "block"
-	client 	= "client"
+	block 		= "block"
+	block_range = "block_range"
+	client 		= "client"
 )
 
 var Block = t.NewTable(
 	block,
 	t.Fields{
-		"id":			t.Field{block, "id"},
-		"client_id":	t.Field{block, "client_id"},
-		"is_suspended":	t.Field{client, "is_suspended"},
-		"name":			t.Field{block, "name"},
-		"renamed":		t.Field{block, "name"},
+		"id":				t.Field{block, "id"},
+		"client_id":		t.Field{block, "client_id"},
+		"is_suspended":		t.Field{client, "is_suspended"},
+		"name":				t.Field{block, "name"},
+		"renamed":			t.Field{block, "name"},
+		"range_invoice":	t.Field{block_range, "invoice"},
 	},
 	t.Joins{
+		block_range:	t.Join{t.INNER_JOIN, "id", "block_id"},
 		client:			t.Join{t.LEFT_JOIN, "client_id", "id"},
 	},
 	t.Get{
@@ -185,6 +188,18 @@ func Test_errors(t *testing.T){
 		t.Errorf(err)
 	}
 	
+	g = Get("block", block_private);
+	g.Read_lock()
+	g.Select(Select{
+		"id",
+	})
+	g.Where(Where{
+		"id !": 123,
+	})
+	if err := write_get(t, g, want_code); err != "" {
+		t.Errorf(err)
+	}
+	
 	//	-------------------------------------------------------------------------
 	//	Limit value
 	//	-------------------------------------------------------------------------
@@ -202,12 +217,9 @@ func Test_errors(t *testing.T){
 	}
 }
 
-func Test_query(t *testing.T){
+func Test_query_select(t *testing.T){
 	want_code =											ERR_CODE_SUCCESS
 	
-	//	-------------------------------------------------------------------------
-	//	Select
-	//	-------------------------------------------------------------------------
 	g = Get("block", block_private);
 	g.Select(Select{
 		"id",
@@ -335,8 +347,11 @@ FROM .block a
 LEFT JOIN .client b ON a.client_id=b.id`); err != "" {
 		t.Errorf(err)
 	}
+}
+
+func Test_query_read_lock(t *testing.T){
+	want_code =											ERR_CODE_SUCCESS
 	
-	//	Read-lock
 	g = Get("block", block_private);
 	g.Read_lock()
 	g.Select(Select{
@@ -354,10 +369,47 @@ WHERE id=?
 FOR UPDATE`); err != "" {
 		t.Errorf(err)
 	}
+}
+
+func Test_query_limit(t *testing.T){
+	want_code =											ERR_CODE_SUCCESS
 	
-	//	-------------------------------------------------------------------------
-	//	Where
-	//	-------------------------------------------------------------------------
+	g = Get("block", block_private);
+	g.Select(Select{
+		"id",
+	})
+	g.Limit(Limit{
+		0,10,
+	})
+	if err := write_get(t, g, want_code); err != "" {
+		t.Errorf(err)
+	}
+	if err := sql_get(t, g, `SELECT id
+FROM .block
+LIMIT 0,10`); err != "" {
+		t.Errorf(err)
+	}
+	
+	g = Get("block", block_private);
+	g.Select(Select{
+		"id",
+	})
+	g.Limit(Limit{
+		10,
+	})
+	if err := write_get(t, g, want_code); err != "" {
+		t.Errorf(err)
+	}
+	if err := sql_get(t, g, `SELECT id
+FROM .block
+LIMIT 10`); err != "" {
+		t.Errorf(err)
+	}
+}
+
+func Test_query_where(t *testing.T){
+	want_code =											ERR_CODE_SUCCESS
+	
 	//	Not equal
 	g = Get("block", block_private);
 	g.Select(Select{
@@ -427,23 +479,35 @@ FROM .block
 WHERE id<=?`); err != "" {
 		t.Errorf(err)
 	}
+}
+
+func Test_query_count(t *testing.T){
+	want_code =											ERR_CODE_SUCCESS
 	
-	//	-------------------------------------------------------------------------
-	//	Limit
-	//	-------------------------------------------------------------------------
 	g = Get("block", block_private);
 	g.Select(Select{
 		"id",
+		"range_invoice",
+		"is_suspended",
 	})
 	g.Limit(Limit{
-		0,10,
+		10,
 	})
 	if err := write_get(t, g, want_code); err != "" {
 		t.Errorf(err)
 	}
-	if err := sql_get(t, g, `SELECT id
-FROM .block
-LIMIT 0,10`); err != "" {
+	if err := sql_get(t, g, `SELECT a.id,b.invoice range_invoice,c.is_suspended
+FROM .block a
+INNER JOIN .block_range b ON a.id=b.block_id
+LEFT JOIN .client c ON a.client_id=c.id
+LIMIT 10`); err != "" {
+		t.Errorf(err)
+	}
+	
+	g.Count()
+	if err := sql_get(t, g, `SELECT count(*)
+FROM .block a
+INNER JOIN .block_range b ON a.id=b.block_id`); err != "" {
 		t.Errorf(err)
 	}
 }

@@ -39,11 +39,6 @@ func (c *get) Where(fields dbq.Where) *get {
 	return c
 }
 
-func (c *get) Where_in(fields dbq.Where) *get {
-	c.query.Where_in(fields)
-	return c
-}
-
 func (c *get) Limit(fields dbq.Limit) *get {
 	c.query.Limit(fields)
 	return c

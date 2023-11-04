@@ -47,7 +47,6 @@ type (
 		joins_inner 	[]string
 		
 		in_where 		Where
-		in_where_in 	Where
 		out_where 		where_clause
 		
 		sql 			string
@@ -89,10 +88,6 @@ func (q *Query) Public(){
 
 func (q *Query) Where(fields Where){
 	q.in_where = fields
-}
-
-func (q *Query) Where_in(fields Where){
-	q.in_where_in = fields
 }
 
 func (q *Query) SQL() string {
@@ -144,7 +139,7 @@ func (q *Query) parse_where(){
 		q.field_exists(field)
 		
 		//	Check if selected by id (primary key)
-		if q.read && field == "id" {
+		if q.read && field == "id" && q.out_where[i].op == "" {
 			q.read_id = true
 		}
 		

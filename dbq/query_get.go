@@ -42,6 +42,7 @@ func (q *Query_get) Read_lock(){
 //	Count all entries without LIMIT and LEFT JOIN
 func (q *Query_get) Count(){
 	q.read_count = true
+	q.create_sql()
 }
 
 func (q *Query_get) Select(fields Select){
