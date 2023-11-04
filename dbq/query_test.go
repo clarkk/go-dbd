@@ -125,7 +125,7 @@ func Test_errors(t *testing.T){
 	//	-------------------------------------------------------------------------
 	//	Where values invalid
 	//	-------------------------------------------------------------------------
-	/*want_code = 										ERR_CODE_WHERE_VALUES
+	want_code = 										ERR_CODE_WHERE_VALUES
 	
 	//	Invalid where
 	g = Get("block", block_private);
@@ -139,7 +139,7 @@ func Test_errors(t *testing.T){
 	})
 	if err := write_get(t, g, want_code); err != "" {
 		t.Errorf(err)
-	}*/
+	}
 	
 	//	-------------------------------------------------------------------------
 	//	Where values invalid
@@ -313,14 +313,14 @@ LEFT JOIN .client b ON a.client_id=b.id`); err != "" {
 		"id",
 	})
 	g.Where(Where{
-		"id": 123,
+		"id !": 123,
 	})
 	if err := write_get(t, g, want_code); err != "" {
 		t.Errorf(err)
 	}
 	if err := sql_get(t, g, `SELECT id
 FROM .block
-WHERE id=123
+WHERE id=?
 FOR UPDATE`); err != "" {
 		t.Errorf(err)
 	}

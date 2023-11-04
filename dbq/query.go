@@ -2,6 +2,7 @@ package dbq
 
 import(
 	"strings"
+	"strconv"
 	"github.com/clarkk/go-dbd/dbt"
 	"github.com/clarkk/go-dbd/dbv"
 )
@@ -13,7 +14,7 @@ const (
 	RUNE_END 	= 122	// z
 )
 
-/*var (
+var (
 	sql_operator_in = map[string]string{
 		"in":	"IN (?)",
 		"!in":	"NOT IN (?)",
@@ -23,7 +24,7 @@ const (
 		"bt":	"BETWEEN ? AND ?",
 		"!bt":	"NOT BETWEEN ? AND ?",
 	}
-)*/
+)
 
 type (
 	Where 			map[string]interface{}
@@ -120,9 +121,12 @@ func (q *Query) parse_where(){
 		}
 		
 		//	Check where value
-		var ok bool
-		q.out_where[i].value, ok = v.(string)
-		if !ok {
+		switch value := v.(type) {
+		case string:
+			q.out_where[i].value = value
+		case int:
+			q.out_where[i].value = strconv.Itoa(value)
+		default:
 			q.error_where_value(field)
 		}
 		
@@ -153,11 +157,9 @@ func (q *Query) sql_from_clause() string {
 }
 
 func (q *Query) sql_where_clause() string {
-	//fmt.Println(q.out_where)
-	return "test"
-	//sql := make([]string, len(q.out_where))
-	//for k, v := range q.out_where {
-		/*var col string
+	sql := make([]string, len(q.out_where))
+	for k, v := range q.out_where {
+		var col string
 		if q.joined {
 			col = v.table_as+"."+v.col
 		}else{
@@ -169,17 +171,24 @@ func (q *Query) sql_where_clause() string {
 			col = v.fn+"("+col+")"
 		}
 		
+		//	Apply operator
+		if v.op != "" {
+			/*if op, ok := sql_operator_in[v.op]; ok {
+				
+			}*/
+		}
+		
 		//	Apply "field as"
-		if v.field_as != "" {
+		/*if v.field_as != "" {
 			col += " "+v.field_as
 		//	Renamed in table map
 		}else if v.field != v.col {
 			col += " "+v.field
-		}
+		}*/
 		
-		sql[k] = col*/
-	//}
-	//return strings.Join(sql, ",")
+		sql[k] = col
+	}
+	return strings.Join(sql, ",")
 }
 
 func (q *Query) field_exists(name string){
