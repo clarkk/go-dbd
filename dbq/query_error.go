@@ -12,6 +12,8 @@ const (
 	ERR_CODE_SELECT_EMPTY Error_code 	= 2
 	ERR_CODE_FIELDS_INVALID Error_code 	= 3
 	ERR_CODE_WHERE_VALUES Error_code 	= 4
+	ERR_CODE_LIMIT_VALUE Error_code 	= 5
+	ERR_CODE_SELECT_LOCK_ID Error_code 	= 6
 )
 
 type (
@@ -67,6 +69,14 @@ func (q *Query) error_invalid_field(name string){
 }
 
 func (q *Query) error_where_value(name string){
-	q.error_code 		= ERR_CODE_WHERE_VALUES
-	q.invalid_where		= append(q.invalid_where, fmt.Sprintf(`Where input values invalid: %s`, name))
+	q.error_code 			= ERR_CODE_WHERE_VALUES
+	q.invalid_where			= append(q.invalid_where, fmt.Sprintf(`Where input values invalid: %s`, name))
+}
+
+func (q *Query) error_limit_value(){
+	q.error_code 			= ERR_CODE_LIMIT_VALUE
+}
+
+func (q *Query) error_select_lock_id() (Error_code, error) {
+	return ERR_CODE_SELECT_LOCK_ID, errors.New("Read lock is only supported with where by id")
 }

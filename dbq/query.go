@@ -29,11 +29,12 @@ type (
 	Where 			map[string]interface{}
 	
 	Query struct {
-		read 			bool
-		
 		view 			*dbv.View
 		table 			*dbt.Table
 		table_name 		string
+		
+		read 			bool
+		read_id 		bool
 		
 		public 			bool
 		
@@ -127,6 +128,11 @@ func (q *Query) parse_where(){
 		
 		q.field_exists(field)
 		
+		//	Check if selected by id (primary key)
+		if q.read && field == "id" {
+			q.read_id = true
+		}
+		
 		q.out_where[i].field = field
 		
 		if q.error_code != 0 {
@@ -147,6 +153,7 @@ func (q *Query) sql_from_clause() string {
 }
 
 func (q *Query) sql_where_clause() string {
+	//fmt.Println(q.out_where)
 	return "test"
 	//sql := make([]string, len(q.out_where))
 	//for k, v := range q.out_where {

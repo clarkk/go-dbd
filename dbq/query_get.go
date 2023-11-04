@@ -2,12 +2,12 @@ package dbq
 
 import (
 	"strings"
+	"strconv"
 	"github.com/clarkk/go-dbd/dbv"
 )
 
 type (
 	Select 			[]string
-	
 	Limit 			[]int
 	
 	Query_get struct {
@@ -20,8 +20,6 @@ type (
 		out_select 			select_clause
 		
 		in_limit 			Limit
-		out_limit 			int
-		out_limit_offset 	int
 	}
 )
 
@@ -70,6 +68,11 @@ func (q *Query_get) Write() (Error_code, error) {
 		return q.error_select_empty()
 	}
 	
+	//	Check if selected by id (primary key)
+	if q.read_lock && !q.read_id {
+		return q.error_select_lock_id()
+	}
+	
 	if code, err := q.error(); code != 0 {
 		return code, err
 	}
@@ -80,19 +83,20 @@ func (q *Query_get) Write() (Error_code, error) {
 }
 
 func (q *Query_get) create_sql(){
-	//	Create SQL query
 	q.sql = "SELECT "+q.sql_select_clause()+"\nFROM "+q.sql_from_clause()
 	if q.joined {
-		q.sql += "\n"+q.sql_joins()
+		q.sql += q.sql_joins()
 	}
 	if len(q.out_where) != 0 {
-		q.sql += "\n"+q.sql_where_clause()
+		q.sql += "\nWHERE "+q.sql_where_clause()
 	}
-	/*if len(q.in_limit) != 0 {
-		fmt.Println("limit is set!!", q.in_limit)
-	}*/
-	if q.read_lock {
-		q.sql += "\nFOR UPDATE"
+	if !q.read_count {
+		if len(q.in_limit) != 0 {
+			q.sql += "\nLIMIT "+q.sql_limit_clause()
+		}
+		if q.read_lock {
+			q.sql += "\nFOR UPDATE"
+		}
 	}
 }
 
@@ -128,10 +132,9 @@ func (q *Query_get) parse_select(){
 }
 
 func (q *Query_get) parse_limit(){
-	/*if len(q.in_limit) > 2 {
-		fmt.Println("limit fail")
+	if len(q.in_limit) > 2 {
+		q.error_limit_value()
 	}
-	fmt.Println("limit", q.in_limit)*/
 }
 
 func (q *Query_get) sql_select_clause() string {
@@ -167,16 +170,25 @@ func (q *Query_get) sql_select_clause() string {
 }
 
 func (q *Query_get) sql_joins() string {
+	//	Only join inner joins on read count
 	if q.read_count {
-		return strings.Join(q.joins_inner, "\n")
+		if len(q.joins_inner) == 0 {
+			return ""
+		}
+		return "\n"+strings.Join(q.joins_inner, "\n")
 	}
-	return strings.Join(append(q.joins_inner, q.joins...), "\n")
+	
+	joins := append(q.joins_inner, q.joins...)
+	if len(joins) == 0 {
+		return ""
+	}
+	return "\n"+strings.Join(joins, "\n")
 }
 
 func (q *Query_get) sql_limit_clause() string {
-	if q.read_count {
-		return ""
+	b := make([]string, len(q.in_limit))
+	for i, v := range q.in_limit {
+		b[i] = strconv.Itoa(v)
 	}
-	
-	return ""
+	return strings.Join(b, ",")
 }
