@@ -19,9 +19,9 @@ func (c *get) Read_lock() *get {
 }
 
 //	Count all entries without LIMIT and LEFT JOIN
-func (c *get) Count() *get {
-	c.query.Count()
-	return c
+func (c *get) Count() string {
+	sql := c.query.Count()
+	return sql
 }
 
 func (c *get) Public() *get {

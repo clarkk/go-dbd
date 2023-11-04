@@ -24,8 +24,8 @@ var Block = t.NewTable(
 		"range_invoice":	t.Field{block_range, "invoice"},
 	},
 	t.Joins{
-		block_range:	t.Join{t.INNER_JOIN, "id", "block_id"},
-		client:			t.Join{t.LEFT_JOIN, "client_id", "id"},
+		block_range:		t.Join{t.INNER_JOIN, "id", "block_id"},
+		client:				t.Join{t.LEFT_JOIN, "client_id", "id"},
 	},
 	t.Get{
 		"id",
@@ -40,11 +40,11 @@ var Block = t.NewTable(
 var Client = t.NewTable(
 	client,
 	t.Fields{
-		"id":			t.Field{client, "id"},
-		"is_suspended":	t.Field{client, "is_suspended"},
-		"time_created":	t.Field{client, "time_created"},
-		"timeout":		t.Field{client, "timeout"},
-		"lang":			t.Field{client, "lang"},
+		"id":				t.Field{client, "id"},
+		"is_suspended":		t.Field{client, "is_suspended"},
+		"time_created":		t.Field{client, "time_created"},
+		"timeout":			t.Field{client, "timeout"},
+		"lang":				t.Field{client, "lang"},
 	},
 	t.Joins{},
 	t.Get{},
@@ -52,13 +52,13 @@ var Client = t.NewTable(
 )
 
 var (
-	g 			*Query_get
+	g 				*Query_get
 	
-	got_code 	Error_code
-	want_code 	Error_code
+	got_code 		Error_code
+	want_code 		Error_code
 	
-	want 		string
-	got 		string
+	want 			string
+	got 			string
 	
 	block_private 	= dbv.NewView(Block, false)
 	block_public 	= dbv.NewView(Block, true)
@@ -407,7 +407,7 @@ LIMIT 10`); err != "" {
 	}
 }
 
-func Test_query_where(t *testing.T){
+func Test_query_select_where(t *testing.T){
 	want_code =											ERR_CODE_SUCCESS
 	
 	//	Not equal
@@ -477,6 +477,103 @@ WHERE id>=?`); err != "" {
 	if err := sql_get(t, g, `SELECT id
 FROM .block
 WHERE id<=?`); err != "" {
+		t.Errorf(err)
+	}
+	
+	//	Where in
+	g = Get("block", block_private);
+	g.Select(Select{
+		"id",
+	})
+	g.Where(Where{
+		"id in": Where_op{
+			1,2,3,
+		},
+	})
+	if err := write_get(t, g, want_code); err != "" {
+		t.Errorf(err)
+	}
+	if err := sql_get(t, g, `SELECT id
+FROM .block
+WHERE id IN (?)`); err != "" {
+		t.Errorf(err)
+	}
+	
+	//	Where in with join
+	g = Get("block", block_private);
+	g.Select(Select{
+		"id",
+		"is_suspended",
+	})
+	g.Where(Where{
+		"id in": Where_op{
+			1,2,3,
+		},
+	})
+	if err := write_get(t, g, want_code); err != "" {
+		t.Errorf(err)
+	}
+	if err := sql_get(t, g, `SELECT a.id,b.is_suspended
+FROM .block a
+LEFT JOIN .client b ON a.client_id=b.id
+WHERE a.id IN (?)`); err != "" {
+		t.Errorf(err)
+	}
+	
+	//	Where not in
+	g = Get("block", block_private);
+	g.Select(Select{
+		"id",
+	})
+	g.Where(Where{
+		"id !in": Where_op{
+			1,2,3,
+		},
+	})
+	if err := write_get(t, g, want_code); err != "" {
+		t.Errorf(err)
+	}
+	if err := sql_get(t, g, `SELECT id
+FROM .block
+WHERE id NOT IN (?)`); err != "" {
+		t.Errorf(err)
+	}
+	
+	//	Where between
+	g = Get("block", block_private);
+	g.Select(Select{
+		"id",
+	})
+	g.Where(Where{
+		"id bt": Where_op{
+			1,2,
+		},
+	})
+	if err := write_get(t, g, want_code); err != "" {
+		t.Errorf(err)
+	}
+	if err := sql_get(t, g, `SELECT id
+FROM .block
+WHERE id BETWEEN ? AND ?`); err != "" {
+		t.Errorf(err)
+	}
+	
+	//	Where not between
+	g = Get("block", block_private);
+	g.Select(Select{
+		"id",
+	})
+	g.Where(Where{
+		"id !bt": Where_op{
+			1,2,
+		},
+	})
+	if err := write_get(t, g, want_code); err != "" {
+		t.Errorf(err)
+	}
+	if err := sql_get(t, g, `SELECT id
+FROM .block
+WHERE id NOT BETWEEN ? AND ?`); err != "" {
 		t.Errorf(err)
 	}
 }

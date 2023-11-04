@@ -28,6 +28,7 @@ var (
 
 type (
 	Where 			map[string]interface{}
+	Where_op 		[]int
 	
 	Query struct {
 		view 			*dbv.View
@@ -69,7 +70,9 @@ type (
 		fn 			string
 		field 		string
 		op 			string
+		op_exp 		string
 		value 		string
+		value_op 	Where_op
 	}
 	
 	sql_exp struct {
@@ -105,7 +108,10 @@ func (q *Query) parse_where(){
 	q.out_where = make(where_clause, len(q.in_where))
 	i := 0
 	for k, v := range q.in_where {
-		var field string
+		var (
+			field 	string
+			op_exp 	string
+		)
 		
 		//	Parse function
 		if s1, s2, found := strings.Cut(k, "|"); found {
@@ -119,21 +125,40 @@ func (q *Query) parse_where(){
 		if s1, s2, found := strings.Cut(field, " "); found {
 			switch s2 {
 			case "!", ">", "<":
-				q.out_where[i].op = s2
+				q.out_where[i].op 			= s2
+				
+				//	Validate where value
+				switch value := v.(type) {
+				case string:
+					q.out_where[i].value 	= value
+				case int:
+					q.out_where[i].value 	= strconv.Itoa(value)
+				default:
+					q.error_where_value(field)
+				}
 			default:
-				q.error_where_operator(field, s2)
+				var found bool
+				if op_exp, found = sql_operator_in[s2]; found {
+					q.out_where[i].op 		= s2
+					q.out_where[i].op_exp 	= op_exp
+				}else if op_exp, found = sql_operator_between[s2]; found {
+					q.out_where[i].op 		= s2
+					q.out_where[i].op_exp 	= op_exp
+				}else{
+					q.error_where_operator(field, s2)
+				}
+				
+				//	Validate where value
+				if op_exp != "" {
+					switch value := v.(type) {
+					case Where_op:
+						q.out_where[i].value_op 	= value
+					default:
+						q.error_where_value(field)
+					}
+				}
 			}
 			field = s1
-		}
-		
-		//	Check where value
-		switch value := v.(type) {
-		case string:
-			q.out_where[i].value = value
-		case int:
-			q.out_where[i].value = strconv.Itoa(value)
-		default:
-			q.error_where_value(field)
 		}
 		
 		q.field_exists(field)
@@ -178,7 +203,11 @@ func (q *Query) sql_where_clause() string {
 		}
 		
 		//	Apply operator
-		col += v.op+"=?"
+		if v.op_exp != "" {
+			col += " "+v.op_exp
+		}else{
+			col += v.op+"=?"
+		}
 		
 		sql[k] = col
 	}
