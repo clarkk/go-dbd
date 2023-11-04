@@ -12,9 +12,9 @@ type get struct {
 	stmt 	*sql.Stmt
 }
 
-//	Read-lock (SELECT ... FOR UPDATE)
-func (c *get) Lock() *get {
-	c.query.Lock()
+//	Read-lock: SELECT ... FOR UPDATE
+func (c *get) Read_lock() *get {
+	c.query.Read_lock()
 	return c
 }
 
@@ -36,6 +36,11 @@ func (c *get) Select(fields dbq.Select) *get {
 
 func (c *get) Where(fields dbq.Where) *get {
 	c.query.Where(fields)
+	return c
+}
+
+func (c *get) Where_in(fields dbq.Where) *get {
+	c.query.Where_in(fields)
 	return c
 }
 

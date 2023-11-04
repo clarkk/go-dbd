@@ -47,13 +47,15 @@ type (
 		joins_inner 	[]string
 		
 		in_where 		Where
+		in_where_in 	Where
 		out_where 		where_clause
 		
 		sql 			string
 		
-		error_code 		Error_code
-		invalid_fields 	map[string]string
-		invalid_where 	[]string
+		error_code 				Error_code
+		invalid_fields 			map[string]string
+		invalid_where 			[]string
+		invalid_where_operator 	[]string
 	}
 	
 	select_field struct {
@@ -89,6 +91,10 @@ func (q *Query) Where(fields Where){
 	q.in_where = fields
 }
 
+func (q *Query) Where_in(fields Where){
+	q.in_where_in = fields
+}
+
 func (q *Query) SQL() string {
 	return q.sql
 }
@@ -116,8 +122,13 @@ func (q *Query) parse_where(){
 		
 		//	Parse operator
 		if s1, s2, found := strings.Cut(field, " "); found {
-			field 				= s1
-			q.out_where[i].op 	= s2
+			switch s2 {
+			case "!", ">", "<":
+				q.out_where[i].op = s2
+			default:
+				q.error_where_operator(field, s2)
+			}
+			field = s1
 		}
 		
 		//	Check where value
@@ -172,19 +183,7 @@ func (q *Query) sql_where_clause() string {
 		}
 		
 		//	Apply operator
-		if v.op != "" {
-			/*if op, ok := sql_operator_in[v.op]; ok {
-				
-			}*/
-		}
-		
-		//	Apply "field as"
-		/*if v.field_as != "" {
-			col += " "+v.field_as
-		//	Renamed in table map
-		}else if v.field != v.col {
-			col += " "+v.field
-		}*/
+		col += v.op+"=?"
 		
 		sql[k] = col
 	}

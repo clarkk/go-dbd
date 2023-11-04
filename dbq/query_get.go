@@ -34,8 +34,8 @@ func Get(name string, view *dbv.View) *Query_get {
 	}
 }
 
-//	Read-lock (SELECT ... FOR UPDATE)
-func (q *Query_get) Lock(){
+//	Read-lock: SELECT ... FOR UPDATE
+func (q *Query_get) Read_lock(){
 	q.read_lock = true
 }
 

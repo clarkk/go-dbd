@@ -123,19 +123,33 @@ func Test_errors(t *testing.T){
 	}
 	
 	//	-------------------------------------------------------------------------
-	//	Where values invalid
+	//	Where operator
 	//	-------------------------------------------------------------------------
-	want_code = 										ERR_CODE_WHERE_VALUES
+	want_code = 										ERR_CODE_WHERE_OPERATOR
 	
-	//	Invalid where
+	//	Invalid where operator
 	g = Get("block", block_private);
 	g.Select(Select{
 		"id",
 	})
 	g.Where(Where{
-		"name": []string{
-			"test",
-		},
+		"name ?": "",
+	})
+	if err := write_get(t, g, want_code); err != "" {
+		t.Errorf(err)
+	}
+	
+	//	-------------------------------------------------------------------------
+	//	Where values invalid
+	//	-------------------------------------------------------------------------
+	want_code = 										ERR_CODE_LIMIT_VALUE
+	
+	g = Get("block", block_private);
+	g.Select(Select{
+		"id",
+	})
+	g.Limit(Limit{
+		1,2,3,
 	})
 	if err := write_get(t, g, want_code); err != "" {
 		t.Errorf(err)
@@ -163,9 +177,25 @@ func Test_errors(t *testing.T){
 	want_code = 										ERR_CODE_SELECT_LOCK_ID
 	
 	g = Get("block", block_private);
-	g.Lock()
+	g.Read_lock()
 	g.Select(Select{
 		"id",
+	})
+	if err := write_get(t, g, want_code); err != "" {
+		t.Errorf(err)
+	}
+	
+	//	-------------------------------------------------------------------------
+	//	Limit value
+	//	-------------------------------------------------------------------------
+	want_code = 										ERR_CODE_LIMIT_VALUE
+	
+	g = Get("block", block_private);
+	g.Select(Select{
+		"id",
+	})
+	g.Limit(Limit{
+		0,10,2,
 	})
 	if err := write_get(t, g, want_code); err != "" {
 		t.Errorf(err)
@@ -308,7 +338,28 @@ LEFT JOIN .client b ON a.client_id=b.id`); err != "" {
 	
 	//	Read-lock
 	g = Get("block", block_private);
-	g.Lock()
+	g.Read_lock()
+	g.Select(Select{
+		"id",
+	})
+	g.Where(Where{
+		"id": 123,
+	})
+	if err := write_get(t, g, want_code); err != "" {
+		t.Errorf(err)
+	}
+	if err := sql_get(t, g, `SELECT id
+FROM .block
+WHERE id=?
+FOR UPDATE`); err != "" {
+		t.Errorf(err)
+	}
+	
+	//	-------------------------------------------------------------------------
+	//	Where
+	//	-------------------------------------------------------------------------
+	//	Not equal
+	g = Get("block", block_private);
 	g.Select(Select{
 		"id",
 	})
@@ -320,8 +371,60 @@ LEFT JOIN .client b ON a.client_id=b.id`); err != "" {
 	}
 	if err := sql_get(t, g, `SELECT id
 FROM .block
-WHERE id=?
-FOR UPDATE`); err != "" {
+WHERE id!=?`); err != "" {
+		t.Errorf(err)
+	}
+	
+	//	Not equal with join
+	g = Get("block", block_private);
+	g.Select(Select{
+		"id",
+		"is_suspended",
+	})
+	g.Where(Where{
+		"id": 123,
+	})
+	if err := write_get(t, g, want_code); err != "" {
+		t.Errorf(err)
+	}
+	if err := sql_get(t, g, `SELECT a.id,b.is_suspended
+FROM .block a
+LEFT JOIN .client b ON a.client_id=b.id
+WHERE a.id=?`); err != "" {
+		t.Errorf(err)
+	}
+	
+	//	Greater than
+	g = Get("block", block_private);
+	g.Select(Select{
+		"id",
+	})
+	g.Where(Where{
+		"id >": 123,
+	})
+	if err := write_get(t, g, want_code); err != "" {
+		t.Errorf(err)
+	}
+	if err := sql_get(t, g, `SELECT id
+FROM .block
+WHERE id>=?`); err != "" {
+		t.Errorf(err)
+	}
+	
+	//	Less than
+	g = Get("block", block_private);
+	g.Select(Select{
+		"id",
+	})
+	g.Where(Where{
+		"id <": 123,
+	})
+	if err := write_get(t, g, want_code); err != "" {
+		t.Errorf(err)
+	}
+	if err := sql_get(t, g, `SELECT id
+FROM .block
+WHERE id<=?`); err != "" {
 		t.Errorf(err)
 	}
 	

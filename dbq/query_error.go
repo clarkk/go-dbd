@@ -11,9 +11,10 @@ const (
 	ERR_CODE_PRIVATE Error_code 		= 1
 	ERR_CODE_SELECT_EMPTY Error_code 	= 2
 	ERR_CODE_FIELDS_INVALID Error_code 	= 3
-	ERR_CODE_WHERE_VALUES Error_code 	= 4
-	ERR_CODE_LIMIT_VALUE Error_code 	= 5
-	ERR_CODE_SELECT_LOCK_ID Error_code 	= 6
+	ERR_CODE_WHERE_OPERATOR Error_code 	= 4
+	ERR_CODE_WHERE_VALUES Error_code 	= 5
+	ERR_CODE_LIMIT_VALUE Error_code 	= 6
+	ERR_CODE_SELECT_LOCK_ID Error_code 	= 7
 )
 
 type (
@@ -47,7 +48,7 @@ func (q *Query) error() (Error_code, error) {
 		
 	case ERR_CODE_WHERE_VALUES:
 		return q.error_code, errors.New(
-			fmt.Sprintf("Where input values invalid: %s", strings.Join(q.invalid_where, ", ")),
+			fmt.Sprintf("Where values invalid: %s", strings.Join(q.invalid_where, ", ")),
 		)
 		
 	default:
@@ -68,9 +69,14 @@ func (q *Query) error_invalid_field(name string){
 	q.invalid_fields[name]	= fmt.Sprintf(`Field translation missing in '%s' for field: %s`, q.table_name, name)
 }
 
+func (q *Query) error_where_operator(name string, operator string){
+	q.error_code 				= ERR_CODE_WHERE_OPERATOR
+	q.invalid_where_operator	= append(q.invalid_where, fmt.Sprintf(`Where operators invalid: %s %s`, name, operator))
+}
+
 func (q *Query) error_where_value(name string){
 	q.error_code 			= ERR_CODE_WHERE_VALUES
-	q.invalid_where			= append(q.invalid_where, fmt.Sprintf(`Where input values invalid: %s`, name))
+	q.invalid_where			= append(q.invalid_where, fmt.Sprintf(`Where values invalid: %s`, name))
 }
 
 func (q *Query) error_limit_value(){
