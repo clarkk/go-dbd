@@ -95,17 +95,22 @@ func (q *Query_get) write_select() (Error_code, error) {
 }
 
 func (q *Query_get) create_sql(){
-	q.sql = "SELECT "+q.sql_select_clause()+"\nFROM "+q.sql_from_clause()
+	q.sql_values 	= []string{}
+	q.sql 			= "SELECT "+q.sql_select_clause()+"\nFROM "+q.sql_from_clause()
+	
 	if q.joined {
 		q.sql += q.sql_joins()
 	}
+	
 	if len(q.out_where) != 0 {
 		q.sql += "\nWHERE "+q.sql_where_clause()
 	}
+	
 	if !q.read_count {
 		if len(q.in_limit) != 0 {
 			q.sql += "\nLIMIT "+q.sql_limit_clause()
 		}
+		
 		if q.read_lock {
 			q.sql += "\nFOR UPDATE"
 		}

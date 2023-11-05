@@ -122,7 +122,7 @@ func Test_errors(t *testing.T){
 		"id",
 	})
 	g.Where(Where{
-		"test": "",
+		"test": "test",
 	})
 	if err := write_get(t, g, want_code); err != "" {
 		t.Errorf(err)
@@ -391,6 +391,11 @@ WHERE id=?
 FOR UPDATE`); err != "" {
 		t.Errorf(err)
 	}
+	if err := sql_values_get(t, g, []string{
+		"123",
+	}); err != "" {
+		t.Errorf(err)
+	}
 }
 
 func Test_query_limit(t *testing.T){
@@ -629,6 +634,11 @@ FROM .block a
 INNER JOIN .block_range b ON a.id=b.block_id`); err != "" {
 		t.Errorf(err)
 	}
+}
+
+func sql_values_get(t *testing.T, g *Query_get, want []string) string {
+	//fmt.Println(g.sql_values)
+	return ""
 }
 
 func sql_get(t *testing.T, g *Query_get, want string) string {

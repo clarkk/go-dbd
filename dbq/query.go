@@ -1,6 +1,7 @@
 package dbq
 
 import(
+	"fmt"
 	"strings"
 	"strconv"
 	"context"
@@ -12,19 +13,25 @@ import(
 const (
 	INNER_JOIN 	= "INNER JOIN"
 	
+	OP_IN 		= "in"
+	OP_NOT_IN 	= "!in"
+	
+	OP_BT 		= "bt"
+	OP_NOT_BT 	= "!bt"
+	
 	RUNE_START 	= 97	// a
 	RUNE_END 	= 122	// z
 )
 
 var (
 	sql_operator_in = map[string]string{
-		"in":	"IN (?)",
-		"!in":	"NOT IN (?)",
+		OP_IN:		"IN (?)",
+		OP_NOT_IN:	"NOT IN (?)",
 	}
 	
 	sql_operator_between = map[string]string{
-		"bt":	"BETWEEN ? AND ?",
-		"!bt":	"NOT BETWEEN ? AND ?",
+		OP_BT:		"BETWEEN ? AND ?",
+		OP_NOT_BT:	"NOT BETWEEN ? AND ?",
 	}
 )
 
@@ -56,6 +63,7 @@ type (
 		out_where 		where_clause
 		
 		sql 			string
+		sql_values 		[]string
 		
 		error_code 				Error_code
 		invalid_fields 			map[string]string
@@ -126,6 +134,7 @@ func (q *Query) parse_where(){
 		var (
 			field 	string
 			op_exp 	string
+			bt_op	bool
 		)
 		
 		//	Parse function
@@ -142,17 +151,7 @@ func (q *Query) parse_where(){
 			case "!", ">", "<":
 				q.out_where[i].op 			= s2
 				
-				//	Validate where value
-				switch value := v.(type) {
-				case string:
-					q.out_where[i].value 	= value
-				case int:
-					q.out_where[i].value 	= strconv.Itoa(value)
-				default:
-					q.error_where_value(field)
-				}
 			default:
-				bt_op := false
 				var found bool
 				if op_exp, found = sql_operator_in[s2]; found {
 					q.out_where[i].op 		= s2
@@ -164,21 +163,30 @@ func (q *Query) parse_where(){
 				}else{
 					q.error_where_operator(field, s2)
 				}
-				
-				//	Validate where value
-				if op_exp != "" {
-					switch value := v.(type) {
-					case Where_op:
-						if bt_op && len(value) != 2 {
-							q.error_where_value(field)
-						}
-						q.out_where[i].value_op 	= value
-					default:
-						q.error_where_value(field)
-					}
-				}
 			}
 			field = s1
+		}
+		
+		//	Validate where value
+		if op_exp != "" {
+			switch value := v.(type) {
+			case Where_op:
+				if bt_op && len(value) != 2 {
+					q.error_where_value(field)
+				}
+				q.out_where[i].value_op 	= value
+			default:
+				q.error_where_value(field)
+			}
+		}else{
+			switch value := v.(type) {
+			case string:
+				q.out_where[i].value 	= value
+			case int:
+				q.out_where[i].value 	= strconv.Itoa(value)
+			default:
+				q.error_where_value(field)
+			}
 		}
 		
 		q.field_exists(field)
@@ -227,6 +235,7 @@ func (q *Query) sql_where_clause() string {
 			col += " "+v.op_exp
 		}else{
 			col += v.op+"=?"
+			q.apply_sql_value(v.value)
 		}
 		
 		sql[k] = col
@@ -287,4 +296,9 @@ func (q *Query) table_as(name string) string {
 	}
 	q.table_as_map[name] = string(q.table_as_i)
 	return q.table_as_map[name]
+}
+
+func (q *Query) apply_sql_value(value string){
+	fmt.Println("apply:",value)
+	q.sql_values = append(q.sql_values, value)
 }
