@@ -2,7 +2,6 @@ package dbq
 
 import (
 	"strings"
-	"strconv"
 	"context"
 	"database/sql"
 	"github.com/clarkk/go-dbd/dbv"
@@ -108,7 +107,7 @@ func (q *Query_get) create_sql(){
 	
 	if !q.read_count {
 		if len(q.in_limit) != 0 {
-			q.sql += "\nLIMIT "+q.sql_limit_clause()
+			q.sql += "\nLIMIT "+int_list_string(q.in_limit)
 		}
 		
 		if q.read_lock {
@@ -149,7 +148,17 @@ func (q *Query_get) parse_select(){
 }
 
 func (q *Query_get) parse_limit(){
-	if len(q.in_limit) > 2 {
+	switch len(q.in_limit) {
+	case 0:
+	case 1:
+		if q.in_limit[0] == 0 {
+			q.error_limit_value()
+		}
+	case 2:
+		if q.in_limit[1] == 0 {
+			q.error_limit_value()
+		}
+	default:
 		q.error_limit_value()
 	}
 }
@@ -200,12 +209,4 @@ func (q *Query_get) sql_joins() string {
 		return ""
 	}
 	return "\n"+strings.Join(joins, "\n")
-}
-
-func (q *Query_get) sql_limit_clause() string {
-	b := make([]string, len(q.in_limit))
-	for i, v := range q.in_limit {
-		b[i] = strconv.Itoa(v)
-	}
-	return strings.Join(b, ",")
 }

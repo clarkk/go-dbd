@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 	"context"
+	"reflect"
 	t "github.com/clarkk/go-dbd/dbt"
 	"github.com/clarkk/go-dbd/dbv"
 )
@@ -141,6 +142,20 @@ func Test_errors(t *testing.T){
 	g.Where(Where{
 		"id bt": Where_op{
 			1,2,3,
+		},
+	})
+	if err := write_get(t, g, want_code); err != "" {
+		t.Errorf(err)
+	}
+	
+	//	Invalid where between value
+	g = Get(ctx, "block", block_private);
+	g.Select(Select{
+		"id",
+	})
+	g.Where(Where{
+		"id bt": Where_op{
+			3,1,
 		},
 	})
 	if err := write_get(t, g, want_code); err != "" {
@@ -443,7 +458,7 @@ func Test_query_select_where(t *testing.T){
 		"id",
 	})
 	g.Where(Where{
-		"id !": 123,
+		"id !": 43,
 	})
 	if err := write_get(t, g, want_code); err != "" {
 		t.Errorf(err)
@@ -451,6 +466,11 @@ func Test_query_select_where(t *testing.T){
 	if err := sql_get(t, g, `SELECT id
 FROM .block
 WHERE id!=?`); err != "" {
+		t.Errorf(err)
+	}
+	if err := sql_values_get(t, g, []string{
+		"43",
+	}); err != "" {
 		t.Errorf(err)
 	}
 	
@@ -461,7 +481,7 @@ WHERE id!=?`); err != "" {
 		"is_suspended",
 	})
 	g.Where(Where{
-		"id": 123,
+		"id": 63,
 	})
 	if err := write_get(t, g, want_code); err != "" {
 		t.Errorf(err)
@@ -470,6 +490,11 @@ WHERE id!=?`); err != "" {
 FROM .block a
 LEFT JOIN .client b ON a.client_id=b.id
 WHERE a.id=?`); err != "" {
+		t.Errorf(err)
+	}
+	if err := sql_values_get(t, g, []string{
+		"63",
+	}); err != "" {
 		t.Errorf(err)
 	}
 	
@@ -489,6 +514,11 @@ FROM .block
 WHERE id>=?`); err != "" {
 		t.Errorf(err)
 	}
+	if err := sql_values_get(t, g, []string{
+		"123",
+	}); err != "" {
+		t.Errorf(err)
+	}
 	
 	//	Less than
 	g = Get(ctx, "block", block_private);
@@ -496,7 +526,7 @@ WHERE id>=?`); err != "" {
 		"id",
 	})
 	g.Where(Where{
-		"id <": 123,
+		"id <": 154,
 	})
 	if err := write_get(t, g, want_code); err != "" {
 		t.Errorf(err)
@@ -504,6 +534,11 @@ WHERE id>=?`); err != "" {
 	if err := sql_get(t, g, `SELECT id
 FROM .block
 WHERE id<=?`); err != "" {
+		t.Errorf(err)
+	}
+	if err := sql_values_get(t, g, []string{
+		"154",
+	}); err != "" {
 		t.Errorf(err)
 	}
 	
@@ -514,7 +549,7 @@ WHERE id<=?`); err != "" {
 	})
 	g.Where(Where{
 		"id in": Where_op{
-			1,2,3,
+			1,2,3,87,
 		},
 	})
 	if err := write_get(t, g, want_code); err != "" {
@@ -523,6 +558,11 @@ WHERE id<=?`); err != "" {
 	if err := sql_get(t, g, `SELECT id
 FROM .block
 WHERE id IN (?)`); err != "" {
+		t.Errorf(err)
+	}
+	if err := sql_values_get(t, g, []string{
+		"1,2,3,87",
+	}); err != "" {
 		t.Errorf(err)
 	}
 	
@@ -534,7 +574,7 @@ WHERE id IN (?)`); err != "" {
 	})
 	g.Where(Where{
 		"id in": Where_op{
-			1,2,3,
+			45,587,4,
 		},
 	})
 	if err := write_get(t, g, want_code); err != "" {
@@ -546,6 +586,11 @@ LEFT JOIN .client b ON a.client_id=b.id
 WHERE a.id IN (?)`); err != "" {
 		t.Errorf(err)
 	}
+	if err := sql_values_get(t, g, []string{
+		"45,587,4",
+	}); err != "" {
+		t.Errorf(err)
+	}
 	
 	//	Where not in
 	g = Get(ctx, "block", block_private);
@@ -554,7 +599,7 @@ WHERE a.id IN (?)`); err != "" {
 	})
 	g.Where(Where{
 		"id !in": Where_op{
-			1,2,3,
+			53,73,72,5474,
 		},
 	})
 	if err := write_get(t, g, want_code); err != "" {
@@ -565,6 +610,11 @@ FROM .block
 WHERE id NOT IN (?)`); err != "" {
 		t.Errorf(err)
 	}
+	if err := sql_values_get(t, g, []string{
+		"53,73,72,5474",
+	}); err != "" {
+		t.Errorf(err)
+	}
 	
 	//	Where between
 	g = Get(ctx, "block", block_private);
@@ -573,7 +623,7 @@ WHERE id NOT IN (?)`); err != "" {
 	})
 	g.Where(Where{
 		"id bt": Where_op{
-			1,2,
+			41,87,
 		},
 	})
 	if err := write_get(t, g, want_code); err != "" {
@@ -582,6 +632,12 @@ WHERE id NOT IN (?)`); err != "" {
 	if err := sql_get(t, g, `SELECT id
 FROM .block
 WHERE id BETWEEN ? AND ?`); err != "" {
+		t.Errorf(err)
+	}
+	if err := sql_values_get(t, g, []string{
+		"41",
+		"87",
+	}); err != "" {
 		t.Errorf(err)
 	}
 	
@@ -637,7 +693,9 @@ INNER JOIN .block_range b ON a.id=b.block_id`); err != "" {
 }
 
 func sql_values_get(t *testing.T, g *Query_get, want []string) string {
-	//fmt.Println(g.sql_values)
+	if !reflect.DeepEqual(g.sql_values, want) {
+		return fmt.Sprintf("\ngot: %v\nwant: %v", g.sql_values, want)
+	}
 	return ""
 }
 

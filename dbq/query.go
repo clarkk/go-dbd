@@ -1,7 +1,6 @@
 package dbq
 
 import(
-	"fmt"
 	"strings"
 	"strconv"
 	"context"
@@ -11,27 +10,24 @@ import(
 )
 
 const (
-	INNER_JOIN 	= "INNER JOIN"
+	INNER_JOIN 		= "INNER JOIN"
 	
-	OP_IN 		= "in"
-	OP_NOT_IN 	= "!in"
+	OP_IN op_mode 	= 1
+	OP_BT op_mode 	= 2
 	
-	OP_BT 		= "bt"
-	OP_NOT_BT 	= "!bt"
-	
-	RUNE_START 	= 97	// a
-	RUNE_END 	= 122	// z
+	RUNE_START 		= 97	// a
+	RUNE_END 		= 122	// z
 )
 
 var (
 	sql_operator_in = map[string]string{
-		OP_IN:		"IN (?)",
-		OP_NOT_IN:	"NOT IN (?)",
+		"in":	"IN (?)",
+		"!in":	"NOT IN (?)",
 	}
 	
 	sql_operator_between = map[string]string{
-		OP_BT:		"BETWEEN ? AND ?",
-		OP_NOT_BT:	"NOT BETWEEN ? AND ?",
+		"bt":	"BETWEEN ? AND ?",
+		"!bt":	"NOT BETWEEN ? AND ?",
 	}
 )
 
@@ -83,6 +79,7 @@ type (
 		fn 			string
 		field 		string
 		op 			string
+		op_mode 	op_mode
 		op_exp 		string
 		value 		string
 		value_op 	Where_op
@@ -96,6 +93,8 @@ type (
 	
 	select_clause 	[]select_field
 	where_clause 	[]where_field
+	
+	op_mode 		int
 )
 
 func (q *Query) Public(){
@@ -134,7 +133,6 @@ func (q *Query) parse_where(){
 		var (
 			field 	string
 			op_exp 	string
-			bt_op	bool
 		)
 		
 		//	Parse function
@@ -155,10 +153,11 @@ func (q *Query) parse_where(){
 				var found bool
 				if op_exp, found = sql_operator_in[s2]; found {
 					q.out_where[i].op 		= s2
+					q.out_where[i].op_mode 	= OP_IN
 					q.out_where[i].op_exp 	= op_exp
 				}else if op_exp, found = sql_operator_between[s2]; found {
-					bt_op 					= true
 					q.out_where[i].op 		= s2
+					q.out_where[i].op_mode 	= OP_BT
 					q.out_where[i].op_exp 	= op_exp
 				}else{
 					q.error_where_operator(field, s2)
@@ -171,8 +170,14 @@ func (q *Query) parse_where(){
 		if op_exp != "" {
 			switch value := v.(type) {
 			case Where_op:
-				if bt_op && len(value) != 2 {
-					q.error_where_value(field)
+				if q.out_where[i].op_mode == OP_BT {
+					if len(value) == 2 {
+						if value[0] > value[1] {
+							q.error_where_value(field)
+						}
+					}else{
+						q.error_where_value(field)
+					}
 				}
 				q.out_where[i].value_op 	= value
 			default:
@@ -181,9 +186,9 @@ func (q *Query) parse_where(){
 		}else{
 			switch value := v.(type) {
 			case string:
-				q.out_where[i].value 	= value
+				q.out_where[i].value 		= value
 			case int:
-				q.out_where[i].value 	= strconv.Itoa(value)
+				q.out_where[i].value 		= strconv.Itoa(value)
 			default:
 				q.error_where_value(field)
 			}
@@ -233,6 +238,13 @@ func (q *Query) sql_where_clause() string {
 		//	Apply operator
 		if v.op_exp != "" {
 			col += " "+v.op_exp
+			switch v.op_mode {
+			case OP_IN:
+				q.apply_sql_value(int_list_string(v.value_op))
+			case OP_BT:
+				q.apply_sql_value(strconv.Itoa(v.value_op[0]))
+				q.apply_sql_value(strconv.Itoa(v.value_op[1]))
+			}
 		}else{
 			col += v.op+"=?"
 			q.apply_sql_value(v.value)
@@ -299,6 +311,17 @@ func (q *Query) table_as(name string) string {
 }
 
 func (q *Query) apply_sql_value(value string){
-	fmt.Println("apply:",value)
 	q.sql_values = append(q.sql_values, value)
+}
+
+func int_list_string(a []int) string {
+	len := len(a)
+	if len == 0 {
+		return ""
+	}
+	b := make([]string, len)
+	for i, v := range a {
+		b[i] = strconv.Itoa(v)
+	}
+	return strings.Join(b, ",")
 }
