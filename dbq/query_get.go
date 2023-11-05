@@ -1,6 +1,7 @@
 package dbq
 
 import (
+	"fmt"
 	"strings"
 	"context"
 	"database/sql"
@@ -21,6 +22,10 @@ type (
 		out_select 			select_clause
 		
 		in_limit 			Limit
+		
+		res 				map[string]interface{}
+		res_cols 			[]string
+		res_cols_num 		int
 	}
 )
 
@@ -63,10 +68,45 @@ func (q *Query_get) Compile() (Error_code, error) {
 	return ERR_CODE_SUCCESS, nil
 }
 
-func (q *Query) Fetch(tx *sql.Tx) error {
+func (q *Query_get) Fetch(tx *sql.Tx) error {
 	var err error
-	q.rows, err = tx.QueryContext(q.ctx, q.sql, q.sql_values...)
+	if q.rows, err = tx.QueryContext(q.ctx, q.sql, q.sql_values...); err != nil {
+		return err
+	}
+	
+	q.res = map[string]interface{}{}
+	
+	if q.res_cols, err = q.rows.Columns(); err != nil {
+		return err
+	}
+	q.res_cols_num = len(q.res_cols)
 	return err
+}
+
+func (q *Query_get) Row() bool {
+	if !q.rows.Next() {
+		return false
+	}
+	
+	columns := make([]interface{}, q.res_cols_num)
+	columnPointers := make([]interface{}, q.res_cols_num)
+	for i, _ := range columns {
+		columnPointers[i] = &columns[i]
+	}
+	
+	if err := q.rows.Scan(columnPointers...); err != nil {
+		fmt.Println("err:", err)
+	}
+	
+	m := make(map[string]interface{})
+	for i, colName := range q.res_cols {
+		val := columnPointers[i].(*interface{})
+		m[colName] = *val
+	}
+	
+	fmt.Print(m)
+	
+	return true
 }
 
 /*func (q *Query_get) Prepare(tx *sql.Tx) (Error_code, error) {

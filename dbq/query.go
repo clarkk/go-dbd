@@ -10,8 +10,6 @@ import(
 )
 
 const (
-	INNER_JOIN 		= "INNER JOIN"
-	
 	OP_IN op_mode 	= 1
 	OP_BT op_mode 	= 2
 	
@@ -109,27 +107,18 @@ func (q *Query) Where(fields Where){
 	return q.stmt.ExecContext(q.ctx, q.sql_values)
 }*/
 
-func (q *Query) Close_rows(){
+func (q *Query) Close(){
 	if q.rows != nil {
 		q.rows.Close()
 	}
-}
-
-func (q *Query) Close_stmt(){
 	if q.stmt != nil {
 		q.stmt.Close()
 	}
 }
 
-func (q *Query) Close(){
-	q.Close_rows()
-	q.Close_stmt()
-}
-
 func (q *Query) init(){
 	q.table_as_map 		= map[string]string{}
 	q.invalid_fields 	= map[string]string{}
-	q.joins 			= []string{}
 }
 
 /*func (q *Query) prepare(tx *sql.Tx) (Error_code, error) {
@@ -226,7 +215,7 @@ func (q *Query) parse_where(){
 }
 
 func (q *Query) sql_from_clause() string {
-	if q.joined {
+	if q.read && q.joined {
 		return "."+q.table_name+" "+q.table_as(q.table_name)
 	}
 	return "."+q.table_name

@@ -49,6 +49,10 @@ func (c *get) Fetch(tx *sql.Tx) error {
 	return c.query.Fetch(tx)
 }
 
+func (c *get) Row() bool {
+	return c.query.Row()
+}
+
 /*func (c *get) Prepare(tx *sql.Tx) (dbq.Error_code, error) {
 	return c.query.Prepare(tx)
 }
@@ -56,14 +60,6 @@ func (c *get) Fetch(tx *sql.Tx) error {
 func (c *get) Result() (sql.Result, error) {
 	return c.query.Result()
 }*/
-
-func (c *get) Close_rows(){
-	c.query.Close_rows()
-}
-
-func (c *get) Close_stmt(){
-	c.query.Close_stmt()
-}
 
 func (c *get) Close(){
 	c.query.Close()
