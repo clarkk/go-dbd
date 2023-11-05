@@ -2,6 +2,7 @@ package dbq
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 	"context"
 	"reflect"
@@ -687,13 +688,14 @@ LIMIT 10`); err != "" {
 	g.Count()
 	if err := sql_get(t, g, `SELECT count(*)
 FROM .block a
-INNER JOIN .block_range b ON a.id=b.block_id`); err != "" {
+INNER JOIN .block_range b ON a.id=b.block_id
+LEFT JOIN .client c ON a.client_id=c.id`); err != "" {
 		t.Errorf(err)
 	}
 }
 
 func sql_values_get(t *testing.T, g *Query_get, want []string) string {
-	if !reflect.DeepEqual(g.sql_values, want) {
+	if !reflect.DeepEqual(interface_string(g.sql_values), want) {
 		return fmt.Sprintf("\ngot: %v\nwant: %v", g.sql_values, want)
 	}
 	return ""
@@ -720,4 +722,17 @@ func check_query(t *testing.T, got string, want string) string {
 		return fmt.Sprintf("\ngot:\n%s\n\nwant:\n%s", got, want)
 	}
 	return ""
+}
+
+func interface_string(a []interface{}) []string {
+	b := make([]string, len(a))
+	for i := range a {
+		switch value := a[i].(type) {
+		case string:
+			b[i] = value
+		case int:
+			b[i] = strconv.Itoa(value)
+		}
+	}
+	return b
 }

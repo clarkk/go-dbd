@@ -3,7 +3,7 @@ package dbq
 import (
 	"strings"
 	"context"
-	//"database/sql"
+	"database/sql"
 	"github.com/clarkk/go-dbd/dbv"
 )
 
@@ -41,10 +41,10 @@ func (q *Query_get) Read_lock(){
 	q.read_lock = true
 }
 
-//	Count all entries without LIMIT and LEFT JOIN
+//	Count all entries with SELECT COUNT(*) and without LIMIT
 func (q *Query_get) Count() string {
 	q.read_count = true
-	q.create_sql()
+	q.compile_sql()
 	return q.sql
 }
 
@@ -61,6 +61,12 @@ func (q *Query_get) Compile() (Error_code, error) {
 		return error_code, err
 	}
 	return ERR_CODE_SUCCESS, nil
+}
+
+func (q *Query) Fetch(tx *sql.Tx) error {
+	var err error
+	q.rows, err = tx.QueryContext(q.ctx, q.sql, q.sql_values...)
+	return err
 }
 
 /*func (q *Query_get) Prepare(tx *sql.Tx) (Error_code, error) {
@@ -95,12 +101,12 @@ func (q *Query_get) prepare_select() (Error_code, error) {
 		return code, err
 	}
 	
-	q.create_sql()
+	q.compile_sql()
 	
 	return 0, nil
 }
 
-func (q *Query_get) create_sql(){
+func (q *Query_get) compile_sql(){
 	q.sql_values 	= []interface{}{}
 	q.sql 			= "SELECT "+q.sql_select_clause()+"\nFROM "+q.sql_from_clause()
 	
@@ -203,17 +209,8 @@ func (q *Query_get) sql_select_clause() string {
 }
 
 func (q *Query_get) sql_joins() string {
-	//	Only join inner joins on read count
-	if q.read_count {
-		if len(q.joins_inner) == 0 {
-			return ""
-		}
-		return "\n"+strings.Join(q.joins_inner, "\n")
-	}
-	
-	joins := append(q.joins_inner, q.joins...)
-	if len(joins) == 0 {
+	if len(q.joins) == 0 {
 		return ""
 	}
-	return "\n"+strings.Join(joins, "\n")
+	return "\n"+strings.Join(q.joins, "\n")
 }

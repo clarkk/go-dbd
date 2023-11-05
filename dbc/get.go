@@ -15,7 +15,7 @@ func (c *get) Read_lock() *get {
 	return c
 }
 
-//	Count all entries without LIMIT and LEFT JOIN
+//	Count all entries with SELECT COUNT(*) and without LIMIT
 func (c *get) Count() string {
 	sql := c.query.Count()
 	return sql
@@ -45,7 +45,7 @@ func (c *get) Compile() (dbq.Error_code, error) {
 	return c.query.Compile()
 }
 
-func (c *get) Fetch(tx *sql.Tx) (*sql.Rows, error) {
+func (c *get) Fetch(tx *sql.Tx) error {
 	return c.query.Fetch(tx)
 }
 
@@ -56,6 +56,14 @@ func (c *get) Fetch(tx *sql.Tx) (*sql.Rows, error) {
 func (c *get) Result() (sql.Result, error) {
 	return c.query.Result()
 }*/
+
+func (c *get) Close_rows(){
+	c.query.Close_rows()
+}
+
+func (c *get) Close_stmt(){
+	c.query.Close_stmt()
+}
 
 func (c *get) Close(){
 	c.query.Close()

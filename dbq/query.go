@@ -41,6 +41,7 @@ type (
 		table 			*dbt.Table
 		table_name 		string
 		
+		rows 			*sql.Rows
 		stmt 			*sql.Stmt
 		
 		read 			bool
@@ -53,7 +54,6 @@ type (
 		
 		joined 			bool
 		joins 			[]string
-		joins_inner 	[]string
 		
 		in_where 		Where
 		out_where 		where_clause
@@ -105,34 +105,40 @@ func (q *Query) Where(fields Where){
 	q.in_where = fields
 }
 
-func (q *Query) Fetch(tx *sql.Tx) (*sql.Rows, error) {
-	return tx.QueryContext(q.ctx, q.sql, q.sql_values...)
-}
-
 /*func (q *Query) Result() (sql.Result, error) {
 	return q.stmt.ExecContext(q.ctx, q.sql_values)
 }*/
 
-func (q *Query) Close(){
+func (q *Query) Close_rows(){
+	if q.rows != nil {
+		q.rows.Close()
+	}
+}
+
+func (q *Query) Close_stmt(){
 	if q.stmt != nil {
 		q.stmt.Close()
 	}
+}
+
+func (q *Query) Close(){
+	q.Close_rows()
+	q.Close_stmt()
 }
 
 func (q *Query) init(){
 	q.table_as_map 		= map[string]string{}
 	q.invalid_fields 	= map[string]string{}
 	q.joins 			= []string{}
-	q.joins_inner 		= []string{}
 }
 
-func (q *Query) prepare(tx *sql.Tx) (Error_code, error) {
+/*func (q *Query) prepare(tx *sql.Tx) (Error_code, error) {
 	var err error
 	if q.stmt, err = tx.PrepareContext(q.ctx, q.sql); err != nil {
 		panic("SQL prepare "+q.sql+": "+err.Error())
 	}
 	return ERR_CODE_SUCCESS, nil
-}
+}*/
 
 func (q *Query) parse_where(){
 	q.out_where = make(where_clause, len(q.in_where))
@@ -284,11 +290,7 @@ func (q *Query) field_translate(name string) sql_exp {
 		join 		:= q.table.Join(sql.table)
 		join_mode 	:= string(join.Mode)
 		join_sql 	:= join_mode+" ."+sql.table+" "+sql.table_as+" ON "+q.table_as(q.table_name)+"."+join.Col+"="+sql.table_as+"."+join.Foreign
-		if join.Mode == INNER_JOIN {
-			q.joins_inner 	= append(q.joins_inner, join_sql)
-		}else{
-			q.joins 		= append(q.joins, join_sql)
-		}
+		q.joins 	= append(q.joins, join_sql)
 		return sql
 	}
 	
