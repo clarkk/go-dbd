@@ -74,8 +74,8 @@ defer rows.Close()
 cols, _ := rows.Columns()
 cols_len := len(cols)
 for rows.Next() {
-	columns 	:= make([]interface{}, cols_len)
-	columns_ref := make([]interface{}, cols_len)
+	columns 	:= make([]any, cols_len)
+	columns_ref := make([]any, cols_len)
 	for i, _ := range columns {
 		columns_ref[i] = &columns[i]
 	}
@@ -84,9 +84,9 @@ for rows.Next() {
 		log.Fatal(err)
 	}
 	
-	m := make(map[string]interface{})
+	m := make(map[string]any)
 	for i, col_name := range cols {
-		val := columns_ref[i].(*interface{})
+		val := columns_ref[i].(*any)
 		m[col_name] = *val
 	}
 	

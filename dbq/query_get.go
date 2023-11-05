@@ -12,7 +12,7 @@ type (
 	Select 			[]string
 	Limit 			[]int
 	
-	Result 			map[string]interface{}
+	Result 			map[string]any
 	
 	Query_get struct {
 		Query
@@ -82,15 +82,45 @@ func (q *Query_get) Fetch(tx *sql.Tx) error {
 	return err
 }
 
+type Type_int int
+func (t *Type_int) Scan(value any) error {
+	switch value := value.(type) {
+	case int64:
+		*t = Type_int(value)
+	default:
+		return fmt.Errorf("Invalid database type: %T %v", value, value)
+	}
+	return nil
+}
+type Type_string string
+func (t *Type_string) Scan(value any) error {
+	switch value := value.(type) {
+	case []uint8:
+		*t = Type_string(value)
+	default:
+		return fmt.Errorf("Invalid database type: %T %v", value, value)
+	}
+	return nil
+}
+
 func (q *Query_get) Row() bool {
 	if !q.rows.Next() {
 		return false
 	}
 	
-	cols 	:= make([]interface{}, q.res_cols_num)
-	ptr 	:= make([]interface{}, q.res_cols_num)
+	/*cols 	:= make([]any, q.res_cols_num)
+	ptr 	:= make([]any, q.res_cols_num)
 	for i, _ := range cols {
 		ptr[i] = &cols[i]
+	}*/
+	
+	var c1 Type_int
+	var c2 Type_int
+	var c3 Type_string
+	ptr := []any{
+		&c1,
+		&c2,
+		&c3,
 	}
 	
 	if err := q.rows.Scan(ptr...); err != nil {
@@ -99,15 +129,26 @@ func (q *Query_get) Row() bool {
 	
 	res := Result{}
 	for i, name := range q.res_cols {
-		value := *ptr[i].(*interface{})
+		switch name {
+		case "id":
+			res[name] = *ptr[i].(*Type_int)
+		case "is_suspended":
+			res[name] = *ptr[i].(*Type_int)
+		case "name":
+			res[name] = *ptr[i].(*Type_string)
+		}
+		
+		//res[name] = *ptr[i].(*any)
+		
+		/*value := *ptr[i].(*any)
 		switch v := value.(type) {
 		case []uint8:
 			res[name] = string(v)
 		case int64:
 			res[name] = v
 		default:
-			
-		}
+			//fmt.Errorf("Invalid database type: %T %v", value, value)
+		}*/
 		
 		fmt.Printf("Type: %T %s\n", res[name], name)
 	}
@@ -155,7 +196,7 @@ func (q *Query_get) prepare_select() (Error_code, error) {
 }
 
 func (q *Query_get) compile_sql(){
-	q.sql_values 	= []interface{}{}
+	q.sql_values 	= []any{}
 	q.sql 			= "SELECT "+q.sql_select_clause()+"\nFROM "+q.sql_from_clause()
 	
 	if q.joined {

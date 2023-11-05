@@ -746,7 +746,7 @@ func check_query(t *testing.T, got string, want string) string {
 	return ""
 }
 
-func interface_string(a []interface{}) []string {
+func interface_string(a []any) []string {
 	b := make([]string, len(a))
 	for i := range a {
 		switch value := a[i].(type) {

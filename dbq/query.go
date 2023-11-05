@@ -30,7 +30,7 @@ var (
 )
 
 type (
-	Where 			map[string]interface{}
+	Where 			map[string]any
 	Where_op 		[]int
 	
 	Query struct {
@@ -57,7 +57,7 @@ type (
 		out_where 		where_clause
 		
 		sql 			string
-		sql_values 		[]interface{}
+		sql_values 		[]any
 		
 		error_code 				Error_code
 		invalid_fields 			map[string]string
@@ -79,7 +79,7 @@ type (
 		op 			string
 		op_mode 	op_mode
 		op_exp 		string
-		value 		interface{}
+		value 		any
 		value_op 	Where_op
 	}
 	
@@ -307,7 +307,7 @@ func (q *Query) table_as(name string) string {
 	return q.table_as_map[name]
 }
 
-func (q *Query) apply_sql_value(value interface{}){
+func (q *Query) apply_sql_value(value any){
 	q.sql_values = append(q.sql_values, value)
 }
 
