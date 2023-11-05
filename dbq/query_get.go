@@ -3,6 +3,8 @@ package dbq
 import (
 	"strings"
 	"strconv"
+	"context"
+	"database/sql"
 	"github.com/clarkk/go-dbd/dbv"
 )
 
@@ -23,13 +25,14 @@ type (
 	}
 )
 
-func Get(name string, view *dbv.View) *Query_get {
+func Get(ctx context.Context, name string, view *dbv.View) *Query_get {
 	return &Query_get{
 		Query: Query{
-			read:			true,
+			ctx:			ctx,
 			view:			view,
 			table:			view.Table(),
 			table_name:		name,
+			read:			true,
 		},
 	}
 }
@@ -54,13 +57,20 @@ func (q *Query_get) Limit(fields Limit){
 	q.in_limit = fields
 }
 
-func (q *Query_get) Write() (Error_code, error) {
+func (q *Query_get) Prepare(tx *sql.Tx) (Error_code, error) {
+	if error_code, err := q.write_select(); error_code != 0 {
+		return error_code, err
+	}
+	return q.prepare(tx)
+}
+
+func (q *Query_get) write_select() (Error_code, error) {
 	//	Check if table is private
 	if q.public && !q.view.Public() {
 		return q.error_table_private()
 	}
 	
-	q.prepare()
+	q.init()
 	q.parse_select()
 	q.parse_where()
 	q.parse_limit()

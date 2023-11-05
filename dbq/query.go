@@ -3,6 +3,8 @@ package dbq
 import(
 	"strings"
 	"strconv"
+	"context"
+	"database/sql"
 	"github.com/clarkk/go-dbd/dbt"
 	"github.com/clarkk/go-dbd/dbv"
 )
@@ -31,9 +33,12 @@ type (
 	Where_op 		[]int
 	
 	Query struct {
+		ctx 			context.Context
 		view 			*dbv.View
 		table 			*dbt.Table
 		table_name 		string
+		
+		stmt 			*sql.Stmt
 		
 		read 			bool
 		read_id 		bool
@@ -93,15 +98,25 @@ func (q *Query) Where(fields Where){
 	q.in_where = fields
 }
 
-func (q *Query) SQL() string {
-	return q.sql
+func (q *Query) Close(){
+	if q.stmt != nil {
+		q.stmt.Close()
+	}
 }
 
-func (q *Query) prepare(){
+func (q *Query) init(){
 	q.table_as_map 		= map[string]string{}
 	q.invalid_fields 	= map[string]string{}
 	q.joins 			= []string{}
 	q.joins_inner 		= []string{}
+}
+
+func (q *Query) prepare(tx *sql.Tx) (Error_code, error) {
+	var err error
+	if q.stmt, err = tx.PrepareContext(q.ctx, q.sql); err != nil {
+		panic("SQL prepare "+q.sql+": "+err.Error())
+	}
+	return ERR_CODE_SUCCESS, nil
 }
 
 func (q *Query) parse_where(){
@@ -137,11 +152,13 @@ func (q *Query) parse_where(){
 					q.error_where_value(field)
 				}
 			default:
+				bt_op := false
 				var found bool
 				if op_exp, found = sql_operator_in[s2]; found {
 					q.out_where[i].op 		= s2
 					q.out_where[i].op_exp 	= op_exp
 				}else if op_exp, found = sql_operator_between[s2]; found {
+					bt_op 					= true
 					q.out_where[i].op 		= s2
 					q.out_where[i].op_exp 	= op_exp
 				}else{
@@ -152,6 +169,9 @@ func (q *Query) parse_where(){
 				if op_exp != "" {
 					switch value := v.(type) {
 					case Where_op:
+						if bt_op && len(value) != 2 {
+							q.error_where_value(field)
+						}
 						q.out_where[i].value_op 	= value
 					default:
 						q.error_where_value(field)
@@ -211,7 +231,7 @@ func (q *Query) sql_where_clause() string {
 		
 		sql[k] = col
 	}
-	return strings.Join(sql, ",")
+	return strings.Join(sql, " && ")
 }
 
 func (q *Query) field_exists(name string){

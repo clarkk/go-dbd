@@ -3,6 +3,7 @@ package dbq
 import (
 	"fmt"
 	"testing"
+	"context"
 	t "github.com/clarkk/go-dbd/dbt"
 	"github.com/clarkk/go-dbd/dbv"
 )
@@ -52,6 +53,8 @@ var Client = t.NewTable(
 )
 
 var (
+	ctx 			= context.Background()
+	
 	g 				*Query_get
 	
 	got_code 		Error_code
@@ -70,7 +73,7 @@ func Test_errors(t *testing.T){
 	//	-------------------------------------------------------------------------
 	want_code = 										ERR_CODE_PRIVATE
 	
-	g = Get("block", block_private);
+	g = Get(ctx, "block", block_private);
 	g.Public()
 	g.Select(Select{
 		"id",
@@ -84,7 +87,7 @@ func Test_errors(t *testing.T){
 	//	-------------------------------------------------------------------------
 	want_code = 										ERR_CODE_SELECT_EMPTY
 	
-	g = Get("block", block_private);
+	g = Get(ctx, "block", block_private);
 	if err := write_get(t, g, want_code); err != "" {
 		t.Errorf(err)
 	}
@@ -95,7 +98,7 @@ func Test_errors(t *testing.T){
 	want_code = 										ERR_CODE_FIELDS_INVALID
 	
 	//	Invalid select
-	g = Get("block", block_private);
+	g = Get(ctx, "block", block_private);
 	g.Select(Select{
 		"test",
 	})
@@ -104,7 +107,7 @@ func Test_errors(t *testing.T){
 	}
 	
 	//	Invalid select public
-	g = Get("block", block_public);
+	g = Get(ctx, "block", block_public);
 	g.Public()
 	g.Select(Select{
 		"client_id",
@@ -114,7 +117,7 @@ func Test_errors(t *testing.T){
 	}
 	
 	//	Invalid where
-	g = Get("block", block_private);
+	g = Get(ctx, "block", block_private);
 	g.Select(Select{
 		"id",
 	})
@@ -126,12 +129,31 @@ func Test_errors(t *testing.T){
 	}
 	
 	//	-------------------------------------------------------------------------
+	//	Where value
+	//	-------------------------------------------------------------------------
+	want_code = 										ERR_CODE_WHERE_VALUE
+	
+	//	Invalid where between value
+	g = Get(ctx, "block", block_private);
+	g.Select(Select{
+		"id",
+	})
+	g.Where(Where{
+		"id bt": Where_op{
+			1,2,3,
+		},
+	})
+	if err := write_get(t, g, want_code); err != "" {
+		t.Errorf(err)
+	}
+	
+	//	-------------------------------------------------------------------------
 	//	Where operator
 	//	-------------------------------------------------------------------------
 	want_code = 										ERR_CODE_WHERE_OPERATOR
 	
 	//	Invalid where operator
-	g = Get("block", block_private);
+	g = Get(ctx, "block", block_private);
 	g.Select(Select{
 		"id",
 	})
@@ -147,7 +169,7 @@ func Test_errors(t *testing.T){
 	//	-------------------------------------------------------------------------
 	want_code = 										ERR_CODE_LIMIT_VALUE
 	
-	g = Get("block", block_private);
+	g = Get(ctx, "block", block_private);
 	g.Select(Select{
 		"id",
 	})
@@ -163,7 +185,7 @@ func Test_errors(t *testing.T){
 	//	-------------------------------------------------------------------------
 	want_code = 										ERR_CODE_LIMIT_VALUE
 	
-	g = Get("block", block_private);
+	g = Get(ctx, "block", block_private);
 	g.Select(Select{
 		"id",
 	})
@@ -179,7 +201,7 @@ func Test_errors(t *testing.T){
 	//	-------------------------------------------------------------------------
 	want_code = 										ERR_CODE_SELECT_LOCK_ID
 	
-	g = Get("block", block_private);
+	g = Get(ctx, "block", block_private);
 	g.Read_lock()
 	g.Select(Select{
 		"id",
@@ -188,7 +210,7 @@ func Test_errors(t *testing.T){
 		t.Errorf(err)
 	}
 	
-	g = Get("block", block_private);
+	g = Get(ctx, "block", block_private);
 	g.Read_lock()
 	g.Select(Select{
 		"id",
@@ -205,7 +227,7 @@ func Test_errors(t *testing.T){
 	//	-------------------------------------------------------------------------
 	want_code = 										ERR_CODE_LIMIT_VALUE
 	
-	g = Get("block", block_private);
+	g = Get(ctx, "block", block_private);
 	g.Select(Select{
 		"id",
 	})
@@ -220,7 +242,7 @@ func Test_errors(t *testing.T){
 func Test_query_select(t *testing.T){
 	want_code =											ERR_CODE_SUCCESS
 	
-	g = Get("block", block_private);
+	g = Get(ctx, "block", block_private);
 	g.Select(Select{
 		"id",
 	})
@@ -233,7 +255,7 @@ FROM .block`); err != "" {
 	}
 	
 	//	Select function
-	g = Get("block", block_private);
+	g = Get(ctx, "block", block_private);
 	g.Select(Select{
 		"count|id",
 	})
@@ -246,7 +268,7 @@ FROM .block`); err != "" {
 	}
 	
 	//	Select "field as"
-	g = Get("block", block_private);
+	g = Get(ctx, "block", block_private);
 	g.Select(Select{
 		"id=new_id",
 	})
@@ -259,7 +281,7 @@ FROM .block`); err != "" {
 	}
 	
 	//	Select function with "field as"
-	g = Get("block", block_private);
+	g = Get(ctx, "block", block_private);
 	g.Select(Select{
 		"count|id=new_id",
 	})
@@ -272,7 +294,7 @@ FROM .block`); err != "" {
 	}
 	
 	//	Join
-	g = Get("block", block_private);
+	g = Get(ctx, "block", block_private);
 	g.Select(Select{
 		"id",
 		"is_suspended",
@@ -287,7 +309,7 @@ LEFT JOIN .client b ON a.client_id=b.id`); err != "" {
 	}
 	
 	//	Renamed field in table map
-	g = Get("block", block_private);
+	g = Get(ctx, "block", block_private);
 	g.Select(Select{
 		"id",
 		"renamed",
@@ -301,7 +323,7 @@ FROM .block`); err != "" {
 	}
 	
 	//	Renamed field in table map with join
-	g = Get("block", block_private);
+	g = Get(ctx, "block", block_private);
 	g.Select(Select{
 		"id",
 		"is_suspended",
@@ -317,7 +339,7 @@ LEFT JOIN .client b ON a.client_id=b.id`); err != "" {
 	}
 	
 	//	Renamed field in table map with join and "field as"
-	g = Get("block", block_private);
+	g = Get(ctx, "block", block_private);
 	g.Select(Select{
 		"id",
 		"is_suspended=new_suspend",
@@ -333,7 +355,7 @@ LEFT JOIN .client b ON a.client_id=b.id`); err != "" {
 	}
 	
 	//	Renamed field in table map with join, "field as" and function
-	g = Get("block", block_private);
+	g = Get(ctx, "block", block_private);
 	g.Select(Select{
 		"id",
 		"count|is_suspended=new_suspend",
@@ -352,7 +374,7 @@ LEFT JOIN .client b ON a.client_id=b.id`); err != "" {
 func Test_query_read_lock(t *testing.T){
 	want_code =											ERR_CODE_SUCCESS
 	
-	g = Get("block", block_private);
+	g = Get(ctx, "block", block_private);
 	g.Read_lock()
 	g.Select(Select{
 		"id",
@@ -374,7 +396,7 @@ FOR UPDATE`); err != "" {
 func Test_query_limit(t *testing.T){
 	want_code =											ERR_CODE_SUCCESS
 	
-	g = Get("block", block_private);
+	g = Get(ctx, "block", block_private);
 	g.Select(Select{
 		"id",
 	})
@@ -390,7 +412,7 @@ LIMIT 0,10`); err != "" {
 		t.Errorf(err)
 	}
 	
-	g = Get("block", block_private);
+	g = Get(ctx, "block", block_private);
 	g.Select(Select{
 		"id",
 	})
@@ -411,7 +433,7 @@ func Test_query_select_where(t *testing.T){
 	want_code =											ERR_CODE_SUCCESS
 	
 	//	Not equal
-	g = Get("block", block_private);
+	g = Get(ctx, "block", block_private);
 	g.Select(Select{
 		"id",
 	})
@@ -428,7 +450,7 @@ WHERE id!=?`); err != "" {
 	}
 	
 	//	Not equal with join
-	g = Get("block", block_private);
+	g = Get(ctx, "block", block_private);
 	g.Select(Select{
 		"id",
 		"is_suspended",
@@ -447,7 +469,7 @@ WHERE a.id=?`); err != "" {
 	}
 	
 	//	Greater than
-	g = Get("block", block_private);
+	g = Get(ctx, "block", block_private);
 	g.Select(Select{
 		"id",
 	})
@@ -464,7 +486,7 @@ WHERE id>=?`); err != "" {
 	}
 	
 	//	Less than
-	g = Get("block", block_private);
+	g = Get(ctx, "block", block_private);
 	g.Select(Select{
 		"id",
 	})
@@ -481,7 +503,7 @@ WHERE id<=?`); err != "" {
 	}
 	
 	//	Where in
-	g = Get("block", block_private);
+	g = Get(ctx, "block", block_private);
 	g.Select(Select{
 		"id",
 	})
@@ -500,7 +522,7 @@ WHERE id IN (?)`); err != "" {
 	}
 	
 	//	Where in with join
-	g = Get("block", block_private);
+	g = Get(ctx, "block", block_private);
 	g.Select(Select{
 		"id",
 		"is_suspended",
@@ -521,7 +543,7 @@ WHERE a.id IN (?)`); err != "" {
 	}
 	
 	//	Where not in
-	g = Get("block", block_private);
+	g = Get(ctx, "block", block_private);
 	g.Select(Select{
 		"id",
 	})
@@ -540,7 +562,7 @@ WHERE id NOT IN (?)`); err != "" {
 	}
 	
 	//	Where between
-	g = Get("block", block_private);
+	g = Get(ctx, "block", block_private);
 	g.Select(Select{
 		"id",
 	})
@@ -559,7 +581,7 @@ WHERE id BETWEEN ? AND ?`); err != "" {
 	}
 	
 	//	Where not between
-	g = Get("block", block_private);
+	g = Get(ctx, "block", block_private);
 	g.Select(Select{
 		"id",
 	})
@@ -581,7 +603,7 @@ WHERE id NOT BETWEEN ? AND ?`); err != "" {
 func Test_query_count(t *testing.T){
 	want_code =											ERR_CODE_SUCCESS
 	
-	g = Get("block", block_private);
+	g = Get(ctx, "block", block_private);
 	g.Select(Select{
 		"id",
 		"range_invoice",
@@ -610,12 +632,11 @@ INNER JOIN .block_range b ON a.id=b.block_id`); err != "" {
 }
 
 func sql_get(t *testing.T, g *Query_get, want string) string {
-	got = g.SQL()
-	return check_query(t, got, want)
+	return check_query(t, g.sql, want)
 }
 
 func write_get(t *testing.T, g *Query_get, want Error_code) string {
-	got_code, _ = g.Write()
+	got_code, _ = g.write_select()
 	return check_code(t, got_code, want_code)
 }
 

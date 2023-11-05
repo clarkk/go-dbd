@@ -45,6 +45,11 @@ func (q *Query) error() (Error_code, error) {
 			msg = strings.Join(values, ", ")
 		}
 		return q.error_code, errors.New(msg)
+	
+	case ERR_CODE_WHERE_OPERATOR:
+		return q.error_code, errors.New(
+			fmt.Sprintf("Where operators invalid: %s", strings.Join(q.invalid_where_operator, ", ")),
+		)
 		
 	case ERR_CODE_WHERE_VALUE:
 		return q.error_code, errors.New(
@@ -71,12 +76,12 @@ func (q *Query) error_invalid_field(name string){
 
 func (q *Query) error_where_operator(name string, operator string){
 	q.error_code 				= ERR_CODE_WHERE_OPERATOR
-	q.invalid_where_operator	= append(q.invalid_where, fmt.Sprintf(`Where operators invalid: %s %s`, name, operator))
+	q.invalid_where_operator	= append(q.invalid_where_operator, fmt.Sprintf("%s %s", name, operator))
 }
 
 func (q *Query) error_where_value(name string){
 	q.error_code 			= ERR_CODE_WHERE_VALUE
-	q.invalid_where			= append(q.invalid_where, fmt.Sprintf(`Where values invalid: %s`, name))
+	q.invalid_where			= append(q.invalid_where, name)
 }
 
 func (q *Query) error_limit_value(){
