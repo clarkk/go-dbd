@@ -12,6 +12,8 @@ type (
 	Select 			[]string
 	Limit 			[]int
 	
+	Result 			map[string]interface{}
+	
 	Query_get struct {
 		Query
 		
@@ -23,7 +25,6 @@ type (
 		
 		in_limit 			Limit
 		
-		res 				map[string]interface{}
 		res_cols 			[]string
 		res_cols_num 		int
 	}
@@ -74,8 +75,6 @@ func (q *Query_get) Fetch(tx *sql.Tx) error {
 		return err
 	}
 	
-	q.res = map[string]interface{}{}
-	
 	if q.res_cols, err = q.rows.Columns(); err != nil {
 		return err
 	}
@@ -88,23 +87,32 @@ func (q *Query_get) Row() bool {
 		return false
 	}
 	
-	columns := make([]interface{}, q.res_cols_num)
-	columnPointers := make([]interface{}, q.res_cols_num)
-	for i, _ := range columns {
-		columnPointers[i] = &columns[i]
+	cols 	:= make([]interface{}, q.res_cols_num)
+	ptr 	:= make([]interface{}, q.res_cols_num)
+	for i, _ := range cols {
+		ptr[i] = &cols[i]
 	}
 	
-	if err := q.rows.Scan(columnPointers...); err != nil {
+	if err := q.rows.Scan(ptr...); err != nil {
 		fmt.Println("err:", err)
 	}
 	
-	m := make(map[string]interface{})
-	for i, colName := range q.res_cols {
-		val := columnPointers[i].(*interface{})
-		m[colName] = *val
+	res := Result{}
+	for i, name := range q.res_cols {
+		value := *ptr[i].(*interface{})
+		switch v := value.(type) {
+		case []uint8:
+			res[name] = string(v)
+		case int64:
+			res[name] = v
+		default:
+			
+		}
+		
+		fmt.Printf("Type: %T %s\n", res[name], name)
 	}
 	
-	fmt.Print(m)
+	fmt.Println(res)
 	
 	return true
 }

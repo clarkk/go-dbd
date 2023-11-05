@@ -475,6 +475,28 @@ WHERE id!=?`); err != "" {
 		t.Errorf(err)
 	}
 	
+	//	Function
+	g = Get(ctx, "block", block_private);
+	g.Select(Select{
+		"id",
+	})
+	g.Where(Where{
+		"sha1|id": 43,
+	})
+	if err := write_get(t, g, want_code); err != "" {
+		t.Errorf(err)
+	}
+	if err := sql_get(t, g, `SELECT id
+FROM .block
+WHERE sha1(id)=?`); err != "" {
+		t.Errorf(err)
+	}
+	if err := sql_values_get(t, g, []string{
+		"43",
+	}); err != "" {
+		t.Errorf(err)
+	}
+	
 	//	Not equal with join
 	g = Get(ctx, "block", block_private);
 	g.Select(Select{
