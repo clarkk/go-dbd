@@ -3,7 +3,7 @@ package dbq
 import (
 	"strings"
 	"context"
-	"database/sql"
+	//"database/sql"
 	"github.com/clarkk/go-dbd/dbv"
 )
 
@@ -56,14 +56,21 @@ func (q *Query_get) Limit(fields Limit){
 	q.in_limit = fields
 }
 
-func (q *Query_get) Prepare(tx *sql.Tx) (Error_code, error) {
-	if error_code, err := q.write_select(); error_code != 0 {
+func (q *Query_get) Compile() (Error_code, error) {
+	if error_code, err := q.prepare_select(); error_code != 0 {
+		return error_code, err
+	}
+	return ERR_CODE_SUCCESS, nil
+}
+
+/*func (q *Query_get) Prepare(tx *sql.Tx) (Error_code, error) {
+	if error_code, err := q.prepare_select(); error_code != 0 {
 		return error_code, err
 	}
 	return q.prepare(tx)
-}
+}*/
 
-func (q *Query_get) write_select() (Error_code, error) {
+func (q *Query_get) prepare_select() (Error_code, error) {
 	//	Check if table is private
 	if q.public && !q.view.Public() {
 		return q.error_table_private()
@@ -94,7 +101,7 @@ func (q *Query_get) write_select() (Error_code, error) {
 }
 
 func (q *Query_get) create_sql(){
-	q.sql_values 	= []string{}
+	q.sql_values 	= []interface{}{}
 	q.sql 			= "SELECT "+q.sql_select_clause()+"\nFROM "+q.sql_from_clause()
 	
 	if q.joined {

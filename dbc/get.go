@@ -41,13 +41,21 @@ func (c *get) Limit(fields dbq.Limit) *get {
 	return c
 }
 
-func (c *get) Prepare(tx *sql.Tx) (dbq.Error_code, error) {
+func (c *get) Compile() (dbq.Error_code, error) {
+	return c.query.Compile()
+}
+
+func (c *get) Fetch(tx *sql.Tx) (*sql.Rows, error) {
+	return c.query.Fetch(tx)
+}
+
+/*func (c *get) Prepare(tx *sql.Tx) (dbq.Error_code, error) {
 	return c.query.Prepare(tx)
 }
 
-func (c *get) Result(){
-	
-}
+func (c *get) Result() (sql.Result, error) {
+	return c.query.Result()
+}*/
 
 func (c *get) Close(){
 	c.query.Close()

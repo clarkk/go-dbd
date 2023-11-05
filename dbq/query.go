@@ -59,7 +59,7 @@ type (
 		out_where 		where_clause
 		
 		sql 			string
-		sql_values 		[]string
+		sql_values 		[]interface{}
 		
 		error_code 				Error_code
 		invalid_fields 			map[string]string
@@ -81,7 +81,7 @@ type (
 		op 			string
 		op_mode 	op_mode
 		op_exp 		string
-		value 		string
+		value 		interface{}
 		value_op 	Where_op
 	}
 	
@@ -94,7 +94,7 @@ type (
 	select_clause 	[]select_field
 	where_clause 	[]where_field
 	
-	op_mode 		int
+	op_mode 		int8
 )
 
 func (q *Query) Public(){
@@ -104,6 +104,14 @@ func (q *Query) Public(){
 func (q *Query) Where(fields Where){
 	q.in_where = fields
 }
+
+func (q *Query) Fetch(tx *sql.Tx) (*sql.Rows, error) {
+	return tx.QueryContext(q.ctx, q.sql, q.sql_values...)
+}
+
+/*func (q *Query) Result() (sql.Result, error) {
+	return q.stmt.ExecContext(q.ctx, q.sql_values)
+}*/
 
 func (q *Query) Close(){
 	if q.stmt != nil {
@@ -185,10 +193,8 @@ func (q *Query) parse_where(){
 			}
 		}else{
 			switch value := v.(type) {
-			case string:
-				q.out_where[i].value 		= value
-			case int:
-				q.out_where[i].value 		= strconv.Itoa(value)
+			case string, int:
+				q.out_where[i].value = value
 			default:
 				q.error_where_value(field)
 			}
@@ -242,8 +248,8 @@ func (q *Query) sql_where_clause() string {
 			case OP_IN:
 				q.apply_sql_value(int_list_string(v.value_op))
 			case OP_BT:
-				q.apply_sql_value(strconv.Itoa(v.value_op[0]))
-				q.apply_sql_value(strconv.Itoa(v.value_op[1]))
+				q.apply_sql_value(v.value_op[0])
+				q.apply_sql_value(v.value_op[1])
 			}
 		}else{
 			col += v.op+"=?"
@@ -310,7 +316,7 @@ func (q *Query) table_as(name string) string {
 	return q.table_as_map[name]
 }
 
-func (q *Query) apply_sql_value(value string){
+func (q *Query) apply_sql_value(value interface{}){
 	q.sql_values = append(q.sql_values, value)
 }
 

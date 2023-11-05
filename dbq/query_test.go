@@ -704,7 +704,7 @@ func sql_get(t *testing.T, g *Query_get, want string) string {
 }
 
 func write_get(t *testing.T, g *Query_get, want Error_code) string {
-	got_code, _ = g.write_select()
+	got_code, _ = g.prepare_select()
 	return check_code(t, got_code, want_code)
 }
 
