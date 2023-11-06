@@ -3,7 +3,7 @@ package dbc
 import (
 	"fmt"
 	"context"
-	"github.com/go-errors/errors"
+	//"github.com/go-errors/errors"
 	"github.com/clarkk/go-dbd/dbq"
 	"github.com/clarkk/go-dbd/dbv"
 )
@@ -58,7 +58,7 @@ func (c *Collection) Get(ctx context.Context, name string) (*get, error) {
 	//	Check if table exists
 	view, found := c.list[name]
 	if !found {
-		return nil, errors.New(fmt.Sprintf("Table invalid: %s", name))
+		return nil, fmt.Errorf("Table invalid: %s", name)
 	}
 	
 	return &get{
