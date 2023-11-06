@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"github.com/clarkk/go-dbd/dbv"
+	"github.com/clarkk/go-dbd/dbt"
 )
 
 type (
@@ -86,22 +87,92 @@ func (q *Query_get) Fetch(tx *sql.Tx) error {
 	value_type 	sql.Scanner
 }*/
 
+
+
+/*type FieldTyper interface {
+    // Return pointer to new value.
+    New() (ptr any)
+    // Dereference pointer.
+    Deref(ptr any) (val any)
+}
+
+type FieldType[T any] struct{}
+
+func (v FieldType[T]) New() any {
+    return new(T)
+}
+
+func (v FieldType[T]) Deref(p any) any {
+    return *p.(*T)
+}*/
+
+var fieldTypes = map[string]dbt.Col_typer{
+    "id":   		dbt.Col_type[Type_int]{},
+    "is_suspended":	dbt.Col_type[Type_int]{},
+    "name":			dbt.Col_type[Type_string]{},
+}
+
+func SetupScanArgs(columnNames []string, fieldTypes map[string]dbt.Col_typer) []any {
+    args := make([]any, len(columnNames))
+    for i, n := range columnNames {
+        args[i] = fieldTypes[n].New()
+    }
+    return args
+}
+
+func DerefScanArgs(columnNames []string, fieldTypes map[string]dbt.Col_typer, args []any) map[string]any {
+    result := make(map[string]any)
+    for i, n := range columnNames {
+        result[n] = fieldTypes[n].Deref(args[i])
+    }
+    return result
+}
+
+type Type_string string
+
+func (t *Type_string) Scan(value any) error {
+    switch value := value.(type) {
+    case []uint8:
+        *t = Type_string(value)
+    default:
+        return fmt.Errorf("Invalid database type: %T %v", value, value)
+    }
+    return nil
+}
+
+type Type_int int
+
+func (t *Type_int) Scan(value any) error {
+    switch value := value.(type) {
+    case int64:
+        *t = Type_int(value)
+    default:
+        return fmt.Errorf("Invalid database type: %T %v", value, value)
+    }
+    return nil
+}
+
+
+
 func (q *Query_get) Row() bool {
 	if !q.rows.Next() {
 		return false
 	}
 	
-	cols 	:= make([]any, q.res_cols_num)
+	/*cols 	:= make([]any, q.res_cols_num)
 	ptr 	:= make([]any, q.res_cols_num)
 	for i, _ := range cols {
 		ptr[i] = &cols[i]
-	}
+	}*/
+	ptr := SetupScanArgs(q.res_cols, fieldTypes)
 	
 	if err := q.rows.Scan(ptr...); err != nil {
 		fmt.Println("err:", err)
 	}
 	
-	res := Result{}
+	res := DerefScanArgs(q.res_cols, fieldTypes, ptr)
+	
+	/*res := Result{}
 	for i, name := range q.res_cols {
 		value := *ptr[i].(*any)
 		switch v := value.(type) {
@@ -114,9 +185,9 @@ func (q *Query_get) Row() bool {
 		}
 		
 		//fmt.Printf("Type: %T %s\n", res[name], name)
-	}
+	}*/
 	
-	fmt.Println(res)
+	fmt.Println("res:", res)
 	
 	return true
 }
