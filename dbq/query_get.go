@@ -6,14 +6,13 @@ import (
 	"context"
 	"database/sql"
 	"github.com/clarkk/go-dbd/dbv"
-	"github.com/clarkk/go-dbd/dbt"
 )
 
 type (
 	Select 			[]string
 	Limit 			[]int
 	
-	Result 			map[string]any
+	Row_result 		map[string]any
 	
 	Query_get struct {
 		Query
@@ -28,6 +27,9 @@ type (
 		
 		res_cols 			[]string
 		res_cols_num 		int
+		
+		row 				Row_result
+		row_error 			error
 	}
 )
 
@@ -49,10 +51,15 @@ func (q *Query_get) Read_lock(){
 }
 
 //	Count all entries with SELECT COUNT(*) and without LIMIT
-func (q *Query_get) Count() string {
+func (q *Query_get) Count(tx *sql.Tx) (int, error) {
 	q.read_count = true
 	q.compile_sql()
-	return q.sql
+	var cnt int
+	row := tx.QueryRowContext(q.ctx, q.sql, q.sql_values...)
+	if err := row.Scan(&cnt); err != nil {
+		return 0, err
+	}
+	return cnt, nil
 }
 
 func (q *Query_get) Select(fields Select){
@@ -70,134 +77,93 @@ func (q *Query_get) Compile() (Error_code, error) {
 	return ERR_CODE_SUCCESS, nil
 }
 
-func (q *Query_get) Fetch(tx *sql.Tx) error {
-	var err error
-	if q.rows, err = tx.QueryContext(q.ctx, q.sql, q.sql_values...); err != nil {
-		return err
-	}
-	
-	if q.res_cols, err = q.rows.Columns(); err != nil {
-		return err
-	}
-	q.res_cols_num = len(q.res_cols)
-	return err
-}
-
-/*type table_field struct {
-	value_type 	sql.Scanner
-}*/
-
-
-
-/*type FieldTyper interface {
-    // Return pointer to new value.
-    New() (ptr any)
-    // Dereference pointer.
-    Deref(ptr any) (val any)
-}
-
-type FieldType[T any] struct{}
-
-func (v FieldType[T]) New() any {
-    return new(T)
-}
-
-func (v FieldType[T]) Deref(p any) any {
-    return *p.(*T)
-}*/
-
-var fieldTypes = map[string]dbt.Col_typer{
-    "id":   		dbt.Col_type[Type_int]{},
-    "is_suspended":	dbt.Col_type[Type_int]{},
-    "name":			dbt.Col_type[Type_string]{},
-}
-
-func SetupScanArgs(columnNames []string, fieldTypes map[string]dbt.Col_typer) []any {
-    args := make([]any, len(columnNames))
-    for i, n := range columnNames {
-        args[i] = fieldTypes[n].New()
-    }
-    return args
-}
-
-func DerefScanArgs(columnNames []string, fieldTypes map[string]dbt.Col_typer, args []any) map[string]any {
-    result := make(map[string]any)
-    for i, n := range columnNames {
-        result[n] = fieldTypes[n].Deref(args[i])
-    }
-    return result
-}
-
-type Type_string string
-
-func (t *Type_string) Scan(value any) error {
-    switch value := value.(type) {
-    case []uint8:
-        *t = Type_string(value)
-    default:
-        return fmt.Errorf("Invalid database type: %T %v", value, value)
-    }
-    return nil
-}
-
-type Type_int int
-
-func (t *Type_int) Scan(value any) error {
-    switch value := value.(type) {
-    case int64:
-        *t = Type_int(value)
-    default:
-        return fmt.Errorf("Invalid database type: %T %v", value, value)
-    }
-    return nil
-}
-
-
-
-func (q *Query_get) Row() bool {
-	if !q.rows.Next() {
-		return false
-	}
-	
-	/*cols 	:= make([]any, q.res_cols_num)
-	ptr 	:= make([]any, q.res_cols_num)
-	for i, _ := range cols {
-		ptr[i] = &cols[i]
-	}*/
-	ptr := SetupScanArgs(q.res_cols, fieldTypes)
-	
-	if err := q.rows.Scan(ptr...); err != nil {
-		fmt.Println("err:", err)
-	}
-	
-	res := DerefScanArgs(q.res_cols, fieldTypes, ptr)
-	
-	/*res := Result{}
-	for i, name := range q.res_cols {
-		value := *ptr[i].(*any)
-		switch v := value.(type) {
-		case []uint8:
-			res[name] = string(v)
-		case int64:
-			res[name] = v
-		default:
-			panic(fmt.Sprintf("Invalid database type: %T %v", value, value))
-		}
-		
-		//fmt.Printf("Type: %T %s\n", res[name], name)
-	}*/
-	
-	fmt.Println("res:", res)
-	
-	return true
-}
-
 /*func (q *Query_get) Prepare(tx *sql.Tx) (Error_code, error) {
 	if error_code, err := q.prepare_select(); error_code != 0 {
 		return error_code, err
 	}
 	return q.prepare(tx)
 }*/
+
+func (q *Query_get) Fetch(tx *sql.Tx) error {
+	var err error
+	if q.rows, err = tx.QueryContext(q.ctx, q.sql, q.sql_values...); err != nil {
+		return err
+	}
+	if q.res_cols, err = q.rows.Columns(); err != nil {
+		return err
+	}
+	q.res_cols_num = len(q.res_cols)
+	return nil
+}
+
+func (q *Query_get) Fetch_row(tx *sql.Tx) (Row_result, error) {
+	if err := q.Fetch(tx); err != nil {
+		return Row_result{}, err
+	}
+	if !q.Next() {
+		return Row_result{}, q.Row_error()
+		
+		//err == sql.ErrNoRows
+	}
+	return q.row, nil
+}
+
+func (q *Query_get) Next() bool {
+	if !q.rows.Next() {
+		return false
+	}
+	
+	cols 	:= make([]any, q.res_cols_num)
+	ptrs 	:= make([]any, q.res_cols_num)
+	for i, _ := range cols {
+		ptrs[i] = &cols[i]
+	}
+	
+	if err := q.rows.Scan(ptrs...); err != nil {
+		q.row_error = err
+		return false
+	}
+	
+	/*
+	int64
+	float64
+	bool
+	[]byte
+	string
+	time.Time
+	nil
+	*/
+	
+	q.row = Row_result{}
+	for i, name := range q.res_cols {
+		value := *ptrs[i].(*any)
+		if value == nil {
+			q.row[name] = value
+		}else{
+			switch v := value.(type) {
+			case []uint8:
+				q.row[name] = string(v)
+			case int64:
+				q.row[name] = v
+			default:
+				panic(fmt.Sprintf("Invalid database type: %s %v (%T)", name, value, value))
+			}
+		}
+	}
+	
+	return true
+}
+
+func (q *Query_get) Row() Row_result {
+	return q.row
+}
+
+func (q *Query_get) Row_error() error {
+	if err := q.rows.Err(); err != nil {
+		return err
+	}
+	return q.row_error
+}
 
 func (q *Query_get) prepare_select() (Error_code, error) {
 	//	Check if table is private

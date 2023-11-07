@@ -16,9 +16,8 @@ func (c *get) Read_lock() *get {
 }
 
 //	Count all entries with SELECT COUNT(*) and without LIMIT
-func (c *get) Count() string {
-	sql := c.query.Count()
-	return sql
+func (c *get) Count(tx *sql.Tx) (int, error) {
+	return c.query.Count(tx)
 }
 
 func (c *get) Public() *get {
@@ -49,8 +48,20 @@ func (c *get) Fetch(tx *sql.Tx) error {
 	return c.query.Fetch(tx)
 }
 
-func (c *get) Row() bool {
+func (c *get) Fetch_row(tx *sql.Tx) (dbq.Row_result, error) {
+	return c.query.Fetch_row(tx)
+}
+
+func (c *get) Next() bool {
+	return c.query.Next()
+}
+
+func (c *get) Row() dbq.Row_result {
 	return c.query.Row()
+}
+
+func (c *get) Row_error() error {
+	return c.query.Row_error()
 }
 
 /*func (c *get) Prepare(tx *sql.Tx) (dbq.Error_code, error) {

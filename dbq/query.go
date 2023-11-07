@@ -151,7 +151,6 @@ func (q *Query) parse_where(){
 			switch s2 {
 			case "!", ">", "<":
 				q.out_where[i].op 			= s2
-				
 			default:
 				var found bool
 				if op_exp, found = sql_operator_in[s2]; found {
