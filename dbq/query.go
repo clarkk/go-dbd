@@ -1,6 +1,7 @@
 package dbq
 
 import(
+	"sort"
 	"strings"
 	"strconv"
 	"context"
@@ -33,6 +34,8 @@ type (
 	Where 			map[string]any
 	Where_op 		[]int
 	
+	Prepared_values map[string]any
+	
 	Query struct {
 		ctx 			context.Context
 		view 			*dbv.View
@@ -57,6 +60,7 @@ type (
 		out_where 		where_clause
 		
 		sql 			string
+		sql_fields 		[]string
 		sql_values 		[]any
 		
 		error_code 				Error_code
@@ -103,9 +107,14 @@ func (q *Query) Where(fields Where){
 	q.in_where = fields
 }
 
-/*func (q *Query) Result() (sql.Result, error) {
-	return q.stmt.ExecContext(q.ctx, q.sql_values)
-}*/
+func (q *Query) Prepare(tx *sql.Tx) error {
+	var err error
+	if q.stmt, err = tx.PrepareContext(q.ctx, q.sql); err != nil {
+		return err
+	}
+	sort.Strings(q.sql_fields)
+	return nil
+}
 
 func (q *Query) Close(){
 	if q.rows != nil {
@@ -120,14 +129,6 @@ func (q *Query) init(){
 	q.table_as_map 		= map[string]string{}
 	q.invalid_fields 	= map[string]string{}
 }
-
-/*func (q *Query) prepare(tx *sql.Tx) (Error_code, error) {
-	var err error
-	if q.stmt, err = tx.PrepareContext(q.ctx, q.sql); err != nil {
-		panic("SQL prepare "+q.sql+": "+err.Error())
-	}
-	return ERR_CODE_SUCCESS, nil
-}*/
 
 func (q *Query) parse_where(){
 	q.out_where = make(where_clause, len(q.in_where))
@@ -234,20 +235,19 @@ func (q *Query) sql_where_clause() string {
 		if v.fn != "" {
 			col = v.fn+"("+col+")"
 		}
-		
 		//	Apply operator
 		if v.op_exp != "" {
 			col += " "+v.op_exp
 			switch v.op_mode {
 			case OP_IN:
-				q.apply_sql_value(int_list_string(v.value_op))
+				q.apply_sql_value(v.field, int_list_string(v.value_op))
 			case OP_BT:
-				q.apply_sql_value(v.value_op[0])
-				q.apply_sql_value(v.value_op[1])
+				q.apply_sql_value(v.field, v.value_op[0])
+				q.apply_sql_value(v.field, v.value_op[1])
 			}
 		}else{
 			col += v.op+"=?"
-			q.apply_sql_value(v.value)
+			q.apply_sql_value(v.field, v.value)
 		}
 		
 		sql[k] = col
@@ -306,8 +306,9 @@ func (q *Query) table_as(name string) string {
 	return q.table_as_map[name]
 }
 
-func (q *Query) apply_sql_value(value any){
-	q.sql_values = append(q.sql_values, value)
+func (q *Query) apply_sql_value(field string, value any){
+	q.sql_fields 	= append(q.sql_fields, field)
+	q.sql_values 	= append(q.sql_values, value)
 }
 
 func int_list_string(a []int) string {

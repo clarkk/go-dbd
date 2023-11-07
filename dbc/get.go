@@ -44,6 +44,14 @@ func (c *get) Compile() (dbq.Error_code, error) {
 	return c.query.Compile()
 }
 
+func (c *get) Prepare(tx *sql.Tx) error {
+	return c.query.Prepare(tx)
+}
+
+func (c *get) Result(values dbq.Prepared_values) error {
+	return c.query.Result(values)
+}
+
 func (c *get) Fetch(tx *sql.Tx) error {
 	return c.query.Fetch(tx)
 }
@@ -63,14 +71,6 @@ func (c *get) Row() dbq.Row_result {
 func (c *get) Row_error() error {
 	return c.query.Row_error()
 }
-
-/*func (c *get) Prepare(tx *sql.Tx) (dbq.Error_code, error) {
-	return c.query.Prepare(tx)
-}
-
-func (c *get) Result() (sql.Result, error) {
-	return c.query.Result()
-}*/
 
 func (c *get) Close(){
 	c.query.Close()

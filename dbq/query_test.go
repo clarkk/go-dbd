@@ -707,7 +707,8 @@ LIMIT 10`); err != "" {
 		t.Errorf(err)
 	}
 	
-	g.Count()
+	g.read_count = true
+	g.compile_sql()
 	if err := sql_get(t, g, `SELECT count(*)
 FROM .block a
 INNER JOIN .block_range b ON a.id=b.block_id

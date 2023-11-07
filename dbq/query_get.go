@@ -2,9 +2,12 @@ package dbq
 
 import (
 	"fmt"
+	"sort"
+	"slices"
 	"strings"
 	"context"
 	"database/sql"
+	"github.com/go-errors/errors"
 	"github.com/clarkk/go-dbd/dbv"
 )
 
@@ -54,6 +57,7 @@ func (q *Query_get) Read_lock(){
 func (q *Query_get) Count(tx *sql.Tx) (int, error) {
 	q.read_count = true
 	q.compile_sql()
+	
 	var cnt int
 	row := tx.QueryRowContext(q.ctx, q.sql, q.sql_values...)
 	if err := row.Scan(&cnt); err != nil {
@@ -77,23 +81,33 @@ func (q *Query_get) Compile() (Error_code, error) {
 	return ERR_CODE_SUCCESS, nil
 }
 
-/*func (q *Query_get) Prepare(tx *sql.Tx) (Error_code, error) {
-	if error_code, err := q.prepare_select(); error_code != 0 {
-		return error_code, err
+func (q *Query_get) Result(values Prepared_values) error {
+	compare := make([]string, len(values))
+	i := 0
+	for k := range values {
+		compare[i] = k
+		i++
 	}
-	return q.prepare(tx)
-}*/
+	sort.Strings(compare)
+	
+	//	Verify field names match prepared field names
+	if !slices.Equal(q.sql_fields, compare) {
+		return errors.New(fmt.Sprintf("Prepared field names does not match: %s %s", q.sql_fields, compare))
+	}
+	
+	var err error
+	if q.rows, err = q.stmt.QueryContext(q.ctx, q.sql_values...); err != nil {
+		return err
+	}
+	return q.rows_columns()
+}
 
 func (q *Query_get) Fetch(tx *sql.Tx) error {
 	var err error
 	if q.rows, err = tx.QueryContext(q.ctx, q.sql, q.sql_values...); err != nil {
 		return err
 	}
-	if q.res_cols, err = q.rows.Columns(); err != nil {
-		return err
-	}
-	q.res_cols_num = len(q.res_cols)
-	return nil
+	return q.rows_columns()
 }
 
 func (q *Query_get) Fetch_row(tx *sql.Tx) (Row_result, error) {
@@ -165,6 +179,15 @@ func (q *Query_get) Row_error() error {
 	return q.row_error
 }
 
+func (q *Query_get) rows_columns() error {
+	var err error
+	if q.res_cols, err = q.rows.Columns(); err != nil {
+		return err
+	}
+	q.res_cols_num = len(q.res_cols)
+	return nil
+}
+
 func (q *Query_get) prepare_select() (Error_code, error) {
 	//	Check if table is private
 	if q.public && !q.view.Public() {
@@ -196,6 +219,7 @@ func (q *Query_get) prepare_select() (Error_code, error) {
 }
 
 func (q *Query_get) compile_sql(){
+	q.sql_fields 	= []string{}
 	q.sql_values 	= []any{}
 	q.sql 			= "SELECT "+q.sql_select_clause()+"\nFROM "+q.sql_from_clause()
 	
