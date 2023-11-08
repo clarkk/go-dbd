@@ -198,6 +198,15 @@ func (q *Query_get) prepare_select() (Error_code, error) {
 		return q.error_table_private()
 	}
 	
+	/*	TODO:
+		- check user-rights read/write (user/api)
+		- only allow ORDER on indexed columns
+		- WHERE LIKE
+		- default SELECT
+		- default ORDER
+		- override WHERE with environment variables (user/api rights)
+	*/
+	
 	q.init()
 	q.parse_select()
 	q.parse_where()
