@@ -3,11 +3,11 @@ package dbq
 import(
 	"sort"
 	"strings"
-	"strconv"
 	"context"
 	"database/sql"
 	"github.com/clarkk/go-dbd/dbt"
 	"github.com/clarkk/go-dbd/dbv"
+	"github.com/clarkk/go-util/sutil"
 )
 
 const (
@@ -67,6 +67,7 @@ type (
 		invalid_fields 			map[string]string
 		invalid_where 			[]string
 		invalid_where_operator 	[]string
+		invalid_order_mode 		[]string
 	}
 	
 	select_field struct {
@@ -87,6 +88,12 @@ type (
 		value_op 	Where_op
 	}
 	
+	order_field struct {
+		sql_exp
+		field 		string
+		desc 		bool
+	}
+	
 	sql_exp struct {
 		table 		string
 		table_as 	string
@@ -95,6 +102,7 @@ type (
 	
 	select_clause 	[]select_field
 	where_clause 	[]where_field
+	order_clause 	[]order_field
 	
 	op_mode 		int8
 )
@@ -215,32 +223,29 @@ func (q *Query) parse_where(){
 }
 
 func (q *Query) sql_from_clause() string {
+	from := "."+q.table_name
 	if q.read && q.joined {
-		return "."+q.table_name+" "+q.table_as(q.table_name)
+		from += " "+q.table_as(q.table_name)
 	}
-	return "."+q.table_name
+	return from
 }
 
 func (q *Query) sql_where_clause() string {
 	sql := make([]string, len(q.out_where))
 	for k, v := range q.out_where {
-		var col string
-		if q.joined {
-			col = v.table_as+"."+v.col
-		}else{
-			col = v.col
-		}
+		col := q.sql_col(v.sql_exp)
 		
 		//	Apply function
 		if v.fn != "" {
 			col = v.fn+"("+col+")"
 		}
+		
 		//	Apply operator
 		if v.op_exp != "" {
 			col += " "+v.op_exp
 			switch v.op_mode {
 			case OP_IN:
-				q.apply_sql_value(v.field, int_list_string(v.value_op))
+				q.apply_sql_value(v.field, sutil.Int_csv(v.value_op))
 			case OP_BT:
 				q.apply_sql_value(v.field, v.value_op[0])
 				q.apply_sql_value(v.field, v.value_op[1])
@@ -253,6 +258,14 @@ func (q *Query) sql_where_clause() string {
 		sql[k] = col
 	}
 	return strings.Join(sql, " && ")
+}
+
+func (q *Query) sql_col(v sql_exp) string {
+	var col string
+	if q.joined {
+		col = v.table_as+"."
+	}
+	return col+v.col
 }
 
 func (q *Query) field_exists(name string){
@@ -307,18 +320,6 @@ func (q *Query) table_as(name string) string {
 }
 
 func (q *Query) apply_sql_value(field string, value any){
-	q.sql_fields 	= append(q.sql_fields, field)
-	q.sql_values 	= append(q.sql_values, value)
-}
-
-func int_list_string(a []int) string {
-	len := len(a)
-	if len == 0 {
-		return ""
-	}
-	b := make([]string, len)
-	for i, v := range a {
-		b[i] = strconv.Itoa(v)
-	}
-	return strings.Join(b, ",")
+	q.sql_fields = append(q.sql_fields, field)
+	q.sql_values = append(q.sql_values, value)
 }

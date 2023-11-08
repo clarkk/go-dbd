@@ -9,10 +9,12 @@ import (
 	"database/sql"
 	"github.com/go-errors/errors"
 	"github.com/clarkk/go-dbd/dbv"
+	"github.com/clarkk/go-util/sutil"
 )
 
 type (
 	Select 			[]string
+	Order 			[]string
 	Limit 			[]int
 	
 	Row_result 		map[string]any
@@ -25,6 +27,9 @@ type (
 		
 		in_select 			Select
 		out_select 			select_clause
+		
+		in_order 			Order
+		out_order 			order_clause
 		
 		in_limit 			Limit
 		
@@ -70,6 +75,10 @@ func (q *Query_get) Select(fields Select){
 	q.in_select = fields
 }
 
+func (q *Query_get) Order(fields Order){
+	q.in_order = fields
+}
+
 func (q *Query_get) Limit(fields Limit){
 	q.in_limit = fields
 }
@@ -82,12 +91,7 @@ func (q *Query_get) Compile() (Error_code, error) {
 }
 
 func (q *Query_get) Result(values Prepared_values) error {
-	compare := make([]string, len(values))
-	i := 0
-	for k := range values {
-		compare[i] = k
-		i++
-	}
+	compare := sutil.Map_keys(values)
 	sort.Strings(compare)
 	
 	//	Verify field names match prepared field names
@@ -197,6 +201,7 @@ func (q *Query_get) prepare_select() (Error_code, error) {
 	q.init()
 	q.parse_select()
 	q.parse_where()
+	q.parse_order()
 	q.parse_limit()
 	
 	//	Check if select is empty
@@ -232,8 +237,12 @@ func (q *Query_get) compile_sql(){
 	}
 	
 	if !q.read_count {
+		if len(q.out_order) != 0 {
+			q.sql += "\nORDER BY "+q.sql_order_clause()
+		}
+		
 		if len(q.in_limit) != 0 {
-			q.sql += "\nLIMIT "+int_list_string(q.in_limit)
+			q.sql += "\nLIMIT "+sutil.Int_csv(q.in_limit)
 		}
 		
 		if q.read_lock {
@@ -247,7 +256,7 @@ func (q *Query_get) parse_select(){
 	for k, v := range q.in_select {
 		var field string
 		
-		//	Parse field
+		//	Parse function
 		if s1, s2, found := strings.Cut(v, "|"); found {
 			q.out_select[k].fn 	= s1
 			field 				= s2
@@ -255,7 +264,7 @@ func (q *Query_get) parse_select(){
 			field 				= v
 		}
 		
-		//	Parse field as
+		//	Parse "field as"
 		if s1, s2, found := strings.Cut(field, "="); found {
 			field 						= s1
 			q.out_select[k].field_as 	= s2
@@ -270,6 +279,40 @@ func (q *Query_get) parse_select(){
 		}
 		
 		q.out_select[k].sql_exp = q.field_translate(field)
+	}
+}
+
+func (q *Query_get) parse_order(){
+	q.out_order = make(order_clause, len(q.in_order))
+	for k, v := range q.in_order {
+		var field string
+		
+		//	Parse mode
+		if s1, s2, found := strings.Cut(v, "."); found {
+			var desc bool
+			switch s2 {
+			case "desc":
+				desc = true
+			case "asc":
+			default:
+				q.error_order_mode(s2)
+			}
+			
+			field 					= s1
+			q.out_order[k].desc 	= desc
+		}else{
+			field 					= v
+		}
+		
+		q.field_exists(field)
+		
+		q.out_order[k].field = field
+		
+		if q.error_code != 0 {
+			continue
+		}
+		
+		q.out_order[k].sql_exp = q.field_translate(field)
 	}
 }
 
@@ -296,12 +339,7 @@ func (q *Query_get) sql_select_clause() string {
 	
 	sql := make([]string, len(q.out_select))
 	for k, v := range q.out_select {
-		var col string
-		if q.joined {
-			col = v.table_as+"."+v.col
-		}else{
-			col = v.col
-		}
+		col := q.sql_col(v.sql_exp)
 		
 		//	Apply function
 		if v.fn != "" {
@@ -319,6 +357,21 @@ func (q *Query_get) sql_select_clause() string {
 		sql[k] = col
 	}
 	return strings.Join(sql, ",")
+}
+
+func (q *Query_get) sql_order_clause() string {
+	sql := make([]string, len(q.out_order))
+	for k, v := range q.out_order {
+		col := q.sql_col(v.sql_exp)
+		
+		//	Apply mode
+		if v.desc {
+			col += " DESC"
+		}
+		
+		sql[k] = col
+	}
+	return strings.Join(sql, " && ")
 }
 
 func (q *Query_get) sql_joins() string {

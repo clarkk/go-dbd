@@ -35,6 +35,11 @@ func (c *get) Where(fields dbq.Where) *get {
 	return c
 }
 
+func (c *get) Order(fields dbq.Order) *get {
+	c.query.Order(fields)
+	return c
+}
+
 func (c *get) Limit(fields dbq.Limit) *get {
 	c.query.Limit(fields)
 	return c
@@ -75,34 +80,3 @@ func (c *get) Row_error() error {
 func (c *get) Close(){
 	c.query.Close()
 }
-
-/*rows, err := stmt.QueryContext(ctx, 1)
-if err != nil {
-	log.Fatal(err)
-}
-defer rows.Close()
-
-cols, _ := rows.Columns()
-cols_len := len(cols)
-for rows.Next() {
-	columns 	:= make([]any, cols_len)
-	columns_ref := make([]any, cols_len)
-	for i, _ := range columns {
-		columns_ref[i] = &columns[i]
-	}
-	
-	if err := rows.Scan(columns_ref...); err != nil {
-		log.Fatal(err)
-	}
-	
-	m := make(map[string]any)
-	for i, col_name := range cols {
-		val := columns_ref[i].(*any)
-		m[col_name] = *val
-	}
-	
-	fmt.Println(m)
-}
-if err = rows.Err(); err != nil {
-	log.Fatal(err)
-}*/

@@ -130,6 +130,18 @@ func Test_errors(t *testing.T){
 		t.Errorf(err)
 	}
 	
+	//	Invalid order
+	g = Get(ctx, "block", block_private);
+	g.Select(Select{
+		"id",
+	})
+	g.Order(Order{
+		"test",
+	})
+	if err := write_get(t, g, want_code); err != "" {
+		t.Errorf(err)
+	}
+	
 	//	-------------------------------------------------------------------------
 	//	Where value
 	//	-------------------------------------------------------------------------
@@ -181,32 +193,16 @@ func Test_errors(t *testing.T){
 	}
 	
 	//	-------------------------------------------------------------------------
-	//	Where values invalid
+	//	Order modes invalid
 	//	-------------------------------------------------------------------------
-	want_code = 										ERR_CODE_LIMIT_VALUE
+	want_code = 										ERR_CODE_ORDER_MODE
 	
 	g = Get(ctx, "block", block_private);
 	g.Select(Select{
 		"id",
 	})
-	g.Limit(Limit{
-		1,2,3,
-	})
-	if err := write_get(t, g, want_code); err != "" {
-		t.Errorf(err)
-	}
-	
-	//	-------------------------------------------------------------------------
-	//	Where values invalid
-	//	-------------------------------------------------------------------------
-	want_code = 										ERR_CODE_LIMIT_VALUE
-	
-	g = Get(ctx, "block", block_private);
-	g.Select(Select{
-		"id",
-	})
-	g.Limit(Limit{
-		1,2,3,
+	g.Order(Order{
+		"name.test",
 	})
 	if err := write_get(t, g, want_code); err != "" {
 		t.Errorf(err)
@@ -248,7 +244,7 @@ func Test_errors(t *testing.T){
 		"id",
 	})
 	g.Limit(Limit{
-		0,10,2,
+		1,2,3,
 	})
 	if err := write_get(t, g, want_code); err != "" {
 		t.Errorf(err)
@@ -410,6 +406,58 @@ FOR UPDATE`); err != "" {
 	if err := sql_values_get(t, g, []string{
 		"123",
 	}); err != "" {
+		t.Errorf(err)
+	}
+}
+
+func Test_query_order(t *testing.T){
+	want_code =											ERR_CODE_SUCCESS
+	
+	g = Get(ctx, "block", block_private);
+	g.Select(Select{
+		"id",
+	})
+	g.Order(Order{
+		"name",
+	})
+	if err := write_get(t, g, want_code); err != "" {
+		t.Errorf(err)
+	}
+	if err := sql_get(t, g, `SELECT id
+FROM .block
+ORDER BY name`); err != "" {
+		t.Errorf(err)
+	}
+	
+	g = Get(ctx, "block", block_private);
+	g.Select(Select{
+		"id",
+	})
+	g.Order(Order{
+		"name.asc",
+	})
+	if err := write_get(t, g, want_code); err != "" {
+		t.Errorf(err)
+	}
+	if err := sql_get(t, g, `SELECT id
+FROM .block
+ORDER BY name`); err != "" {
+		t.Errorf(err)
+	}
+	
+	g = Get(ctx, "block", block_private);
+	g.Select(Select{
+		"id",
+	})
+	g.Order(Order{
+		"name.desc",
+	})
+	if err := write_get(t, g, want_code); err != "" {
+		t.Errorf(err)
+	}
+	if err := sql_get(t, g, `SELECT id
+FROM .block
+ORDER BY name DESC`); err != "" {
 		t.Errorf(err)
 	}
 }

@@ -1,3 +1,5 @@
+github.com/clarkk/go-util v0.0.0-20231108095916-fa303832f7a1 h1:1g+JV5RZdCxsMfbzZB/2X1bZ5eM1l0WWBm1tkEWC4rI=
+github.com/clarkk/go-util v0.0.0-20231108095916-fa303832f7a1/go.mod h1:qABTbXlWgwhjb6RnXLQ6poK9VRjBwLov0LBR8d+KzfQ=
 github.com/go-errors/errors v1.5.1 h1:ZwEMSLRCapFLflTpT7NKaAc7ukJ8ZPEjzlxt8rPN8bk=
 github.com/go-errors/errors v1.5.1/go.mod h1:sIVyrIiJhuEF+Pj9Ebtd6P/rEYROXFi3BopGUQ5a5Og=
 github.com/go-sql-driver/mysql v1.7.1 h1:lUIinVbN1DY0xBg0eMOzmmtGoHwWBbvnWubQUrtU8EI=

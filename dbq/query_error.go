@@ -13,8 +13,9 @@ const (
 	ERR_CODE_FIELDS_INVALID Error_code 	= 3
 	ERR_CODE_WHERE_OPERATOR Error_code 	= 4
 	ERR_CODE_WHERE_VALUE Error_code 	= 5
-	ERR_CODE_LIMIT_VALUE Error_code 	= 6
-	ERR_CODE_SELECT_LOCK_ID Error_code 	= 7
+	ERR_CODE_ORDER_MODE Error_code 		= 6
+	ERR_CODE_LIMIT_VALUE Error_code 	= 7
+	ERR_CODE_SELECT_LOCK_ID Error_code 	= 8
 )
 
 type (
@@ -56,6 +57,11 @@ func (q *Query) error() (Error_code, error) {
 			fmt.Sprintf("Where values invalid: %s", strings.Join(q.invalid_where, ", ")),
 		)
 		
+	case ERR_CODE_ORDER_MODE:
+		return q.error_code, errors.New(
+			fmt.Sprintf("Order modes invalid: %s", strings.Join(q.invalid_order_mode, ", ")),
+		)
+		
 	default:
 		return q.error_code, errors.New("Unspecified error")
 	}
@@ -82,6 +88,11 @@ func (q *Query) error_where_operator(name string, operator string){
 func (q *Query) error_where_value(name string){
 	q.error_code 			= ERR_CODE_WHERE_VALUE
 	q.invalid_where			= append(q.invalid_where, name)
+}
+
+func (q *Query) error_order_mode(mode string){
+	q.error_code 			= ERR_CODE_ORDER_MODE
+	q.invalid_order_mode 	= append(q.invalid_order_mode, mode)
 }
 
 func (q *Query) error_limit_value(){
