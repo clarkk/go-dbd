@@ -164,14 +164,6 @@ func (q *Query_get) Next() bool {
 		return false
 	}
 	
-	// int64
-	// float64
-	// bool
-	// []byte
-	// string
-	// time.Time
-	// nil
-	
 	q.row = Row_result{}
 	for i, name := range q.res_cols {
 		value := *ptrs[i].(*any)
@@ -181,13 +173,9 @@ func (q *Query_get) Next() bool {
 			switch v := value.(type) {
 			case []uint8:
 				q.row[name] = string(v)
-			case int64:
-				q.row[name] = v
 			default:
 				panic(fmt.Sprintf("Invalid database type: %s %v (%T)", name, value, value))
 			}
-			
-			fmt.Printf("Type: %s %v (%T)\n", name, value, value)
 		}
 	}
 	
