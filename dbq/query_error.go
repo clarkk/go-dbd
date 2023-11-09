@@ -16,15 +16,13 @@ type (
 )
 
 const (
-	/*ERR_CODE_SUCCESS Error_code 		= 0
-	ERR_CODE_PRIVATE Error_code 		= 1
-	ERR_CODE_SELECT_EMPTY Error_code 	= 2*/
-	ERR_CODE_FIELDS_INVALID Error_code 	= 3
-	ERR_CODE_WHERE_OPERATOR Error_code 	= 4
-	ERR_CODE_WHERE_VALUE Error_code 	= 5
-	ERR_CODE_ORDER_MODE Error_code 		= 6
-	/*ERR_CODE_LIMIT_VALUE Error_code 	= 7
-	ERR_CODE_SELECT_LOCK_ID Error_code 	= 8*/
+	ERR_CODE_SELECT_EMPTY Error_code 	= 1
+	ERR_CODE_FIELDS_INVALID Error_code 	= 2
+	ERR_CODE_WHERE_OPERATOR Error_code 	= 3
+	ERR_CODE_WHERE_VALUE Error_code 	= 4
+	ERR_CODE_ORDER_MODE Error_code 		= 5
+	ERR_CODE_LIMIT_VALUE Error_code 	= 6
+	ERR_CODE_SELECT_LOCK_ID Error_code 	= 7
 )
 
 func (e *Error) Code() Error_code {
@@ -78,6 +76,10 @@ func (q *query) error_table_private() error {
 	return fmt.Errorf("Table private")
 }
 
+func (q *query) error_select_empty() error {
+	return &Error{ERR_CODE_SELECT_EMPTY, "Select empty"}
+}
+
 func (q *query) error_invalid_field(name string){
 	q.error_code 			= ERR_CODE_FIELDS_INVALID
 	q.invalid_fields[name]	= fmt.Sprintf(`Field translation missing in '%s' for field: %s`, q.table_name, name)
@@ -98,14 +100,10 @@ func (q *query) error_order_mode(mode string){
 	q.invalid_order_mode 	= append(q.invalid_order_mode, mode)
 }
 
-/*func (q *Query) error_select_empty() (Error_code, error) {
-	return ERR_CODE_SELECT_EMPTY, errors.New("Select empty")
-}
-
-func (q *Query) error_limit_value(){
+func (q *query) error_limit_value(){
 	q.error_code 			= ERR_CODE_LIMIT_VALUE
 }
 
-func (q *Query) error_select_lock_id() (Error_code, error) {
-	return ERR_CODE_SELECT_LOCK_ID, errors.New("Read lock is only supported with where by id")
-}*/
+func (q *query) error_select_lock_id() error {
+	return &Error{ERR_CODE_SELECT_LOCK_ID, "Read lock is only supported with where by id"}
+}

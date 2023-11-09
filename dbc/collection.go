@@ -60,6 +60,5 @@ func (c *Collection) Get(ctx context.Context, name string) (*dbq.Query_get, erro
 	if !found {
 		return nil, fmt.Errorf("Table invalid: %s", name)
 	}
-	
 	return dbq.Get(ctx, name, view), nil
 }

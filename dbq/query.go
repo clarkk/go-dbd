@@ -1,13 +1,13 @@
 package dbq
 
 import(
-	//"sort"
+	"sort"
 	"strings"
 	"context"
-	//"database/sql"
+	"database/sql"
 	"github.com/clarkk/go-dbd/dbt"
 	"github.com/clarkk/go-dbd/dbv"
-	//"github.com/clarkk/go-util/sutil"
+	"github.com/clarkk/go-util/sutil"
 )
 
 const (
@@ -34,7 +34,7 @@ type (
 	Where 			map[string]any
 	Where_op 		[]int
 	
-	//Prepared_values map[string]any
+	Prepared_values map[string]any
 	
 	query struct {
 		ctx 			context.Context
@@ -42,8 +42,8 @@ type (
 		table 			*dbt.Table
 		table_name 		string
 		
-		//rows 			*sql.Rows
-		//stmt 			*sql.Stmt
+		rows 			*sql.Rows
+		stmt 			*sql.Stmt
 		
 		read 			bool
 		read_id 		bool
@@ -59,9 +59,9 @@ type (
 		in_where 		Where
 		out_where 		where_clause
 		
-		/*sql 			string
+		sql 			string
 		sql_fields 		[]string
-		sql_values 		[]any*/
+		sql_values 		[]any
 		
 		error_code 				Error_code
 		invalid_fields 			map[string]string
@@ -110,6 +110,24 @@ type (
 func (q *query) init(){
 	q.table_as_map 		= map[string]string{}
 	q.invalid_fields 	= map[string]string{}
+}
+
+func (q *query) Prepare(tx *sql.Tx) error {
+	var err error
+	if q.stmt, err = tx.PrepareContext(q.ctx, q.sql); err != nil {
+		return err
+	}
+	sort.Strings(q.sql_fields)
+	return nil
+}
+
+func (q *query) Close(){
+	if q.rows != nil {
+		q.rows.Close()
+	}
+	if q.stmt != nil {
+		q.stmt.Close()
+	}
 }
 
 func (q *query) parse_where(){
@@ -196,6 +214,52 @@ func (q *query) parse_where(){
 	}
 }
 
+func (q *query) sql_from_clause() string {
+	from := "."+q.table_name
+	if q.read && q.joined {
+		from += " "+q.table_as(q.table_name)
+	}
+	return from
+}
+
+func (q *query) sql_where_clause() string {
+	sql := make([]string, len(q.out_where))
+	for k, v := range q.out_where {
+		col := q.sql_col(v.sql_exp)
+		
+		//	Apply function
+		if v.fn != "" {
+			col = v.fn+"("+col+")"
+		}
+		
+		//	Apply operator
+		if v.op_exp != "" {
+			col += " "+v.op_exp
+			switch v.op_mode {
+			case OP_IN:
+				q.apply_sql_value(v.field, sutil.Int_csv(v.value_op))
+			case OP_BT:
+				q.apply_sql_value(v.field, v.value_op[0])
+				q.apply_sql_value(v.field, v.value_op[1])
+			}
+		}else{
+			col += v.op+"=?"
+			q.apply_sql_value(v.field, v.value)
+		}
+		
+		sql[k] = col
+	}
+	return strings.Join(sql, " && ")
+}
+
+func (q *query) sql_col(v sql_exp) string {
+	var col string
+	if q.joined {
+		col = v.table_as+"."
+	}
+	return col+v.col
+}
+
 func (q *query) field_translate(name string) sql_exp {
 	//	Joined tables (only select/read)
 	if q.read && q.table.Joined(name) {
@@ -247,71 +311,7 @@ func (q *query) field_exists(name string){
 	}
 }
 
-/*func (q *Query) Prepare(tx *sql.Tx) error {
-	var err error
-	if q.stmt, err = tx.PrepareContext(q.ctx, q.sql); err != nil {
-		return err
-	}
-	sort.Strings(q.sql_fields)
-	return nil
-}
-
-func (q *Query) Close(){
-	if q.rows != nil {
-		q.rows.Close()
-	}
-	if q.stmt != nil {
-		q.stmt.Close()
-	}
-}
-
-func (q *Query) sql_from_clause() string {
-	from := "."+q.table_name
-	if q.read && q.joined {
-		from += " "+q.table_as(q.table_name)
-	}
-	return from
-}
-
-func (q *Query) sql_where_clause() string {
-	sql := make([]string, len(q.out_where))
-	for k, v := range q.out_where {
-		col := q.sql_col(v.sql_exp)
-		
-		//	Apply function
-		if v.fn != "" {
-			col = v.fn+"("+col+")"
-		}
-		
-		//	Apply operator
-		if v.op_exp != "" {
-			col += " "+v.op_exp
-			switch v.op_mode {
-			case OP_IN:
-				q.apply_sql_value(v.field, sutil.Int_csv(v.value_op))
-			case OP_BT:
-				q.apply_sql_value(v.field, v.value_op[0])
-				q.apply_sql_value(v.field, v.value_op[1])
-			}
-		}else{
-			col += v.op+"=?"
-			q.apply_sql_value(v.field, v.value)
-		}
-		
-		sql[k] = col
-	}
-	return strings.Join(sql, " && ")
-}
-
-func (q *Query) sql_col(v sql_exp) string {
-	var col string
-	if q.joined {
-		col = v.table_as+"."
-	}
-	return col+v.col
-}
-
-func (q *Query) apply_sql_value(field string, value any){
+func (q *query) apply_sql_value(field string, value any){
 	q.sql_fields = append(q.sql_fields, field)
 	q.sql_values = append(q.sql_values, value)
-}*/
+}

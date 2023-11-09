@@ -1,15 +1,15 @@
 package dbq
 
 import (
-	//"fmt"
-	//"sort"
-	//"slices"
+	"fmt"
+	"sort"
+	"slices"
 	"strings"
 	"context"
 	"database/sql"
-	//"github.com/go-errors/errors"
+	"github.com/go-errors/errors"
 	"github.com/clarkk/go-dbd/dbv"
-	//"github.com/clarkk/go-util/sutil"
+	"github.com/clarkk/go-util/sutil"
 )
 
 /*
@@ -27,13 +27,13 @@ type (
 	Order 			[]string
 	Limit 			[]int
 	
-	//Row_result 		map[string]any
+	Row_result 		map[string]any
 	
 	Query_get struct {
 		query
 		
-		//read_lock 			bool
-		//read_count 			bool
+		read_lock 			bool
+		read_count 			bool
 		
 		in_select 			Select
 		out_select 			select_clause
@@ -43,11 +43,11 @@ type (
 		
 		in_limit 			Limit
 		
-		/*res_cols 			[]string
+		res_cols 			[]string
 		res_cols_num 		int
 		
 		row 				Row_result
-		row_error 			error*/
+		row_error 			error
 	}
 )
 
@@ -69,11 +69,11 @@ func (q *Query_get) Public() *Query_get {
 }
 
 //	Read-lock: SELECT ... FOR UPDATE
-/*func (q *Query_get) Read_lock(){
+func (q *Query_get) Read_lock(){
 	q.read_lock = true
 }
 
-//	Count all entries with SELECT COUNT(*) and without LIMIT
+//	Count all entries with SELECT COUNT(*) and without ORDER/LIMIT
 func (q *Query_get) Count(tx *sql.Tx) (int, error) {
 	q.read_count = true
 	q.compile_sql()
@@ -84,7 +84,7 @@ func (q *Query_get) Count(tx *sql.Tx) (int, error) {
 		return 0, err
 	}
 	return cnt, nil
-}*/
+}
 
 func (q *Query_get) Select(fields Select) *Query_get {
 	q.in_select = fields
@@ -106,43 +106,37 @@ func (q *Query_get) Limit(fields Limit) *Query_get {
 	return q
 }
 
-/*func (q *Query_get) Result(values Prepared_values) error {
-	compare := sutil.Map_keys(values)
-	sort.Strings(compare)
-	
-	//	Verify field names match prepared field names
-	if !slices.Equal(q.sql_fields, compare) {
-		return errors.New(fmt.Sprintf("Prepared field names does not match: %s %s", q.sql_fields, compare))
+func (q *Query_get) Result(values Prepared_values) error {
+	err := q.prepare_select()
+	if err != nil {
+		return err
 	}
 	
-	var err error
+	//	Verify field names match prepared field names
+	prepared_fields := sutil.Map_keys(values)
+	sort.Strings(prepared_fields)
+	if !slices.Equal(q.sql_fields, prepared_fields) {
+		return errors.New(fmt.Sprintf("Prepared field names does not match: %s %s", q.sql_fields, prepared_fields))
+	}
+	
 	if q.rows, err = q.stmt.QueryContext(q.ctx, q.sql_values...); err != nil {
 		return err
 	}
 	return q.rows_columns()
-}*/
+}
 
 func (q *Query_get) Fetch(tx *sql.Tx) error {
-	if err := q.prepare_select(); err != nil {
+	err := q.prepare_select()
+	if err != nil {
 		return err
 	}
-	return nil
-	
-	/*var err error
 	if q.rows, err = tx.QueryContext(q.ctx, q.sql, q.sql_values...); err != nil {
 		return err
 	}
-	return q.rows_columns()*/
+	return q.rows_columns()
 }
 
-/*func (q *Query_get) compile(){
-	if error_code, err := q.prepare_select(); error_code != 0 {
-		return error_code, err
-	}
-	return ERR_CODE_SUCCESS, nil
-}*/
-
-/*func (q *Query_get) Fetch_row(tx *sql.Tx) (Row_result, error) {
+func (q *Query_get) Fetch_row(tx *sql.Tx) (Row_result, error) {
 	if err := q.Fetch(tx); err != nil {
 		return Row_result{}, err
 	}
@@ -192,6 +186,8 @@ func (q *Query_get) Next() bool {
 			default:
 				panic(fmt.Sprintf("Invalid database type: %s %v (%T)", name, value, value))
 			}
+			
+			fmt.Printf("Type: %s %v (%T)\n", name, value, value)
 		}
 	}
 	
@@ -209,15 +205,6 @@ func (q *Query_get) Row_error() error {
 	return q.row_error
 }
 
-func (q *Query_get) rows_columns() error {
-	var err error
-	if q.res_cols, err = q.rows.Columns(); err != nil {
-		return err
-	}
-	q.res_cols_num = len(q.res_cols)
-	return nil
-}*/
-
 func (q *Query_get) prepare_select() error {
 	//	Check if table is private
 	if q.public && !q.view.Public() {
@@ -228,16 +215,6 @@ func (q *Query_get) prepare_select() error {
 	q.parse_select()
 	q.parse_where()
 	q.parse_order()
-	
-	if err := q.error(); err != nil {
-		return err
-	}
-	
-	return nil
-	
-	/*
-	
-	
 	q.parse_limit()
 	
 	//	Check if select is empty
@@ -250,13 +227,13 @@ func (q *Query_get) prepare_select() error {
 		return q.error_select_lock_id()
 	}
 	
-	if code, err := q.error(); code != 0 {
-		return code, err
+	if err := q.error(); err != nil {
+		return err
 	}
 	
 	q.compile_sql()
 	
-	return 0, nil*/
+	return nil
 }
 
 func (q *Query_get) parse_select(){
@@ -324,7 +301,23 @@ func (q *Query_get) parse_order(){
 	}
 }
 
-/*func (q *Query_get) compile_sql(){
+func (q *Query_get) parse_limit(){
+	switch len(q.in_limit) {
+	case 0:
+	case 1:
+		if q.in_limit[0] == 0 {
+			q.error_limit_value()
+		}
+	case 2:
+		if q.in_limit[1] == 0 {
+			q.error_limit_value()
+		}
+	default:
+		q.error_limit_value()
+	}
+}
+
+func (q *Query_get) compile_sql(){
 	q.sql_fields 	= []string{}
 	q.sql_values 	= []any{}
 	q.sql 			= "SELECT "+q.sql_select_clause()+"\nFROM "+q.sql_from_clause()
@@ -349,22 +342,6 @@ func (q *Query_get) parse_order(){
 		if q.read_lock {
 			q.sql += "\nFOR UPDATE"
 		}
-	}
-}
-
-func (q *Query_get) parse_limit(){
-	switch len(q.in_limit) {
-	case 0:
-	case 1:
-		if q.in_limit[0] == 0 {
-			q.error_limit_value()
-		}
-	case 2:
-		if q.in_limit[1] == 0 {
-			q.error_limit_value()
-		}
-	default:
-		q.error_limit_value()
 	}
 }
 
@@ -415,4 +392,13 @@ func (q *Query_get) sql_joins() string {
 		return ""
 	}
 	return "\n"+strings.Join(q.joins, "\n")
-}*/
+}
+
+func (q *Query_get) rows_columns() error {
+	var err error
+	if q.res_cols, err = q.rows.Columns(); err != nil {
+		return err
+	}
+	q.res_cols_num = len(q.res_cols)
+	return nil
+}
