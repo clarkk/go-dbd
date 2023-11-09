@@ -1,13 +1,13 @@
 package dbq
 
 import(
-	"sort"
+	//"sort"
 	"strings"
 	"context"
-	"database/sql"
+	//"database/sql"
 	"github.com/clarkk/go-dbd/dbt"
 	"github.com/clarkk/go-dbd/dbv"
-	"github.com/clarkk/go-util/sutil"
+	//"github.com/clarkk/go-util/sutil"
 )
 
 const (
@@ -34,16 +34,16 @@ type (
 	Where 			map[string]any
 	Where_op 		[]int
 	
-	Prepared_values map[string]any
+	//Prepared_values map[string]any
 	
-	Query struct {
+	query struct {
 		ctx 			context.Context
 		view 			*dbv.View
 		table 			*dbt.Table
 		table_name 		string
 		
-		rows 			*sql.Rows
-		stmt 			*sql.Stmt
+		//rows 			*sql.Rows
+		//stmt 			*sql.Stmt
 		
 		read 			bool
 		read_id 		bool
@@ -59,9 +59,9 @@ type (
 		in_where 		Where
 		out_where 		where_clause
 		
-		sql 			string
+		/*sql 			string
 		sql_fields 		[]string
-		sql_values 		[]any
+		sql_values 		[]any*/
 		
 		error_code 				Error_code
 		invalid_fields 			map[string]string
@@ -107,38 +107,12 @@ type (
 	op_mode 		int8
 )
 
-func (q *Query) Public(){
-	q.public = true
-}
-
-func (q *Query) Where(fields Where){
-	q.in_where = fields
-}
-
-func (q *Query) Prepare(tx *sql.Tx) error {
-	var err error
-	if q.stmt, err = tx.PrepareContext(q.ctx, q.sql); err != nil {
-		return err
-	}
-	sort.Strings(q.sql_fields)
-	return nil
-}
-
-func (q *Query) Close(){
-	if q.rows != nil {
-		q.rows.Close()
-	}
-	if q.stmt != nil {
-		q.stmt.Close()
-	}
-}
-
-func (q *Query) init(){
+func (q *query) init(){
 	q.table_as_map 		= map[string]string{}
 	q.invalid_fields 	= map[string]string{}
 }
 
-func (q *Query) parse_where(){
+func (q *query) parse_where(){
 	q.out_where = make(where_clause, len(q.in_where))
 	i := 0
 	for k, v := range q.in_where {
@@ -222,6 +196,75 @@ func (q *Query) parse_where(){
 	}
 }
 
+func (q *query) field_translate(name string) sql_exp {
+	//	Joined tables (only select/read)
+	if q.read && q.table.Joined(name) {
+		q.joined = true
+		sql := sql_exp{
+			table:		q.table.Table(name),
+			table_as:	q.table_as(q.table.Table(name)),
+			col:		q.table.Col(name),
+		}
+		
+		join 		:= q.table.Join(sql.table)
+		join_mode 	:= string(join.Mode)
+		join_sql 	:= join_mode+" ."+sql.table+" "+sql.table_as+" ON "+q.table_as(q.table_name)+"."+join.Col+"="+sql.table_as+"."+join.Foreign
+		q.joins 	= append(q.joins, join_sql)
+		return sql
+	}
+	
+	return sql_exp{
+		table:		q.table_name,
+		table_as:	q.table_as(q.table_name),
+		col:		q.table.Col(name),
+	}
+}
+
+func (q *query) table_as(name string) string {
+	if r, found := q.table_as_map[name]; found {
+		return string(r)
+	}
+	
+	switch q.table_as_i {
+	case 0:
+		q.table_as_i = RUNE_START
+	case RUNE_END:
+		panic("Table joins exceeded limit")
+	default:
+		q.table_as_i++
+	}
+	q.table_as_map[name] = string(q.table_as_i)
+	return q.table_as_map[name]
+}
+
+func (q *query) field_exists(name string){
+	if q.public && !q.table.Exists_public(name) {
+		q.error_invalid_field(name)
+	}
+	
+	if !q.table.Exists(name) {
+		q.error_invalid_field(name)
+	}
+}
+
+/*func (q *Query) Prepare(tx *sql.Tx) error {
+	var err error
+	if q.stmt, err = tx.PrepareContext(q.ctx, q.sql); err != nil {
+		return err
+	}
+	sort.Strings(q.sql_fields)
+	return nil
+}
+
+func (q *Query) Close(){
+	if q.rows != nil {
+		q.rows.Close()
+	}
+	if q.stmt != nil {
+		q.stmt.Close()
+	}
+}
+
 func (q *Query) sql_from_clause() string {
 	from := "."+q.table_name
 	if q.read && q.joined {
@@ -268,58 +311,7 @@ func (q *Query) sql_col(v sql_exp) string {
 	return col+v.col
 }
 
-func (q *Query) field_exists(name string){
-	if q.public && !q.table.Exists_public(name) {
-		q.error_invalid_field(name)
-	}
-	
-	if !q.table.Exists(name) {
-		q.error_invalid_field(name)
-	}
-}
-
-func (q *Query) field_translate(name string) sql_exp {
-	//	Joined tables (only select/read)
-	if q.read && q.table.Joined(name) {
-		q.joined = true
-		sql := sql_exp{
-			table:		q.table.Table(name),
-			table_as:	q.table_as(q.table.Table(name)),
-			col:		q.table.Col(name),
-		}
-		
-		join 		:= q.table.Join(sql.table)
-		join_mode 	:= string(join.Mode)
-		join_sql 	:= join_mode+" ."+sql.table+" "+sql.table_as+" ON "+q.table_as(q.table_name)+"."+join.Col+"="+sql.table_as+"."+join.Foreign
-		q.joins 	= append(q.joins, join_sql)
-		return sql
-	}
-	
-	return sql_exp{
-		table:		q.table_name,
-		table_as:	q.table_as(q.table_name),
-		col:		q.table.Col(name),
-	}
-}
-
-func (q *Query) table_as(name string) string {
-	if r, found := q.table_as_map[name]; found {
-		return string(r)
-	}
-	
-	switch q.table_as_i {
-	case 0:
-		q.table_as_i = RUNE_START
-	case RUNE_END:
-		panic("Table joins exceeded limit")
-	default:
-		q.table_as_i++
-	}
-	q.table_as_map[name] = string(q.table_as_i)
-	return q.table_as_map[name]
-}
-
 func (q *Query) apply_sql_value(field string, value any){
 	q.sql_fields = append(q.sql_fields, field)
 	q.sql_values = append(q.sql_values, value)
-}
+}*/

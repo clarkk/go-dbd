@@ -54,14 +54,12 @@ func (c *Collection) Apply(view *dbv.View) *Collection {
 	return c
 }
 
-func (c *Collection) Get(ctx context.Context, name string) (*get, error) {
+func (c *Collection) Get(ctx context.Context, name string) (*dbq.Query_get, error) {
 	//	Check if table exists
 	view, found := c.list[name]
 	if !found {
 		return nil, fmt.Errorf("Table invalid: %s", name)
 	}
 	
-	return &get{
-		query: dbq.Get(ctx, name, view),
-	}, nil
+	return dbq.Get(ctx, name, view), nil
 }

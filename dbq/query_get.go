@@ -1,29 +1,39 @@
 package dbq
 
 import (
-	"fmt"
-	"sort"
-	"slices"
+	//"fmt"
+	//"sort"
+	//"slices"
 	"strings"
 	"context"
 	"database/sql"
-	"github.com/go-errors/errors"
+	//"github.com/go-errors/errors"
 	"github.com/clarkk/go-dbd/dbv"
-	"github.com/clarkk/go-util/sutil"
+	//"github.com/clarkk/go-util/sutil"
 )
+
+/*
+	TODO:
+	- check user-rights read/write (user/api)
+	- only allow ORDER on indexed columns
+	- WHERE LIKE
+	- default SELECT
+	- default ORDER
+	- override WHERE with environment variables (user/api rights)
+*/
 
 type (
 	Select 			[]string
 	Order 			[]string
 	Limit 			[]int
 	
-	Row_result 		map[string]any
+	//Row_result 		map[string]any
 	
 	Query_get struct {
-		Query
+		query
 		
-		read_lock 			bool
-		read_count 			bool
+		//read_lock 			bool
+		//read_count 			bool
 		
 		in_select 			Select
 		out_select 			select_clause
@@ -33,17 +43,17 @@ type (
 		
 		in_limit 			Limit
 		
-		res_cols 			[]string
+		/*res_cols 			[]string
 		res_cols_num 		int
 		
 		row 				Row_result
-		row_error 			error
+		row_error 			error*/
 	}
 )
 
 func Get(ctx context.Context, name string, view *dbv.View) *Query_get {
 	return &Query_get{
-		Query: Query{
+		query: query{
 			ctx:			ctx,
 			view:			view,
 			table:			view.Table(),
@@ -53,8 +63,13 @@ func Get(ctx context.Context, name string, view *dbv.View) *Query_get {
 	}
 }
 
+func (q *Query_get) Public() *Query_get {
+	q.public = true
+	return q
+}
+
 //	Read-lock: SELECT ... FOR UPDATE
-func (q *Query_get) Read_lock(){
+/*func (q *Query_get) Read_lock(){
 	q.read_lock = true
 }
 
@@ -69,28 +84,29 @@ func (q *Query_get) Count(tx *sql.Tx) (int, error) {
 		return 0, err
 	}
 	return cnt, nil
-}
+}*/
 
-func (q *Query_get) Select(fields Select){
+func (q *Query_get) Select(fields Select) *Query_get {
 	q.in_select = fields
+	return q
 }
 
-func (q *Query_get) Order(fields Order){
+func (q *Query_get) Where(fields Where) *Query_get {
+	q.in_where = fields
+	return q
+}
+
+func (q *Query_get) Order(fields Order) *Query_get {
 	q.in_order = fields
+	return q
 }
 
-func (q *Query_get) Limit(fields Limit){
+func (q *Query_get) Limit(fields Limit) *Query_get {
 	q.in_limit = fields
+	return q
 }
 
-func (q *Query_get) Compile() (Error_code, error) {
-	if error_code, err := q.prepare_select(); error_code != 0 {
-		return error_code, err
-	}
-	return ERR_CODE_SUCCESS, nil
-}
-
-func (q *Query_get) Result(values Prepared_values) error {
+/*func (q *Query_get) Result(values Prepared_values) error {
 	compare := sutil.Map_keys(values)
 	sort.Strings(compare)
 	
@@ -104,17 +120,29 @@ func (q *Query_get) Result(values Prepared_values) error {
 		return err
 	}
 	return q.rows_columns()
-}
+}*/
 
 func (q *Query_get) Fetch(tx *sql.Tx) error {
-	var err error
+	if err := q.prepare_select(); err != nil {
+		return err
+	}
+	return nil
+	
+	/*var err error
 	if q.rows, err = tx.QueryContext(q.ctx, q.sql, q.sql_values...); err != nil {
 		return err
 	}
-	return q.rows_columns()
+	return q.rows_columns()*/
 }
 
-func (q *Query_get) Fetch_row(tx *sql.Tx) (Row_result, error) {
+/*func (q *Query_get) compile(){
+	if error_code, err := q.prepare_select(); error_code != 0 {
+		return error_code, err
+	}
+	return ERR_CODE_SUCCESS, nil
+}*/
+
+/*func (q *Query_get) Fetch_row(tx *sql.Tx) (Row_result, error) {
 	if err := q.Fetch(tx); err != nil {
 		return Row_result{}, err
 	}
@@ -142,15 +170,13 @@ func (q *Query_get) Next() bool {
 		return false
 	}
 	
-	/*
-	int64
-	float64
-	bool
-	[]byte
-	string
-	time.Time
-	nil
-	*/
+	// int64
+	// float64
+	// bool
+	// []byte
+	// string
+	// time.Time
+	// nil
 	
 	q.row = Row_result{}
 	for i, name := range q.res_cols {
@@ -190,27 +216,28 @@ func (q *Query_get) rows_columns() error {
 	}
 	q.res_cols_num = len(q.res_cols)
 	return nil
-}
+}*/
 
-func (q *Query_get) prepare_select() (Error_code, error) {
+func (q *Query_get) prepare_select() error {
 	//	Check if table is private
 	if q.public && !q.view.Public() {
 		return q.error_table_private()
 	}
 	
-	/*	TODO:
-		- check user-rights read/write (user/api)
-		- only allow ORDER on indexed columns
-		- WHERE LIKE
-		- default SELECT
-		- default ORDER
-		- override WHERE with environment variables (user/api rights)
-	*/
-	
 	q.init()
 	q.parse_select()
 	q.parse_where()
 	q.parse_order()
+	
+	if err := q.error(); err != nil {
+		return err
+	}
+	
+	return nil
+	
+	/*
+	
+	
 	q.parse_limit()
 	
 	//	Check if select is empty
@@ -229,35 +256,7 @@ func (q *Query_get) prepare_select() (Error_code, error) {
 	
 	q.compile_sql()
 	
-	return 0, nil
-}
-
-func (q *Query_get) compile_sql(){
-	q.sql_fields 	= []string{}
-	q.sql_values 	= []any{}
-	q.sql 			= "SELECT "+q.sql_select_clause()+"\nFROM "+q.sql_from_clause()
-	
-	if q.joined {
-		q.sql += q.sql_joins()
-	}
-	
-	if len(q.out_where) != 0 {
-		q.sql += "\nWHERE "+q.sql_where_clause()
-	}
-	
-	if !q.read_count {
-		if len(q.out_order) != 0 {
-			q.sql += "\nORDER BY "+q.sql_order_clause()
-		}
-		
-		if len(q.in_limit) != 0 {
-			q.sql += "\nLIMIT "+sutil.Int_csv(q.in_limit)
-		}
-		
-		if q.read_lock {
-			q.sql += "\nFOR UPDATE"
-		}
-	}
+	return 0, nil*/
 }
 
 func (q *Query_get) parse_select(){
@@ -325,6 +324,34 @@ func (q *Query_get) parse_order(){
 	}
 }
 
+/*func (q *Query_get) compile_sql(){
+	q.sql_fields 	= []string{}
+	q.sql_values 	= []any{}
+	q.sql 			= "SELECT "+q.sql_select_clause()+"\nFROM "+q.sql_from_clause()
+	
+	if q.joined {
+		q.sql += q.sql_joins()
+	}
+	
+	if len(q.out_where) != 0 {
+		q.sql += "\nWHERE "+q.sql_where_clause()
+	}
+	
+	if !q.read_count {
+		if len(q.out_order) != 0 {
+			q.sql += "\nORDER BY "+q.sql_order_clause()
+		}
+		
+		if len(q.in_limit) != 0 {
+			q.sql += "\nLIMIT "+sutil.Int_csv(q.in_limit)
+		}
+		
+		if q.read_lock {
+			q.sql += "\nFOR UPDATE"
+		}
+	}
+}
+
 func (q *Query_get) parse_limit(){
 	switch len(q.in_limit) {
 	case 0:
@@ -388,4 +415,4 @@ func (q *Query_get) sql_joins() string {
 		return ""
 	}
 	return "\n"+strings.Join(q.joins, "\n")
-}
+}*/
