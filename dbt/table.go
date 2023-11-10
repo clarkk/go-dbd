@@ -25,6 +25,7 @@ type (
 	Joins 		map[string]Join
 	
 	Get 		[]string
+	Order 		[]string
 	Put 		map[string]string
 	
 	Table struct {
@@ -32,19 +33,21 @@ type (
 		fields 	Fields
 		joins 	Joins
 		get 	Get
+		order 	Order
 		put 	Put
 	}
 	
 	join_mode 	string
 )
 
-func NewTable(name string, fields Fields, joins Joins, get Get, put Put) *Table {
+func NewTable(name string, fields Fields, joins Joins, get Get, order Order, put Put) *Table {
 	return &Table{
-		name,
-		fields,
-		joins,
-		get,
-		put,
+		name:	name,
+		fields:	fields,
+		joins:	joins,
+		get:	get,
+		order:	order,
+		put:	put,
 	}
 }
 
@@ -84,4 +87,8 @@ func (t *Table) Join(table string) Join {
 
 func (t *Table) Get() Get {
 	return t.get
+}
+
+func (t *Table) Order() Order {
+	return t.order
 }

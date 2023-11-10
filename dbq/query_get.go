@@ -18,7 +18,6 @@ import (
 	- check user-rights read/write (user/api)
 	- only allow ORDER on indexed columns
 	- WHERE LIKE
-	- default ORDER
 	- override WHERE with environment variables (user/api rights)
 */
 
@@ -267,6 +266,15 @@ func (q *Query_get) parse_select(){
 }
 
 func (q *Query_get) parse_order(){
+	//	Apply default ORDER
+	if len(q.in_order) == 0 {
+		order := q.table.Order()
+		q.in_order = make(Order, len(order))
+		for i, v := range order {
+			q.in_order[i] = v
+		}
+	}
+	
 	q.out_order = make(order_clause, len(q.in_order))
 	for k, v := range q.in_order {
 		var field string
