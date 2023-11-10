@@ -9,14 +9,11 @@ import (
 	"database/sql"
 	"github.com/go-errors/errors"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/clarkk/go-dbd/schema"
 )
 
 const (
 	DRIVER 			= "mysql"
-	
-	SCHEMA_CHAR 	= "char"
-	SCHEMA_INT 		= "int"
-	SCHEMA_DEC 		= "decimal"
 	
 	CTX_TX ctx_key 	= ""
 )
@@ -24,36 +21,9 @@ const (
 var (
 	db 				*sql.DB
 	connected 		bool
-	
-	schema 			= map[string]schemas{}
-	
-	integers 		= map[string]int{
-		"tinyint":		int_pow(2, 8),
-		"smallint":		int_pow(2, 16),
-		"mediumint":	int_pow(2, 24),
-		"int":			int_pow(2, 32),
-		"bigint":		int_pow(2, 64),
-	}
 )
 
 type (
-	Schema struct {
-		Type 		string
-		Subtype 	string
-		Length 		int
-		Null 		bool
-		Unsigned 	bool
-		Length_dec 	int
-		Range 		length_range
-	}
-	
-	length_range struct {
-		Min 	int
-		Max		int
-	}
-	
-	schemas 		map[string]Schema
-	
 	ctx_key 		string
 )
 
@@ -79,7 +49,7 @@ func Connect(dsn string, conn_cpu int){
 	
 	connected = true
 	
-	fetch_schema()
+	schema.Fetch_schema(db)
 }
 
 func Begin(ctx context.Context) *sql.Tx {
@@ -104,16 +74,4 @@ func Close(){
 
 func ctx_canceled(err error) bool {
 	return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
-}
-
-func int_pow(n, m int) int {
-	if m == 0 {
-		return 1
-	}
-	
-	result := n
-	for i := 2; i <= m; i++ {
-		result *= n
-	}
-	return result
 }

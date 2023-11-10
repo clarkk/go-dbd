@@ -16,13 +16,14 @@ type (
 )
 
 const (
-	ERR_CODE_SELECT_EMPTY Error_code 	= 1
-	ERR_CODE_FIELDS_INVALID Error_code 	= 2
-	ERR_CODE_WHERE_OPERATOR Error_code 	= 3
-	ERR_CODE_WHERE_VALUE Error_code 	= 4
-	ERR_CODE_ORDER_MODE Error_code 		= 5
-	ERR_CODE_LIMIT_VALUE Error_code 	= 6
-	ERR_CODE_SELECT_LOCK_ID Error_code 	= 7
+	ERR_CODE_PRIVATE Error_code 		= 1
+	ERR_CODE_SELECT_EMPTY Error_code 	= 2
+	ERR_CODE_FIELDS_INVALID Error_code 	= 3
+	ERR_CODE_WHERE_OPERATOR Error_code 	= 4
+	ERR_CODE_WHERE_VALUE Error_code 	= 5
+	ERR_CODE_ORDER_MODE Error_code 		= 6
+	ERR_CODE_LIMIT_VALUE Error_code 	= 7
+	ERR_CODE_SELECT_LOCK_ID Error_code 	= 8
 )
 
 func (e *Error) Code() Error_code {
@@ -73,7 +74,7 @@ func (q *query) error() error {
 }
 
 func (q *query) error_table_private() error {
-	return fmt.Errorf("Table private")
+	return &Error{ERR_CODE_PRIVATE, "Select empty"}
 }
 
 func (q *query) error_select_empty() error {

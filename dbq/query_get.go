@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"github.com/go-errors/errors"
 	"github.com/clarkk/go-dbd/dbv"
+	"github.com/clarkk/go-dbd/schema"
 	"github.com/clarkk/go-util/sutil"
 )
 
@@ -17,7 +18,6 @@ import (
 	- check user-rights read/write (user/api)
 	- only allow ORDER on indexed columns
 	- WHERE LIKE
-	- default SELECT
 	- default ORDER
 	- override WHERE with environment variables (user/api rights)
 */
@@ -172,7 +172,9 @@ func (q *Query_get) Next() bool {
 		}else{
 			switch v := value.(type) {
 			case []uint8:
-				q.row[name] = string(v)
+				q.row[name] = schema.Format(q.out_select[i].table, q.out_select[i].col, v)
+			case int64:
+				q.row[name] = v
 			default:
 				panic(fmt.Sprintf("Invalid database type: %s %v (%T)", name, value, value))
 			}
@@ -225,6 +227,15 @@ func (q *Query_get) prepare_select() error {
 }
 
 func (q *Query_get) parse_select(){
+	//	Apply default SELECT
+	if len(q.in_select) == 0 {
+		get := q.table.Get()
+		q.in_select = make(Select, len(get))
+		for i, v := range get {
+			q.in_select[i] = v
+		}
+	}
+	
 	q.out_select = make(select_clause, len(q.in_select))
 	for k, v := range q.in_select {
 		var field string

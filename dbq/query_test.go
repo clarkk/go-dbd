@@ -6,6 +6,7 @@ import (
 	"testing"
 	"context"
 	"reflect"
+	"github.com/go-errors/errors"
 	t "github.com/clarkk/go-dbd/dbt"
 	"github.com/clarkk/go-dbd/dbv"
 )
@@ -252,7 +253,7 @@ func Test_errors(t *testing.T){
 }
 
 func Test_query_select(t *testing.T){
-	want_code =											ERR_CODE_SUCCESS
+	want_code =											0
 	
 	g = Get(ctx, "block", block_private);
 	g.Select(Select{
@@ -384,7 +385,7 @@ LEFT JOIN .client b ON a.client_id=b.id`); err != "" {
 }
 
 func Test_query_read_lock(t *testing.T){
-	want_code =											ERR_CODE_SUCCESS
+	want_code =											0
 	
 	g = Get(ctx, "block", block_private);
 	g.Read_lock()
@@ -411,7 +412,7 @@ FOR UPDATE`); err != "" {
 }
 
 func Test_query_order(t *testing.T){
-	want_code =											ERR_CODE_SUCCESS
+	want_code =											0
 	
 	g = Get(ctx, "block", block_private);
 	g.Select(Select{
@@ -463,7 +464,7 @@ ORDER BY name DESC`); err != "" {
 }
 
 func Test_query_limit(t *testing.T){
-	want_code =											ERR_CODE_SUCCESS
+	want_code =											0
 	
 	g = Get(ctx, "block", block_private);
 	g.Select(Select{
@@ -499,7 +500,7 @@ LIMIT 10`); err != "" {
 }
 
 func Test_query_select_where(t *testing.T){
-	want_code =											ERR_CODE_SUCCESS
+	want_code =											0
 	
 	//	Not equal
 	g = Get(ctx, "block", block_private);
@@ -733,7 +734,7 @@ WHERE id NOT BETWEEN ? AND ?`); err != "" {
 }
 
 func Test_query_count(t *testing.T){
-	want_code =											ERR_CODE_SUCCESS
+	want_code =											0
 	
 	g = Get(ctx, "block", block_private);
 	g.Select(Select{
@@ -777,8 +778,20 @@ func sql_get(t *testing.T, g *Query_get, want string) string {
 }
 
 func write_get(t *testing.T, g *Query_get, want Error_code) string {
-	got_code, _ = g.prepare_select()
-	return check_code(t, got_code, want_code)
+	err := g.prepare_select()
+	var (
+		query_error *Error
+		code 		Error_code
+	)
+	if err != nil {
+		if errors.As(err, &query_error) {
+			code = query_error.Code()
+		}else{
+			panic("Unexpected error: "+err.Error())
+		}
+	}
+	
+	return check_code(t, code, want_code)
 }
 
 func check_code(t *testing.T, got Error_code, want Error_code) string {

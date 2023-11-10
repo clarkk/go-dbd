@@ -81,3 +81,7 @@ func (t *Table) Join(table string) Join {
 	}
 	return Join{}
 }
+
+func (t *Table) Get() Get {
+	return t.get
+}
