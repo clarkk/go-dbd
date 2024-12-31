@@ -2,29 +2,16 @@ package dbd
 
 import (
 	"log"
-	"time"
-	"context"
 	"runtime"
-	"net/http"
+	"context"
 	"database/sql"
 	"github.com/go-errors/errors"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/clarkk/go-dbd/schema"
-)
-
-const (
-	DRIVER 			= "mysql"
-	
-	CTX_TX ctx_key 	= ""
 )
 
 var (
-	db 				*sql.DB
-	connected 		bool
-)
-
-type (
-	ctx_key 		string
+	db 			*sql.DB
+	connected 	bool
 )
 
 func Connect(dsn string, conn_cpu int){
@@ -33,45 +20,40 @@ func Connect(dsn string, conn_cpu int){
 	}
 	
 	var err error
-	db, err = sql.Open(DRIVER, dsn)
-	if err != nil {
-		log.Fatal("Could no parse DB DSN: "+err.Error())
+	if db, err = sql.Open("mysql", dsn); err != nil {
+		log.Fatalf("Unable to parse DSN and connect to DB: %v", err)
 	}
 	
-	db.SetConnMaxLifetime(time.Minute * 30)
 	db.SetMaxOpenConns(runtime.NumCPU() * conn_cpu)
-	db.SetConnMaxIdleTime(30)
-	
-	err = db.Ping()
-	if err != nil {
-		log.Fatal("Unable to connect to DB: "+err.Error())
-	}
+	db.SetMaxIdleConns(10)
+	db.SetConnMaxLifetime(60 * 30)
+	db.SetConnMaxIdleTime(60 * 5)
 	
 	connected = true
 	
-	schema.Fetch_schema(db)
-}
-
-func Begin(ctx context.Context) *sql.Tx {
-	tx, err := db.BeginTx(ctx, &sql.TxOptions{})
-	if err != nil && !ctx_canceled(err) {
-		panic("DB transaction begin: "+err.Error())
+	if !Ping() {
+		log.Fatalf("Unable to connect to DB: %v", err)
 	}
-	return tx
 }
 
-func Apply(r *http.Request, tx *sql.Tx) *http.Request {
-	return r.WithContext(context.WithValue(r.Context(), CTX_TX, tx))
+func Ping() bool {
+	if err := db.Ping(); err != nil {
+		connected = false
+		return false
+	}
+	return true
 }
 
-func Applied(r *http.Request) *sql.Tx {
-	return r.Context().Value(CTX_TX).(*sql.Tx)
+func Query_row(ctx context.Context, sql string, data []any, scan []any) error {
+	if err := db.QueryRowContext(ctx, sql, data...).Scan(scan...); err != nil {
+		if ctx_canceled(err) {
+			return &Timeout_error{"DB query row", err}
+		}
+		return &Error{"DB query row", err, errors.Wrap(err, 0).ErrorStack()}
+	}
+	return nil
 }
 
 func Close(){
 	db.Close()
-}
-
-func ctx_canceled(err error) bool {
-	return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
 }

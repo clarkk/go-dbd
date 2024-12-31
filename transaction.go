@@ -1,0 +1,110 @@
+package dbd
+
+import (
+	"context"
+	"database/sql"
+	"github.com/go-errors/errors"
+)
+
+type Tx struct {
+	ctx		context.Context
+	tx		*sql.Tx
+}
+
+func NewTx(ctx context.Context) (*Tx, error){
+	tx := &Tx{
+		ctx: ctx,
+	}
+	var err error
+	if tx.tx, err = db.BeginTx(ctx, nil); err != nil {
+		if ctx_canceled(err) {
+			return nil, &Timeout_error{"DB transaction begin", err}
+		}
+		panic("DB transaction begin: "+err.Error())
+	}
+	return tx, nil
+}
+
+func (t *Tx) Rollback() error {
+	if t.tx == nil {
+		return nil
+	}
+	if err := t.tx.Rollback(); err != nil {
+		t.tx = nil
+		if ctx_canceled(err) {
+			return &Timeout_error{"DB transaction rollback", err}
+		}
+		panic("DB transaction rollback: "+err.Error())
+	}
+	t.tx = nil
+	return nil
+}
+
+func (t *Tx) Commit() error {
+	if t.tx == nil {
+		panic("DB transaction commit: No active transaction")
+	}
+	if err := t.tx.Commit(); err != nil {
+		t.tx = nil
+		if ctx_canceled(err) {
+			return &Timeout_error{"DB transaction commit", err}
+		}
+		panic("DB transaction commit: "+err.Error())
+	}
+	t.tx = nil
+	return nil
+}
+
+func (t *Tx) Query_row(sql string, data []any, scan []any) error {
+	if t.tx == nil {
+		panic("DB transaction query row: No active transaction")
+	}
+	if err := t.tx.QueryRowContext(t.ctx, sql, data...).Scan(scan...); err != nil {
+		if ctx_canceled(err) {
+			return &Timeout_error{"DB transaction query row", err}
+		}
+		return &Error{"DB transaction query row", err, errors.Wrap(err, 0).ErrorStack()}
+	}
+	return nil
+}
+
+func (t *Tx) Query(sql string, data []any) (*sql.Rows, error){
+	if t.tx == nil {
+		panic("DB transaction query: No active transaction")
+	}
+	rows, err := t.tx.QueryContext(t.ctx, sql, data...)
+	if err != nil {
+		if ctx_canceled(err) {
+			return nil, &Timeout_error{"DB transaction query", err}
+		}
+		return nil, &Error{"DB transaction query", err, errors.Wrap(err, 0).ErrorStack()}
+	}
+	return rows, nil
+}
+
+func (t *Tx) Insert(sql string, data []any) (int, error){
+	if t.tx == nil {
+		panic("DB transaction insert: No active transaction")
+	}
+	var id int
+	if err := t.tx.QueryRowContext(t.ctx, sql+" RETURNING id", data...).Scan(&id); err != nil {
+		if ctx_canceled(err) {
+			return 0, &Timeout_error{"DB transaction insert", err}
+		}
+		return 0, &Error{"DB transaction insert", err, errors.Wrap(err, 0).ErrorStack()}
+	}
+	return id, nil
+}
+
+func (t *Tx) Update(sql string, data []any) error {
+	if t.tx == nil {
+		panic("DB transaction update: No active transaction")
+	}
+	if _, err := t.tx.ExecContext(t.ctx, sql, data...); err != nil {
+		if ctx_canceled(err) {
+			return &Timeout_error{"DB transaction update", err}
+		}
+		return &Error{"DB transaction update", err, errors.Wrap(err, 0).ErrorStack()}
+	}
+	return nil
+}
