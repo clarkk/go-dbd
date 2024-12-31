@@ -30,12 +30,12 @@ func As_error(err error) (terr *Error){
 	return nil
 }
 
-/*func As_timeout_error(err error) (terr *Timeout_error){
+func As_timeout_error(err error) (terr *Timeout_error){
 	if errors.As(err, &terr) {
 		return terr
 	}
 	return nil
-}*/
+}
 
 func (e *Error) Error() string {
 	return e.error

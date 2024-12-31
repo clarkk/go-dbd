@@ -34,13 +34,13 @@ type (
 		sql 		string
 	}
 	
-	sqler interface {
+	SQL interface {
 		Compile() (string, error)
 		Data() []any
 	}
 )
 
-func SQL(q sqler) string {
+func SQL_debug(q SQL) string {
 	s, _ := q.Compile()
 	for _, value := range q.Data() {
 		s = strings.Replace(s, "?", fmt.Sprintf("%v", value), 1)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"github.com/go-errors/errors"
+	"github.com/clarkk/go-dbd/sqlc"
 )
 
 type Tx struct {
@@ -55,11 +56,20 @@ func (t *Tx) Commit() error {
 	return nil
 }
 
-func (t *Tx) Query_row(sql string, data []any, scan []any) error {
+func (t *Tx) Query_row(query sqlc.SQL, scan []any) error {
 	if t.tx == nil {
 		panic("DB transaction query row: No active transaction")
 	}
-	if err := t.tx.QueryRowContext(t.ctx, sql, data...).Scan(scan...); err != nil {
+	
+	sql, err := query.Compile()
+	if err != nil {
+		return &Error{"DB transaction query row compile", err, errors.Wrap(err, 0).ErrorStack()}
+	}
+	
+	if err := t.tx.QueryRowContext(t.ctx, sql, query.Data()...).Scan(scan...); err != nil {
+		if Is_empty_error(err) {
+			return err
+		}
 		if ctx_canceled(err) {
 			return &Timeout_error{"DB transaction query row", err}
 		}

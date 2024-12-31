@@ -41,7 +41,7 @@ WHERE a.email=? && u.time IN (?,?,?)`
 FROM .user a
 LEFT JOIN .user_block u ON u.id=a.user_id
 WHERE a.email=test1 && u.time IN (1,2,3)`
-		got = SQL(query)
+		got = SQL_debug(query)
 		if got != want {
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
 		}
@@ -83,7 +83,7 @@ LIMIT 0,10`
 FROM .user
 WHERE email=test1 && email>test2 && email>=test3 && email<test4 && email<=test5 && email BETWEEN 1 AND 2 && email NOT BETWEEN 3 AND 4 && email IN (5,6,7) && email NOT IN (8,9,10)
 LIMIT 0,10`
-		got = SQL(query)
+		got = SQL_debug(query)
 		if got != want {
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
 		}
@@ -125,7 +125,7 @@ WHERE u.email=? && c.timeout>? && c.timeout>=? && c.timeout<? && c.timeout<=? &&
 FROM .user u
 LEFT JOIN .client c ON c.id=u.client_id
 WHERE u.email=test1 && c.timeout>test2 && c.timeout>=test3 && c.timeout<test4 && c.timeout<=test5 && c.timeout BETWEEN 1 AND 2 && c.timeout NOT BETWEEN 3 AND 4 && c.timeout IN (5,6,7) && c.timeout NOT IN (8,9,10)`
-		got = SQL(query)
+		got = SQL_debug(query)
 		if got != want {
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
 		}
@@ -150,7 +150,7 @@ SET time_login=?`
 		want =
 `INSERT .user
 SET time_login=123`
-		got = SQL(query)
+		got = SQL_debug(query)
 		if got != want {
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
 		}
@@ -180,7 +180,7 @@ WHERE id=?`
 `UPDATE .user
 SET time_login=123
 WHERE id=100`
-		got = SQL(query)
+		got = SQL_debug(query)
 		if got != want {
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
 		}
@@ -205,7 +205,7 @@ WHERE id=?`
 		want =
 `DELETE FROM .user
 WHERE id=100`
-		got = SQL(query)
+		got = SQL_debug(query)
 		if got != want {
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
 		}
