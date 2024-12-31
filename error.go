@@ -47,7 +47,7 @@ func (e *Error) Unwrap() error {
 }
 
 func (e *Error) Log(){
-	log.Printf("%s: %s\n%s", e.error, e.err.Error(), e.stack)
+	log.Printf("%s: %s", e.error, e.stack)
 }
 
 func (e *Timeout_error) Error() string {
