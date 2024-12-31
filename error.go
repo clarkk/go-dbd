@@ -1,6 +1,7 @@
 package dbd
 
 import (
+	"log"
 	"errors"
 	"context"
 	"database/sql"
@@ -20,10 +21,10 @@ type (
 )
 
 func Is_empty_error(err error) bool {
-	return errors.Is(err, sql.ErrNoRows)
+	return err == sql.ErrNoRows
 }
 
-func As_error(err error) (terr *Error){
+/*func As_error(err error) (terr *Error){
 	if errors.As(err, &terr) {
 		return terr
 	}
@@ -35,7 +36,7 @@ func As_timeout_error(err error) (terr *Timeout_error){
 		return terr
 	}
 	return nil
-}
+}*/
 
 func (e *Error) Error() string {
 	return e.error
@@ -45,8 +46,8 @@ func (e *Error) Unwrap() error {
 	return e.err
 }
 
-func (e *Error) Stack() string {
-	return e.stack
+func (e *Error) Log(){
+	log.Printf("%s: %s\n%s", e.error, e.err.Error(), e.stack)
 }
 
 func (e *Timeout_error) Error() string {

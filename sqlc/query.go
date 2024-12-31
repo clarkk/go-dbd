@@ -6,6 +6,11 @@ import (
 )
 
 type (
+	SQL interface {
+		Compile() (string, error)
+		Data() []any
+	}
+	
 	query struct {
 		table 	string
 		t 		string
@@ -32,11 +37,6 @@ type (
 	where_clause struct {
 		field 		string
 		sql 		string
-	}
-	
-	SQL interface {
-		Compile() (string, error)
-		Data() []any
 	}
 )
 
