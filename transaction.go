@@ -78,11 +78,17 @@ func (t *Tx) Query_row(query sqlc.SQL, scan []any) error {
 	return nil
 }
 
-func (t *Tx) Query(sql string, data []any) (*sql.Rows, error){
+func (t *Tx) Query(query sqlc.SQL) (*sql.Rows, error){
 	if t.tx == nil {
 		panic("DB transaction query: No active transaction")
 	}
-	rows, err := t.tx.QueryContext(t.ctx, sql, data...)
+	
+	sql, err := query.Compile()
+	if err != nil {
+		return nil, &Error{"DB transaction query compile", err, errors.Wrap(err, 0).ErrorStack()}
+	}
+	
+	rows, err := t.tx.QueryContext(t.ctx, sql, query.Data()...)
 	if err != nil {
 		if ctx_canceled(err) {
 			return nil, &Timeout_error{"DB transaction query", err}
