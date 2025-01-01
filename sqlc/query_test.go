@@ -12,7 +12,7 @@ import (
 
 func Test_select(t *testing.T){
 	t.Run("table collisions", func(t *testing.T){
-		query := NewSelect("user").
+		query := Select("user").
 			Select([]string{
 				"id",
 				"email",
@@ -48,7 +48,7 @@ WHERE a.email=test1 && u.time IN (1,2,3)`
 	})
 	
 	t.Run("select", func(t *testing.T){
-		query := NewSelect("user").
+		query := Select("user").
 			Select([]string{
 				"id",
 				"email",
@@ -90,7 +90,7 @@ LIMIT 0,10`
 	})
 	
 	t.Run("select join", func(t *testing.T){
-		query := NewSelect("user").
+		query := Select("user").
 			Select([]string{
 				"id",
 				"c.timeout",
@@ -132,7 +132,7 @@ WHERE u.email=test1 && c.timeout>test2 && c.timeout>=test3 && c.timeout<test4 &&
 	})
 	
 	t.Run("insert", func(t *testing.T){
-		query := NewInsert("user").
+		query := Insert("user").
 			Fields(map[string]any{
 				"time_login": 123,
 			})
@@ -157,7 +157,7 @@ SET time_login=123`
 	})
 	
 	t.Run("update", func(t *testing.T){
-		query := NewUpdate("user").
+		query := Update("user").
 			Fields(map[string]any{
 				"time_login": 123,
 			}).
@@ -187,7 +187,7 @@ WHERE id=100`
 	})
 	
 	t.Run("delete", func(t *testing.T){
-		query := NewDelete("user").
+		query := Delete("user").
 			Where(Where().
 				Eq("id", "100"),
 			)

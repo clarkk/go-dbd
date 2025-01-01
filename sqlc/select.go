@@ -6,7 +6,7 @@ import (
 )
 
 type (
-	Select struct {
+	select_ struct {
 		query_where
 		select_fields 	[]select_field
 		limit 			limit
@@ -23,8 +23,8 @@ type (
 	}
 )
 
-func NewSelect(table string) *Select {
-	return &Select{
+func Select(table string) *select_ {
+	return &select_{
 		query_where: query_where{
 			query: query{
 				table:		table,
@@ -37,7 +37,7 @@ func NewSelect(table string) *Select {
 	}
 }
 
-func (q *Select) Select(list []string) *Select {
+func (q *select_) Select(list []string) *select_ {
 	q.select_fields = make([]select_field, len(list))
 	for i, v := range list {
 		s := select_field{}
@@ -47,17 +47,17 @@ func (q *Select) Select(list []string) *Select {
 	return q
 }
 
-func (q *Select) Left_join(table, t, field, field_foreign string) *Select {
+func (q *select_) Left_join(table, t, field, field_foreign string) *select_ {
 	q.left_join(table, t, field, field_foreign)
 	return q
 }
 
-func (q *Select) Where(clauses *where) *Select {
+func (q *select_) Where(clauses *where) *select_ {
 	clauses.compile(q)
 	return q
 }
 
-func (q *Select) Limit(start, length int) *Select {
+func (q *select_) Limit(start, length int) *select_ {
 	q.limit = limit{
 		start:	start,
 		length:	length,
@@ -65,7 +65,7 @@ func (q *Select) Limit(start, length int) *Select {
 	return q
 }
 
-func (q *Select) Compile() (string, error){
+func (q *select_) Compile() (string, error){
 	if err := q.compile_tables(); err != nil {
 		return "", err
 	}
@@ -82,7 +82,7 @@ func (q *Select) Compile() (string, error){
 	return s, nil
 }
 
-func (q *Select) compile_select() string {
+func (q *select_) compile_select() string {
 	list := make([]string, len(q.select_fields))
 	for i, s := range q.select_fields {
 		list[i] = q.field(s.field)
@@ -93,7 +93,7 @@ func (q *Select) compile_select() string {
 	return "SELECT "+strings.Join(list, ", ")+"\n"
 }
 
-func (q *Select) compile_from() string {
+func (q *select_) compile_from() string {
 	s := "FROM ."+q.table
 	if q.joined {
 		s += " "+q.t
@@ -101,6 +101,6 @@ func (q *Select) compile_from() string {
 	return s+"\n"
 }
 
-func (q *Select) compile_limit() string {
+func (q *select_) compile_limit() string {
 	return "LIMIT "+strconv.Itoa(q.limit.start)+","+strconv.Itoa(q.limit.length)+"\n"
 }

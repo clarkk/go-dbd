@@ -2,13 +2,13 @@ package sqlc
 
 import "strings"
 
-type Update struct {
+type update struct {
 	query_where
 	fields 		map[string]any
 }
 
-func NewUpdate(table string) *Update {
-	return &Update{
+func Update(table string) *update {
+	return &update{
 		query_where: query_where{
 			query: query{
 				table:		table,
@@ -22,22 +22,22 @@ func NewUpdate(table string) *Update {
 	}
 }
 
-func (q *Update) Fields(fields map[string]any) *Update {
+func (q *update) Fields(fields map[string]any) *update {
 	q.fields = fields
 	return q
 }
 
-/*func (q *Update) Left_join(table, t, field, field_foreign string) *Update {
+/*func (q *update) Left_join(table, t, field, field_foreign string) *update {
 	q.left_join(table, t, field, field_foreign)
 	return q
 }*/
 
-func (q *Update) Where(clauses *where) *Update {
+func (q *update) Where(clauses *where) *update {
 	clauses.compile(q)
 	return q
 }
 
-func (q *Update) Compile() (string, error){
+func (q *update) Compile() (string, error){
 	if err := q.compile_tables(); err != nil {
 		return "", err
 	}
@@ -51,7 +51,7 @@ func (q *Update) Compile() (string, error){
 	return s, nil
 }
 
-func (q *Update) compile_update() string {
+func (q *update) compile_update() string {
 	s := "UPDATE ."+q.table
 	/*if q.joined {
 		s += " "+q.t
@@ -59,7 +59,7 @@ func (q *Update) compile_update() string {
 	return s+"\n"
 }
 
-func (q *Update) compile_fields() string {
+func (q *update) compile_fields() string {
 	list := make([]string, len(q.fields))
 	i := 0
 	for k, v := range q.fields {

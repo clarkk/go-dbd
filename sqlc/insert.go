@@ -2,13 +2,13 @@ package sqlc
 
 import "strings"
 
-type Insert struct {
+type insert struct {
 	query
 	fields 		map[string]any
 }
 
-func NewInsert(table string) *Insert {
-	return &Insert{
+func Insert(table string) *insert {
+	return &insert{
 		query: query{
 			table:		table,
 			joins: 		[]join{},
@@ -18,17 +18,17 @@ func NewInsert(table string) *Insert {
 	}
 }
 
-func (q *Insert) Fields(fields map[string]any) *Insert {
+func (q *insert) Fields(fields map[string]any) *insert {
 	q.fields = fields
 	return q
 }
 
-/*func (q *Insert) Left_join(table, t, field, field_foreign string) *Insert {
+/*func (q *insert) Left_join(table, t, field, field_foreign string) *insert {
 	q.left_join(table, t, field, field_foreign)
 	return q
 }*/
 
-func (q *Insert) Compile() (string, error){
+func (q *insert) Compile() (string, error){
 	if err := q.compile_tables(); err != nil {
 		return "", err
 	}
@@ -39,7 +39,7 @@ func (q *Insert) Compile() (string, error){
 	return s, nil
 }
 
-func (q *Insert) compile_insert() string {
+func (q *insert) compile_insert() string {
 	s := "INSERT ."+q.table
 	/*if q.joined {
 		s += " "+q.t
@@ -47,7 +47,7 @@ func (q *Insert) compile_insert() string {
 	return s+"\n"
 }
 
-func (q *Insert) compile_fields() string {
+func (q *insert) compile_fields() string {
 	list := make([]string, len(q.fields))
 	i := 0
 	for k, v := range q.fields {
