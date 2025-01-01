@@ -11,6 +11,8 @@ type (
 		Data() []any
 	}
 	
+	Map map[string]any
+	
 	query struct {
 		table 	string
 		t 		string
