@@ -92,12 +92,18 @@ func (t *Tx) Query(sql string, data []any) (*sql.Rows, error){
 	return rows, nil
 }
 
-func (t *Tx) Insert(sql string, data []any) (int, error){
+func (t *Tx) Insert(query sqlc.SQL) (int, error){
 	if t.tx == nil {
 		panic("DB transaction insert: No active transaction")
 	}
+	
+	sql, err := query.Compile()
+	if err != nil {
+		return &Error{"DB transaction insert compile", err, errors.Wrap(err, 0).ErrorStack()}
+	}
+	
 	var id int
-	if err := t.tx.QueryRowContext(t.ctx, sql+" RETURNING id", data...).Scan(&id); err != nil {
+	if err := t.tx.QueryRowContext(t.ctx, sql+" RETURNING id", query.Data()...).Scan(&id); err != nil {
 		if ctx_canceled(err) {
 			return 0, &Timeout_error{"DB transaction insert", err}
 		}
