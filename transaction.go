@@ -106,11 +106,17 @@ func (t *Tx) Insert(sql string, data []any) (int, error){
 	return id, nil
 }
 
-func (t *Tx) Update(sql string, data []any) error {
+func (t *Tx) Update(query sqlc.SQL) error {
 	if t.tx == nil {
 		panic("DB transaction update: No active transaction")
 	}
-	if _, err := t.tx.ExecContext(t.ctx, sql, data...); err != nil {
+	
+	sql, err := query.Compile()
+	if err != nil {
+		return &Error{"DB transaction update compile", err, errors.Wrap(err, 0).ErrorStack()}
+	}
+	
+	if _, err := t.tx.ExecContext(t.ctx, sql, query.Data()...); err != nil {
 		if ctx_canceled(err) {
 			return &Timeout_error{"DB transaction update", err}
 		}
