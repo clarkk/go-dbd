@@ -2,6 +2,7 @@ package dbd
 
 import (
 	"log"
+	"fmt"
 	"errors"
 	"context"
 	"database/sql"
@@ -48,6 +49,7 @@ func (e *Error) Unwrap() error {
 
 func (e *Error) Log(){
 	log.Printf("%s: %s", e.error, e.stack)
+	fmt.Printf("%s: %s", e.error, e.stack)
 }
 
 func (e *Timeout_error) Error() string {
