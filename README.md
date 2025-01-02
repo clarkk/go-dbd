@@ -161,16 +161,16 @@ WHERE id=100
 ```
 
 ## Where
-- Equal (`x=?`) `Eq(field string, value any)`
-- Equal (`x=?`) `Eqs(fields map[string]any)`
-- Greater than (`x>?`) `Gt(field string, value any)`
-- Greater than or equal to (`x>=?`) `Gt_eq(field string, value any)`
-- Less than (`x<?`) `Lt(field string, value any)`
-- Less than or equal to (`x<=?`) `Lt_eq(field string, value any)`
-- Between (`x BETWEEN ? AND ?`) `Bt(field string, value1, value2 any)`
-- Not between (`x NOT BETWEEN ? AND ?`) `Not_bt(field string, value1, value2 any)`
-- In (`x IN (?,?,?)`) `In(field string, values []any)`
-- Not in (`x NOT IN (?,?,?)`) `Not_in(field string, values []any)`
+- **Equal** (`x=?`) `Eq(field string, value any)`
+- **Equal** (`x=?`) `Eqs(fields map[string]any)`
+- **Greater than** (`x>?`) `Gt(field string, value any)`
+- **Greater than or equal to** (`x>=?`) `Gt_eq(field string, value any)`
+- **Less than** (`x<?`) `Lt(field string, value any)`
+- **Less than or equal to** (`x<=?`) `Lt_eq(field string, value any)`
+- **Between** (`x BETWEEN ? AND ?`) `Bt(field string, value1, value2 any)`
+- **Not between** (`x NOT BETWEEN ? AND ?`) `Not_bt(field string, value1, value2 any)`
+- **In** (`x IN (?,?,?)`) `In(field string, values []any)`
+- **Not in** (`x NOT IN (?,?,?)`) `Not_in(field string, values []any)`
 
 ### Example
 ```
