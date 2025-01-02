@@ -1,6 +1,8 @@
 # Install
 `go get -u github.com/clarkk/go-dbd`
 
+Database handling for MySQL/MariaDB
+
 All packages are extremely simple and lightweight by design
 
 - [go-dbd/sqlc](#go-dbdsqlc) SQL compiler
@@ -8,120 +10,152 @@ All packages are extremely simple and lightweight by design
 # go-dbd/sqlc
 Compile complex MySQL queries as prepared statements.
 
-### Example
+## Select query
 ```
-package main
-
 import (
   "fmt"
   "github.com/clarkk/go-dbd/sqlc"
 )
 
-func main(){
-  select_query()
-  select_join_query()
-  insert_query()
-  update_query()
-  delete_query()
-}
+query := sqlc.Select("user").
+  Select([]string{
+    "id",
+    "name",
+    "email",
+  }).
+  Where(sqlc.Where().
+    Eq("name", "test").
+    Eq("email", "test@domain.com"))
 
-func select_query(){
-  query := sqlc.Select("user").
-    Select([]string{
-      "id",
-      "name",
-      "email",
-    }).
-    Where(sqlc.Where().
-      Eq("name", "test").
-      Eq("email", "test@domain.com"))
-  
-  fmt.Println(query.Compile(), query.Data())
-  /*
-    SELECT id, name, email
-    FROM .user
-    WHERE name=? && email=?
-  */
-  
-  query = sqlc.Select("user").
-    Select([]string{
-      "id",
-      "name",
-      "email",
-    }).
-    Where(sqlc.Where().Eqs(sqlc.Map{
-      "name":   "test",
-      "email":  "test@domain.com",
-    }))
-  
-  fmt.Println(query.Compile(), query.Data())
-  /*
-    SELECT id, name, email
-    FROM .user
-    WHERE name=? && email=?
-  */
-}
+fmt.Println(query.Compile(), query.Data(), sqlc.SQL_debug(query))
+```
 
-func select_join_query(){
-  query := sqlc.Select("user").
-    Select([]string{
-      "id",
-      "c.timeout",
-      "name",
-      "email",
-    }).
-    Left_join("client", "c", "id", "client_id").
-    Where(sqlc.Where().
-      Eq("email", "test@domain.com"))
-  
-  fmt.Println(query.Compile(), query.Data())
-  /*
-    SELECT u.id, c.timeout, u.name, u.email
-    FROM .user u
-    LEFT JOIN .client c ON c.id=u.client_id
-    WHERE u.email=?
-  */
-}
+### SQL query
+```
+SELECT id, name, email
+FROM .user
+WHERE name='test' && email='test@domain.com'
+``` 
 
-func insert_query(){
-  query := sqlc.Insert("user").
-    Fields(sqlc.Map{
-      "name":   "john",
-      "email":  "alias@test.com",
-    })
-  
-  fmt.Println(query.Compile(), query.Data())
-  /*
-    INSERT .user
-    SET name=?, email=?
-  */
-}
+## Select query with Eqs()
+```
+import (
+  "fmt"
+  "github.com/clarkk/go-dbd/sqlc"
+)
 
-func update_query(){
-  query := Update("user").
-    Fields(sqlc.Map{
-      "name": "michael",
-    }).
-    Where(Where().
-      Eq("id", 100))
-  
-  fmt.Println(query.Compile(), query.Data())
-  /*
-    UPDATE .user
-    SET name=?
-    WHERE id=?
-  */
-}
+query := sqlc.Select("user").
+  Select([]string{
+    "id",
+    "name",
+    "email",
+  }).
+  Where(sqlc.Where().Eqs(sqlc.Map{
+    "name":   "test",
+    "email":  "test@domain.com",
+  }))
 
-func delete_query(){
-  query := Delete("user").
-    Where(Where().
-      Eq("id", 100))
-  
-  fmt.Println(query.Compile(), query.Data())
-  /*
-    DELETE FROM .user
-    WHERE id=?
-  */
-}
+fmt.Println(query.Compile(), query.Data(), sqlc.SQL_debug(query))
+```
+
+### SQL query
+```
+SELECT id, name, email
+FROM .user
+WHERE name='test' && email='test@domain.com'
+``` 
+
+## Select join query
+```
+import (
+  "fmt"
+  "github.com/clarkk/go-dbd/sqlc"
+)
+
+query := sqlc.Select("user").
+  Select([]string{
+    "id",
+    "c.timeout",
+    "name",
+    "email",
+  }).
+  Left_join("client", "c", "id", "client_id").
+  Where(sqlc.Where().
+    Eq("email", "test@domain.com"))
+
+fmt.Println(query.Compile(), query.Data(), sqlc.SQL_debug(query))
+```
+
+### SQL query
+```
+SELECT u.id, c.timeout, u.name, u.email
+FROM .user u
+LEFT JOIN .client c ON c.id=u.client_id
+WHERE u.email='test@domain.com'
+```
+
+## Insert query
+```
+import (
+  "fmt"
+  "github.com/clarkk/go-dbd/sqlc"
+)
+
+query := sqlc.Insert("user").
+  Fields(sqlc.Map{
+    "name":   "john",
+    "email":  "alias@test.com",
+  })
+
+fmt.Println(query.Compile(), query.Data(), sqlc.SQL_debug(query))
+```
+
+### SQL query
+```
+INSERT .user
+SET name='john', email='alias@test.com'
+```
+
+## Update query
+```
+import (
+  "fmt"
+  "github.com/clarkk/go-dbd/sqlc"
+)
+
+query := Update("user").
+  Fields(sqlc.Map{
+    "name": "michael",
+  }).
+  Where(Where().
+    Eq("id", 100))
+
+fmt.Println(query.Compile(), query.Data(), sqlc.SQL_debug(query))
+```
+
+### SQL query
+```
+UPDATE .user
+SET name='michael'
+WHERE id=100
+```
+
+## Delete query
+```
+import (
+  "fmt"
+  "github.com/clarkk/go-dbd/sqlc"
+)
+
+query := Delete("user").
+  Where(Where().
+    Eq("id", 100))
+
+fmt.Println(query.Compile(), query.Data(), sqlc.SQL_debug(query))
+```
+
+### SQL query
+```
+DELETE FROM .user
+WHERE id=100
 ```
