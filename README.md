@@ -177,7 +177,7 @@ WHERE id=100
 sqlc.Where().
   Eq("id", 100).
   Gt("id", 200).
-  Gt_eq("id", 300).
+  Gt_eq("id", 300)
 ```
 
 ### SQL where clause
