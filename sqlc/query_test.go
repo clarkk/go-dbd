@@ -89,6 +89,38 @@ LIMIT 0,10`
 		}
 	})
 	
+	t.Run("where eqs", func(t *testing.T){
+		query := Select("user").
+			Select([]string{
+				"id",
+				"email",
+			}).
+			Where(Where().Eqs(Map{
+				"email": "test1",
+				"name": "test2",
+			}))
+		
+		sql, _ := query.Compile()
+		
+		want :=
+`SELECT id, email
+FROM .user
+WHERE email=? && name=?`
+		got := strings.TrimSpace(sql)
+		if got != want {
+			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
+		}
+		
+		want =
+`SELECT id, email
+FROM .user
+WHERE email=test1 && name=test2`
+		got = SQL_debug(query)
+		if got != want {
+			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
+		}
+	})
+	
 	t.Run("select join", func(t *testing.T){
 		query := Select("user").
 			Select([]string{

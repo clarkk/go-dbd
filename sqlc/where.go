@@ -31,6 +31,13 @@ func (w *where) Eq(field string, value any) *where {
 	return w
 }
 
+func (w *where) Eqs(fields map[string]any) *where {
+	for k, v := range fields {
+		w.clause(k, "=", v)
+	}
+	return w
+}
+
 func (w *where) Gt(field string, value any) *where {
 	w.clause(field, ">", value)
 	return w
