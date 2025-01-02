@@ -162,7 +162,7 @@ WHERE id=100
 
 ## Where clause
 - **Equal** (`x=?`) `Eq(field string, value any)`
-- **Multiple equals** (`x=?`) `Eqs(fields map[string]any)`
+- **Multiple equals** (`x=? && y=? && ...`) `Eqs(fields map[string]any)`
 - **Greater than** (`x>?`) `Gt(field string, value any)`
 - **Greater than or equal to** (`x>=?`) `Gt_eq(field string, value any)`
 - **Less than** (`x<?`) `Lt(field string, value any)`
