@@ -160,7 +160,7 @@ DELETE FROM .user
 WHERE id=100
 ```
 
-## Where
+## Where clause
 - **Equal** (`x=?`) `Eq(field string, value any)`
 - **Equal** (`x=?`) `Eqs(fields map[string]any)`
 - **Greater than** (`x>?`) `Gt(field string, value any)`
