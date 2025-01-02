@@ -30,7 +30,7 @@ query := sqlc.Select("user").
 fmt.Println(query.Compile(), query.Data(), sqlc.SQL_debug(query))
 ```
 
-### SQL query
+### SQL
 ```
 SELECT id, name, email
 FROM .user
@@ -58,7 +58,7 @@ query := sqlc.Select("user").
 fmt.Println(query.Compile(), query.Data(), sqlc.SQL_debug(query))
 ```
 
-### SQL query
+### SQL
 ```
 SELECT id, name, email
 FROM .user
@@ -86,7 +86,7 @@ query := sqlc.Select("user").
 fmt.Println(query.Compile(), query.Data(), sqlc.SQL_debug(query))
 ```
 
-### SQL query
+### SQL
 ```
 SELECT u.id, c.timeout, u.name, u.email
 FROM .user u
@@ -110,7 +110,7 @@ query := sqlc.Insert("user").
 fmt.Println(query.Compile(), query.Data(), sqlc.SQL_debug(query))
 ```
 
-### SQL query
+### SQL
 ```
 INSERT .user
 SET name='john', email='alias@test.com'
@@ -133,7 +133,7 @@ query := Update("user").
 fmt.Println(query.Compile(), query.Data(), sqlc.SQL_debug(query))
 ```
 
-### SQL query
+### SQL
 ```
 UPDATE .user
 SET name='michael'
@@ -154,7 +154,7 @@ query := Delete("user").
 fmt.Println(query.Compile(), query.Data(), sqlc.SQL_debug(query))
 ```
 
-### SQL query
+### SQL
 ```
 DELETE FROM .user
 WHERE id=100
