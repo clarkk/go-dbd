@@ -178,9 +178,18 @@ sqlc.Where().
   Eq("id", 100).
   Gt("id", 200).
   Gt_eq("id", 300)
+
+sqlc.Where().
+  Eqs(sqlc.Map{
+    "id": 100,
+    "id", 200,
+    "id", 300,
+  })
 ```
 
 ### SQL where clause
 ```
 WHERE id=100 && id>200 && id>=300
+
+WHERE id=100 && id=200 && id=300
 ```
