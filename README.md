@@ -26,25 +26,44 @@ func main(){
 }
 
 func select_query(){
-  query := sqlc.NewSelect("user").
+  query := sqlc.Select("user").
     Select([]string{
       "id",
       "name",
       "email",
     }).
     Where(sqlc.Where().
+      Eq("name", "test").
       Eq("email", "test@domain.com"))
   
   fmt.Println(query.Compile(), query.Data())
   /*
     SELECT id, name, email
     FROM .user
-    WHERE email=?
+    WHERE name=? && email=?
+  */
+  
+  query = sqlc.Select("user").
+    Select([]string{
+      "id",
+      "name",
+      "email",
+    }).
+    Where(sqlc.Where().Eqs(sqlc.Map{
+      "name":   "test",
+      "email":  "test@domain.com",
+    }))
+  
+  fmt.Println(query.Compile(), query.Data())
+  /*
+    SELECT id, name, email
+    FROM .user
+    WHERE name=? && email=?
   */
 }
 
 func select_join_query(){
-  query := sqlc.NewSelect("user").
+  query := sqlc.Select("user").
     Select([]string{
       "id",
       "c.timeout",
@@ -65,8 +84,8 @@ func select_join_query(){
 }
 
 func insert_query(){
-  query := sqlc.NewInsert("user").
-    Fields(map[string]any{
+  query := sqlc.Insert("user").
+    Fields(sqlc.Map{
       "name":   "john",
       "email":  "alias@test.com",
     })
@@ -79,8 +98,8 @@ func insert_query(){
 }
 
 func update_query(){
-  query := NewUpdate("user").
-    Fields(map[string]any{
+  query := Update("user").
+    Fields(sqlc.Map{
       "name": "michael",
     }).
     Where(Where().
@@ -95,7 +114,7 @@ func update_query(){
 }
 
 func delete_query(){
-  query := NewDelete("user").
+  query := Delete("user").
     Where(Where().
       Eq("id", 100))
   
