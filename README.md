@@ -123,11 +123,11 @@ import (
   "github.com/clarkk/go-dbd/sqlc"
 )
 
-query := Update("user").
+query := sqlc.Update("user").
   Fields(sqlc.Map{
     "name": "michael",
   }).
-  Where(Where().
+  Where(sqlc.Where().
     Eq("id", 100))
 
 fmt.Println(query.Compile(), query.Data(), sqlc.SQL_debug(query))
@@ -147,8 +147,8 @@ import (
   "github.com/clarkk/go-dbd/sqlc"
 )
 
-query := Delete("user").
-  Where(Where().
+query := sqlc.Delete("user").
+  Where(sqlc.Where().
     Eq("id", 100))
 
 fmt.Println(query.Compile(), query.Data(), sqlc.SQL_debug(query))
