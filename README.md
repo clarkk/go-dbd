@@ -159,3 +159,28 @@ fmt.Println(query.Compile(), query.Data(), sqlc.SQL_debug(query))
 DELETE FROM .user
 WHERE id=100
 ```
+
+## Where
+- Equal (`col=?`) `Eq(field string, value any)`
+- Equal (`col=?`) `Eqs(fields map[string]any)`
+- Greater than (`col>?`) `Gt(field string, value any)`
+- Greater than or equal to (`col>=?`) `Gt_eq(field string, value any)`
+- Less than (`col<?`) `Lt(field string, value any)`
+- Less than or equal to (`col<=?`) `Lt_eq(field string, value any)`
+- Between (`BETWEEN ? AND ?`) `Bt(field string, value1, value2 any)`
+- Not between (`NOT BETWEEN ? AND ?`) `Not_bt(field string, value1, value2 any)`
+- In (`IN (?,?,?)`) `In(field string, values []any)`
+- Not in (`NOT IN (?,?,?)`) `Not_in(field string, values []any)`
+
+### Example
+```
+sqlc.Where().
+  Eq("id", 100).
+  Gt("id", 200).
+  Gt_eq("id", 300).
+```
+
+### SQL where clause
+```
+WHERE id=100 && id>200 && id>=300
+```
