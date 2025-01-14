@@ -10,6 +10,7 @@ type (
 		query_where
 		select_fields 	[]select_field
 		limit 			limit
+		id 				int
 	}
 	
 	select_field struct {
@@ -23,7 +24,7 @@ type (
 	}
 )
 
-func Select(table string) *select_ {
+func Select(table string, id int) *select_ {
 	return &select_{
 		query_where: query_where{
 			query: query{
@@ -34,6 +35,7 @@ func Select(table string) *select_ {
 			where:		[]where_clause{},
 			where_data:	[]any{},
 		},
+		id: id,
 	}
 }
 
@@ -73,9 +75,7 @@ func (q *select_) Compile() (string, error){
 	if len(q.joins) != 0 {
 		s += q.compile_joins()
 	}
-	if len(q.where) != 0 {
-		s += q.compile_where()
-	}
+	s += q.compile_where(q.id)
 	if q.limit.start != 0 || q.limit.length != 0 {
 		s += q.compile_limit()
 	}

@@ -11,8 +11,8 @@ import (
 )
 
 func Test_select(t *testing.T){
-	t.Run("table collisions", func(t *testing.T){
-		query := Select("user").
+	t.Run("table abbreviation collisions", func(t *testing.T){
+		query := Select("user", 0).
 			Select([]string{
 				"id",
 				"email",
@@ -48,7 +48,7 @@ WHERE a.email=test1 && u.time IN (1,2,3)`
 	})
 	
 	t.Run("select", func(t *testing.T){
-		query := Select("user").
+		query := Select("user", 0).
 			Select([]string{
 				"id",
 				"email",
@@ -90,7 +90,7 @@ LIMIT 0,10`
 	})
 	
 	t.Run("where eqs", func(t *testing.T){
-		query := Select("user").
+		query := Select("user", 123).
 			Select([]string{
 				"id",
 				"email",
@@ -105,7 +105,7 @@ LIMIT 0,10`
 		want :=
 `SELECT id, email
 FROM .user
-WHERE email=? && name=?`
+WHERE id=123 && email=? && name=?`
 		got := strings.TrimSpace(sql)
 		if got != want {
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
@@ -114,7 +114,7 @@ WHERE email=? && name=?`
 		want =
 `SELECT id, email
 FROM .user
-WHERE email=test1 && name=test2`
+WHERE id=123 && email=test1 && name=test2`
 		got = SQL_debug(query)
 		if got != want {
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
@@ -122,7 +122,7 @@ WHERE email=test1 && name=test2`
 	})
 	
 	t.Run("select join", func(t *testing.T){
-		query := Select("user").
+		query := Select("user", 0).
 			Select([]string{
 				"id",
 				"c.timeout",
@@ -162,7 +162,9 @@ WHERE u.email=test1 && c.timeout>test2 && c.timeout>=test3 && c.timeout<test4 &&
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
 		}
 	})
-	
+}
+
+func Test_insert(t *testing.T){
 	t.Run("insert", func(t *testing.T){
 		query := Insert("user").
 			Fields(map[string]any{
@@ -187,22 +189,21 @@ SET time_login=123`
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
 		}
 	})
-	
+}
+
+func Test_update(t *testing.T){
 	t.Run("update", func(t *testing.T){
-		query := Update("user").
+		query := Update("user", 100).
 			Fields(map[string]any{
 				"time_login": 123,
-			}).
-			Where(Where().
-				Eq("id", "100"),
-			)
+			})
 		
 		sql, _ := query.Compile()
 		
 		want :=
 `UPDATE .user
 SET time_login=?
-WHERE id=?`
+WHERE id=100`
 		got := strings.TrimSpace(sql)
 		if got != want {
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
@@ -217,18 +218,17 @@ WHERE id=100`
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
 		}
 	})
-	
+}
+
+func Test_delete(t *testing.T){
 	t.Run("delete", func(t *testing.T){
-		query := Delete("user").
-			Where(Where().
-				Eq("id", "100"),
-			)
+		query := Delete("user", 100)
 		
 		sql, _ := query.Compile()
 		
 		want :=
 `DELETE FROM .user
-WHERE id=?`
+WHERE id=100`
 		got := strings.TrimSpace(sql)
 		if got != want {
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)

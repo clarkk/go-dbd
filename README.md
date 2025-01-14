@@ -17,7 +17,7 @@ import (
   "github.com/clarkk/go-dbd/sqlc"
 )
 
-query := sqlc.Select("user").
+query := sqlc.Select("user", 0).
   Select([]string{
     "id",
     "name",
@@ -25,7 +25,8 @@ query := sqlc.Select("user").
   }).
   Where(sqlc.Where().
     Eq("name", "test").
-    Eq("email", "test@domain.com"))
+    Eq("email", "test@domain.com")).
+  Limit(0, 10)
 
 fmt.Println(query.Compile(), query.Data(), sqlc.SQL_debug(query))
 ```
@@ -35,6 +36,31 @@ fmt.Println(query.Compile(), query.Data(), sqlc.SQL_debug(query))
 SELECT id, name, email
 FROM .user
 WHERE name='test' && email='test@domain.com'
+LIMIT 0,10
+``` 
+
+## Select query by id
+```
+import (
+  "fmt"
+  "github.com/clarkk/go-dbd/sqlc"
+)
+
+query := sqlc.Select("user", 123).
+  Select([]string{
+    "id",
+    "name",
+    "email",
+  })
+
+fmt.Println(query.Compile(), query.Data(), sqlc.SQL_debug(query))
+```
+
+### SQL
+```
+SELECT id, name, email
+FROM .user
+WHERE id=123
 ``` 
 
 ## Select query with Eqs()
@@ -44,7 +70,7 @@ import (
   "github.com/clarkk/go-dbd/sqlc"
 )
 
-query := sqlc.Select("user").
+query := sqlc.Select("user", 0).
   Select([]string{
     "id",
     "name",
@@ -72,7 +98,7 @@ import (
   "github.com/clarkk/go-dbd/sqlc"
 )
 
-query := sqlc.Select("user").
+query := sqlc.Select("user", 0).
   Select([]string{
     "id",
     "c.timeout",
@@ -123,12 +149,10 @@ import (
   "github.com/clarkk/go-dbd/sqlc"
 )
 
-query := sqlc.Update("user").
+query := sqlc.Update("user", 123).
   Fields(sqlc.Map{
     "name": "michael",
-  }).
-  Where(sqlc.Where().
-    Eq("id", 100))
+  })
 
 fmt.Println(query.Compile(), query.Data(), sqlc.SQL_debug(query))
 ```
@@ -137,7 +161,7 @@ fmt.Println(query.Compile(), query.Data(), sqlc.SQL_debug(query))
 ```
 UPDATE .user
 SET name='michael'
-WHERE id=100
+WHERE id=123
 ```
 
 ## Delete query
@@ -147,9 +171,7 @@ import (
   "github.com/clarkk/go-dbd/sqlc"
 )
 
-query := sqlc.Delete("user").
-  Where(sqlc.Where().
-    Eq("id", 100))
+query := sqlc.Delete("user", 123)
 
 fmt.Println(query.Compile(), query.Data(), sqlc.SQL_debug(query))
 ```
@@ -157,7 +179,7 @@ fmt.Println(query.Compile(), query.Data(), sqlc.SQL_debug(query))
 ### SQL
 ```
 DELETE FROM .user
-WHERE id=100
+WHERE id=123
 ```
 
 ## Where clause

@@ -2,9 +2,10 @@ package sqlc
 
 type delete struct {
 	query_where
+	id 			int
 }
 
-func Delete(table string) *delete {
+func Delete(table string, id int) *delete {
 	return &delete{
 		query_where: query_where{
 			query: query{
@@ -15,6 +16,7 @@ func Delete(table string) *delete {
 			where:		[]where_clause{},
 			where_data:	[]any{},
 		},
+		id: id,
 	}
 }
 
@@ -36,9 +38,7 @@ func (q *delete) Compile() (string, error){
 	/*if len(q.joins) != 0 {
 		s += q.compile_joins()
 	}*/
-	if len(q.where) != 0 {
-		s += q.compile_where()
-	}
+	s += q.compile_where(q.id)
 	return s, nil
 }
 
