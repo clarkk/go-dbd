@@ -28,7 +28,12 @@ query := sqlc.Select("user", 0).
     Eq("email", "test@domain.com")).
   Limit(0, 10)
 
-fmt.Println(query.Compile(), query.Data(), sqlc.SQL_debug(query))
+sql, err := query.Compile()
+if err != nil {
+  panic(err)
+}
+
+fmt.Println(sql, query.Data(), sqlc.SQL_debug(query))
 ```
 
 ### SQL
@@ -53,7 +58,12 @@ query := sqlc.Select("user", 123).
     "email",
   })
 
-fmt.Println(query.Compile(), query.Data(), sqlc.SQL_debug(query))
+sql, err := query.Compile()
+if err != nil {
+  panic(err)
+}
+
+fmt.Println(sql, query.Data(), sqlc.SQL_debug(query))
 ```
 
 ### SQL
@@ -81,7 +91,12 @@ query := sqlc.Select("user", 0).
     "email":  "test@domain.com",
   }))
 
-fmt.Println(query.Compile(), query.Data(), sqlc.SQL_debug(query))
+sql, err := query.Compile()
+if err != nil {
+  panic(err)
+}
+
+fmt.Println(sql, query.Data(), sqlc.SQL_debug(query))
 ```
 
 ### SQL
@@ -109,7 +124,12 @@ query := sqlc.Select("user", 0).
   Where(sqlc.Where().
     Eq("email", "test@domain.com"))
 
-fmt.Println(query.Compile(), query.Data(), sqlc.SQL_debug(query))
+sql, err := query.Compile()
+if err != nil {
+  panic(err)
+}
+
+fmt.Println(sql, query.Data(), sqlc.SQL_debug(query))
 ```
 
 ### SQL
@@ -133,7 +153,12 @@ query := sqlc.Insert("user").
     "email":  "alias@test.com",
   })
 
-fmt.Println(query.Compile(), query.Data(), sqlc.SQL_debug(query))
+sql, err := query.Compile()
+if err != nil {
+  panic(err)
+}
+
+fmt.Println(sql, query.Data(), sqlc.SQL_debug(query))
 ```
 
 ### SQL
@@ -154,7 +179,12 @@ query := sqlc.Update("user", 123).
     "name": "michael",
   })
 
-fmt.Println(query.Compile(), query.Data(), sqlc.SQL_debug(query))
+sql, err := query.Compile()
+if err != nil {
+  panic(err)
+}
+
+fmt.Println(sql, query.Data(), sqlc.SQL_debug(query))
 ```
 
 ### SQL
@@ -173,7 +203,12 @@ import (
 
 query := sqlc.Delete("user", 123)
 
-fmt.Println(query.Compile(), query.Data(), sqlc.SQL_debug(query))
+sql, err := query.Compile()
+if err != nil {
+  panic(err)
+}
+
+fmt.Println(sql, query.Data(), sqlc.SQL_debug(query))
 ```
 
 ### SQL
