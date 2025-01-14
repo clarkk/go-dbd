@@ -5,7 +5,6 @@ import "strings"
 type update struct {
 	query_where
 	fields 		map[string]any
-	id 			int
 }
 
 func Update(table string, id int) *update {
@@ -18,9 +17,9 @@ func Update(table string, id int) *update {
 			},
 			where:		[]where_clause{},
 			where_data:	[]any{},
+			id:			id,
 		},
 		fields: 	map[string]any{},
-		id:			id,
 	}
 }
 
@@ -47,7 +46,7 @@ func (q *update) Compile() (string, error){
 	/*if len(q.joins) != 0 {
 		s += q.compile_joins()
 	}*/
-	s += q.compile_where(q.id)
+	s += q.compile_where()
 	return s, nil
 }
 

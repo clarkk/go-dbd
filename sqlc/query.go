@@ -26,6 +26,7 @@ type (
 		query
 		where 		[]where_clause
 		where_data 	[]any
+		id 			int
 	}
 	
 	join struct {
@@ -112,15 +113,19 @@ func (q *query_where) where_clause(clause where_clause, value... any){
 	q.where_data 	= append(q.where_data, value...)
 }
 
-func (q *query_where) compile_where(id int) string {
+func (q *query_where) compile_where() string {
 	length := len(q.where)
-	if id != 0 {
+	if q.id != 0 {
 		length++
 	}
+	if length == 0 {
+		return ""
+	}
+	
 	var j int
 	sql := make([]string, length)
-	if id != 0 {
-		sql[j] = fmt.Sprintf("%s=%d", q.field("id"), id)
+	if q.id != 0 {
+		sql[j] = fmt.Sprintf("%s=%d", q.field("id"), q.id)
 		j++
 	}
 	for i, clause := range q.where {
