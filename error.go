@@ -21,7 +21,7 @@ type (
 )
 
 func Is_empty_error(err error) bool {
-	return err == sql.ErrNoRows
+	return errors.Is(err, sql.ErrNoRows)
 }
 
 /*func As_error(err error) (terr *Error){
