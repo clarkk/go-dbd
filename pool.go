@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"github.com/go-errors/errors"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/clarkk/go-dbd/sqlc"
 )
 
 var (
