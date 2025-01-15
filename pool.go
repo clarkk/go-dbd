@@ -44,8 +44,13 @@ func Ping() bool {
 	return true
 }
 
-func Query_row(ctx context.Context, sql string, data []any, scan []any) error {
-	if err := db.QueryRowContext(ctx, sql, data...).Scan(scan...); err != nil {
+func Query_row(ctx context.Context, query sqlc.SQL, scan []any) error {
+	sql, err := query.Compile()
+	if err != nil {
+		return &Error{"DB query row compile", err, errors.Wrap(err, 0).ErrorStack()}
+	}
+	
+	if err := db.QueryRowContext(ctx, sql, query.Data()...).Scan(scan...); err != nil {
 		if ctx_canceled(err) {
 			return &Timeout_error{"DB query row", err}
 		}
