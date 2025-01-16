@@ -9,12 +9,12 @@ import (
 
 type (
 	Error struct {
-		err 	error
+		error 	string
 		stack 	string
 	}
 	
 	Timeout_error struct {
-		err 	error
+		error 	string
 		stack 	string
 	}
 )
@@ -38,7 +38,7 @@ func As_timeout_error(err error) (terr *Timeout_error){
 }*/
 
 func (e *Error) Error() string {
-	return e.err.Error()
+	return e.error
 }
 
 /*func (e *Error) Unwrap() error {
@@ -50,7 +50,7 @@ func (e *Error) Log(){
 }
 
 func (e *Timeout_error) Error() string {
-	return e.err.Error()
+	return e.error
 }
 
 /*func (e *Timeout_error) Unwrap() error {

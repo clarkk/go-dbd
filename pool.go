@@ -2,7 +2,6 @@ package dbd
 
 import (
 	"log"
-	"fmt"
 	"runtime"
 	"context"
 	"database/sql"
@@ -49,16 +48,16 @@ func Ping() bool {
 func Query_row(ctx context.Context, query sqlc.SQL, scan []any) error {
 	sql, err := query.Compile()
 	if err != nil {
-		return &Error{fmt.Errorf("DB query row compile: %w", err), errors.Wrap(err, 0).ErrorStack()}
+		return &Error{"DB query row compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
 	if err := db.QueryRowContext(ctx, sql, query.Data()...).Scan(scan...); err != nil {
-		werr := fmt.Errorf("DB query row: %w", err)
+		msg := "DB query row: "+err.Error()
 		stack := errors.Wrap(err, 0).ErrorStack()
 		if ctx_canceled(err) {
-			return &Timeout_error{werr, stack}
+			return &Timeout_error{msg, stack}
 		}
-		return &Error{werr, stack}
+		return &Error{msg, stack}
 	}
 	return nil
 }
@@ -67,16 +66,16 @@ func Insert(ctx context.Context, query sqlc.SQL) (int, error){
 	var id int
 	sql, err := query.Compile()
 	if err != nil {
-		return id, &Error{fmt.Errorf("DB insert compile: %w", err), errors.Wrap(err, 0).ErrorStack()}
+		return id, &Error{"DB insert compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
 	if err := db.QueryRowContext(ctx, sql+" RETURNING id", query.Data()...).Scan(&id); err != nil {
-		werr := fmt.Errorf("DB insert: %w", err)
+		msg := "DB insert: "+err.Error()
 		stack := errors.Wrap(err, 0).ErrorStack()
 		if ctx_canceled(err) {
-			return 0, &Timeout_error{werr, stack}
+			return 0, &Timeout_error{msg, stack}
 		}
-		return 0, &Error{werr, stack}
+		return 0, &Error{msg, stack}
 	}
 	return id, nil
 }
