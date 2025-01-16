@@ -1,6 +1,7 @@
 package dbd
 
 import (
+	"fmt"
 	"context"
 	"database/sql"
 	"github.com/go-errors/errors"

@@ -2,6 +2,7 @@ package dbd
 
 import (
 	"log"
+	"fmt"
 	"runtime"
 	"context"
 	"database/sql"
