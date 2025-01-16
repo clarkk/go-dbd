@@ -63,14 +63,14 @@ func (t *Tx) Query_row(query sqlc.SQL, scan []any) error {
 	
 	sql, err := query.Compile()
 	if err != nil {
-		return &Error{"DB transaction query row compile: "+sqlc.SQL_debug(query)+err.Error(), errors.Wrap(err, 0).ErrorStack()}
+		return &Error{sqlc.SQL_error("DB transaction query row compile", query, err), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
 	if err := t.tx.QueryRowContext(t.ctx, sql, query.Data()...).Scan(scan...); err != nil {
 		if Is_empty_error(err) {
 			return err
 		}
-		msg := "DB transaction query row: "+sqlc.SQL_debug(query)+err.Error()
+		msg := sqlc.SQL_error("DB transaction query row", query, err)
 		stack := errors.Wrap(err, 0).ErrorStack()
 		if ctx_canceled(err) {
 			return &Timeout_error{msg, stack}
@@ -87,12 +87,12 @@ func (t *Tx) Query(query sqlc.SQL) (*sql.Rows, error){
 	
 	sql, err := query.Compile()
 	if err != nil {
-		return nil, &Error{"DB transaction query compile: "+sqlc.SQL_debug(query)+err.Error(), errors.Wrap(err, 0).ErrorStack()}
+		return nil, &Error{sqlc.SQL_error("DB transaction query compile", query, err), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
 	rows, err := t.tx.QueryContext(t.ctx, sql, query.Data()...)
 	if err != nil {
-		msg := "DB transaction query: "+sqlc.SQL_debug(query)+err.Error()
+		msg := sqlc.SQL_error("DB transaction query", query, err)
 		stack := errors.Wrap(err, 0).ErrorStack()
 		if ctx_canceled(err) {
 			return nil, &Timeout_error{msg, stack}
@@ -110,11 +110,11 @@ func (t *Tx) Insert(query sqlc.SQL) (int, error){
 	var id int
 	sql, err := query.Compile()
 	if err != nil {
-		return id, &Error{"DB transaction insert compile: "+sqlc.SQL_debug(query)+err.Error(), errors.Wrap(err, 0).ErrorStack()}
+		return id, &Error{sqlc.SQL_error("DB transaction insert compile", query, err), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
 	if err := t.tx.QueryRowContext(t.ctx, sql+" RETURNING id", query.Data()...).Scan(&id); err != nil {
-		msg := "DB transaction insert: "+sqlc.SQL_debug(query)+err.Error()
+		msg := sqlc.SQL_error("DB transaction insert", query, err)
 		stack := errors.Wrap(err, 0).ErrorStack()
 		if ctx_canceled(err) {
 			return 0, &Timeout_error{msg, stack}
@@ -131,11 +131,11 @@ func (t *Tx) Update(query sqlc.SQL) error {
 	
 	sql, err := query.Compile()
 	if err != nil {
-		return &Error{"DB transaction update compile: "+sqlc.SQL_debug(query)+err.Error(), errors.Wrap(err, 0).ErrorStack()}
+		return &Error{sqlc.SQL_error("DB transaction update compile", query, err), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
 	if _, err := t.tx.ExecContext(t.ctx, sql, query.Data()...); err != nil {
-		msg := "DB transaction update: "+sqlc.SQL_debug(query)+err.Error()
+		msg := sqlc.SQL_error("DB transaction update", query, err)
 		stack := errors.Wrap(err, 0).ErrorStack()
 		if ctx_canceled(err) {
 			return &Timeout_error{msg, stack}

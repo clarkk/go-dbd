@@ -51,6 +51,10 @@ func SQL_debug(q SQL) string {
 	return strings.TrimSpace(s)
 }
 
+func SQL_error(msg string, q SQL, err error) string {
+	return msg+": "+SQL_debug(q)+" "+err.Error()
+}
+
 func (q *query) Data() []any {
 	return q.data
 }
