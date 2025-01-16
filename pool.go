@@ -66,7 +66,7 @@ func Insert(ctx context.Context, query sqlc.SQL) (int, error){
 	var id int
 	sql, err := query.Compile()
 	if err != nil {
-		return id, &Error{sqlc.SQL_error("DB insert compile", query, err)}
+		return id, &Error{sqlc.SQL_error("DB insert compile", query, err), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
 	if err := db.QueryRowContext(ctx, sql+" RETURNING id", query.Data()...).Scan(&id); err != nil {
