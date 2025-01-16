@@ -80,6 +80,23 @@ func Insert(ctx context.Context, query sqlc.SQL) (int, error){
 	return id, nil
 }
 
+func Update(ctx context.Context, query sqlc.SQL) error {
+	sql, err := query.Compile()
+	if err != nil {
+		return &Error{sqlc.SQL_error("DB update compile", query, err), errors.Wrap(err, 0).ErrorStack()}
+	}
+	
+	if _, err := db.ExecContext(ctx, sql, query.Data()...); err != nil {
+		msg := sqlc.SQL_error("DB update", query, err)
+		stack := errors.Wrap(err, 0).ErrorStack()
+		if ctx_canceled(err) {
+			return &Timeout_error{msg, stack}
+		}
+		return &Error{msg, stack}
+	}
+	return nil
+}
+
 func Close(){
 	db.Close()
 }
