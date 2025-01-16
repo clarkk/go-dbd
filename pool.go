@@ -48,7 +48,7 @@ func Ping() bool {
 func Query_row(ctx context.Context, query sqlc.SQL, scan []any) error {
 	sql, err := query.Compile()
 	if err != nil {
-		return &Error{sqlc.SQL_error("DB query row compile", query, err), errors.Wrap(err, 0).ErrorStack()}
+		return &Error{"DB query row compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
 	if err := db.QueryRowContext(ctx, sql, query.Data()...).Scan(scan...); err != nil {
@@ -66,7 +66,7 @@ func Insert(ctx context.Context, query sqlc.SQL) (int, error){
 	var id int
 	sql, err := query.Compile()
 	if err != nil {
-		return id, &Error{sqlc.SQL_error("DB insert compile", query, err), errors.Wrap(err, 0).ErrorStack()}
+		return id, &Error{"DB insert compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
 	if err := db.QueryRowContext(ctx, sql+" RETURNING id", query.Data()...).Scan(&id); err != nil {
@@ -83,7 +83,7 @@ func Insert(ctx context.Context, query sqlc.SQL) (int, error){
 func Update(ctx context.Context, query sqlc.SQL) error {
 	sql, err := query.Compile()
 	if err != nil {
-		return &Error{sqlc.SQL_error("DB update compile", query, err), errors.Wrap(err, 0).ErrorStack()}
+		return &Error{"DB update compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
 	if _, err := db.ExecContext(ctx, sql, query.Data()...); err != nil {

@@ -63,7 +63,7 @@ func (t *Tx) Query_row(query sqlc.SQL, scan []any) error {
 	
 	sql, err := query.Compile()
 	if err != nil {
-		return &Error{sqlc.SQL_error("DB transaction query row compile", query, err), errors.Wrap(err, 0).ErrorStack()}
+		return &Error{"DB transaction query row compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
 	if err := t.tx.QueryRowContext(t.ctx, sql, query.Data()...).Scan(scan...); err != nil {
@@ -87,7 +87,7 @@ func (t *Tx) Query(query sqlc.SQL) (*sql.Rows, error){
 	
 	sql, err := query.Compile()
 	if err != nil {
-		return nil, &Error{sqlc.SQL_error("DB transaction query compile", query, err), errors.Wrap(err, 0).ErrorStack()}
+		return nil, &Error{"DB transaction query compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
 	rows, err := t.tx.QueryContext(t.ctx, sql, query.Data()...)
@@ -110,7 +110,7 @@ func (t *Tx) Insert(query sqlc.SQL) (int, error){
 	var id int
 	sql, err := query.Compile()
 	if err != nil {
-		return id, &Error{sqlc.SQL_error("DB transaction insert compile", query, err), errors.Wrap(err, 0).ErrorStack()}
+		return id, &Error{"DB transaction insert compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
 	if err := t.tx.QueryRowContext(t.ctx, sql+" RETURNING id", query.Data()...).Scan(&id); err != nil {
@@ -131,7 +131,7 @@ func (t *Tx) Update(query sqlc.SQL) error {
 	
 	sql, err := query.Compile()
 	if err != nil {
-		return &Error{sqlc.SQL_error("DB transaction update compile", query, err), errors.Wrap(err, 0).ErrorStack()}
+		return &Error{"DB transaction update compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
 	if _, err := t.tx.ExecContext(t.ctx, sql, query.Data()...); err != nil {
