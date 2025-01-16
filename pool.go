@@ -53,10 +53,12 @@ func Query_row(ctx context.Context, query sqlc.SQL, scan []any) error {
 	}
 	
 	if err := db.QueryRowContext(ctx, sql, query.Data()...).Scan(scan...); err != nil {
+		werr := fmt.Errorf("DB query row: %w", err)
+		stack := errors.Wrap(err, 0).ErrorStack()
 		if ctx_canceled(err) {
-			return &Timeout_error{fmt.Errorf("DB query row: %w", err), errors.Wrap(err, 0).ErrorStack()}
+			return &Timeout_error{werr, stack}
 		}
-		return &Error{fmt.Errorf("DB query row: %w", err), errors.Wrap(err, 0).ErrorStack()}
+		return &Error{werr, stack}
 	}
 	return nil
 }
@@ -69,10 +71,12 @@ func Insert(ctx context.Context, query sqlc.SQL) (int, error){
 	}
 	
 	if err := db.QueryRowContext(ctx, sql+" RETURNING id", query.Data()...).Scan(&id); err != nil {
+		werr := fmt.Errorf("DB insert: %w", err)
+		stack := errors.Wrap(err, 0).ErrorStack()
 		if ctx_canceled(err) {
-			return 0, &Timeout_error{fmt.Errorf("DB insert: %w", err), errors.Wrap(err, 0).ErrorStack()}
+			return 0, &Timeout_error{werr, stack}
 		}
-		return 0, &Error{fmt.Errorf("DB insert: %w", err), errors.Wrap(err, 0).ErrorStack()}
+		return 0, &Error{werr, stack}
 	}
 	return id, nil
 }

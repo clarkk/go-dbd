@@ -71,10 +71,12 @@ func (t *Tx) Query_row(query sqlc.SQL, scan []any) error {
 		if Is_empty_error(err) {
 			return err
 		}
+		werr := fmt.Errorf("DB transaction query row: %w", err)
+		stack := errors.Wrap(err, 0).ErrorStack()
 		if ctx_canceled(err) {
-			return &Timeout_error{fmt.Errorf("DB transaction query row: %w", err), errors.Wrap(err, 0).ErrorStack()}
+			return &Timeout_error{werr, stack}
 		}
-		return &Error{fmt.Errorf("DB transaction query row: %w", err), errors.Wrap(err, 0).ErrorStack()}
+		return &Error{werr, stack}
 	}
 	return nil
 }
@@ -91,10 +93,12 @@ func (t *Tx) Query(query sqlc.SQL) (*sql.Rows, error){
 	
 	rows, err := t.tx.QueryContext(t.ctx, sql, query.Data()...)
 	if err != nil {
+		werr := fmt.Errorf("DB transaction query: %w", err)
+		stack := errors.Wrap(err, 0).ErrorStack()
 		if ctx_canceled(err) {
-			return nil, &Timeout_error{fmt.Errorf("DB transaction query: %w", err), errors.Wrap(err, 0).ErrorStack()}
+			return nil, &Timeout_error{werr, stack}
 		}
-		return nil, &Error{fmt.Errorf("DB transaction query: %w", err), errors.Wrap(err, 0).ErrorStack()}
+		return nil, &Error{werr, stack}
 	}
 	return rows, nil
 }
@@ -111,10 +115,12 @@ func (t *Tx) Insert(query sqlc.SQL) (int, error){
 	}
 	
 	if err := t.tx.QueryRowContext(t.ctx, sql+" RETURNING id", query.Data()...).Scan(&id); err != nil {
+		werr := fmt.Errorf("DB transaction insert: %w", err)
+		stack := errors.Wrap(err, 0).ErrorStack()
 		if ctx_canceled(err) {
-			return 0, &Timeout_error{fmt.Errorf("DB transaction insert: %w", err), errors.Wrap(err, 0).ErrorStack()}
+			return 0, &Timeout_error{werr, stack}
 		}
-		return 0, &Error{fmt.Errorf("DB transaction insert: %w", err), errors.Wrap(err, 0).ErrorStack()}
+		return 0, &Error{werr, stack}
 	}
 	return id, nil
 }
@@ -130,10 +136,12 @@ func (t *Tx) Update(query sqlc.SQL) error {
 	}
 	
 	if _, err := t.tx.ExecContext(t.ctx, sql, query.Data()...); err != nil {
+		werr := fmt.Errorf("DB transaction update: %w", err)
+		stack := errors.Wrap(err, 0).ErrorStack()
 		if ctx_canceled(err) {
-			return &Timeout_error{fmt.Errorf("DB transaction update: %w", err), errors.Wrap(err, 0).ErrorStack()}
+			return &Timeout_error{werr, stack}
 		}
-		return &Error{fmt.Errorf("DB transaction update: %w", err), errors.Wrap(err, 0).ErrorStack()}
+		return &Error{werr, stack}
 	}
 	return nil
 }
