@@ -46,7 +46,7 @@ func (e *Error) Error() string {
 }*/
 
 func (e *Error) Log(){
-	log.Printf("%s: %s", e.err.Error(), e.stack)
+	log.Printf("%s: %s", e.error, e.stack)
 }
 
 func (e *Timeout_error) Error() string {
