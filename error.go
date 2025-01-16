@@ -9,14 +9,13 @@ import (
 
 type (
 	Error struct {
-		error 	string
 		err 	error
 		stack 	string
 	}
 	
 	Timeout_error struct {
-		error 	string
 		err 	error
+		stack 	string
 	}
 )
 
@@ -39,24 +38,24 @@ func As_timeout_error(err error) (terr *Timeout_error){
 }*/
 
 func (e *Error) Error() string {
-	return e.error
+	return e.err.Error()
 }
 
-func (e *Error) Unwrap() error {
+/*func (e *Error) Unwrap() error {
 	return e.err
-}
+}*/
 
 func (e *Error) Log(){
-	log.Printf("%s: %s", e.error, e.stack)
+	log.Printf("%s: %s", e.err.Error(), e.stack)
 }
 
 func (e *Timeout_error) Error() string {
-	return e.error
+	return e.err.Error()
 }
 
-func (e *Timeout_error) Unwrap() error {
+/*func (e *Timeout_error) Unwrap() error {
 	return e.err
-}
+}*/
 
 func ctx_canceled(err error) bool {
 	return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)

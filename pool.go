@@ -48,14 +48,14 @@ func Ping() bool {
 func Query_row(ctx context.Context, query sqlc.SQL, scan []any) error {
 	sql, err := query.Compile()
 	if err != nil {
-		return &Error{"DB query row compile", err, errors.Wrap(err, 0).ErrorStack()}
+		return &Error{fmt.Errorf("DB query row compile: %w", err), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
 	if err := db.QueryRowContext(ctx, sql, query.Data()...).Scan(scan...); err != nil {
 		if ctx_canceled(err) {
-			return &Timeout_error{"DB query row", err}
+			return &Timeout_error{fmt.Errorf("DB query row: %w", err), errors.Wrap(err, 0).ErrorStack()}
 		}
-		return &Error{"DB query row", err, errors.Wrap(err, 0).ErrorStack()}
+		return &Error{fmt.Errorf("DB query row: %w", err), errors.Wrap(err, 0).ErrorStack()}
 	}
 	return nil
 }
@@ -64,14 +64,14 @@ func Insert(ctx context.Context, query sqlc.SQL) (int, error){
 	var id int
 	sql, err := query.Compile()
 	if err != nil {
-		return id, &Error{"DB insert compile", err, errors.Wrap(err, 0).ErrorStack()}
+		return id, &Error{fmt.Errorf("DB insert compile: %w", err), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
 	if err := db.QueryRowContext(ctx, sql+" RETURNING id", query.Data()...).Scan(&id); err != nil {
 		if ctx_canceled(err) {
-			return 0, &Timeout_error{"DB insert", err}
+			return 0, &Timeout_error{fmt.Errorf("DB insert: %w", err), errors.Wrap(err, 0).ErrorStack()}
 		}
-		return 0, &Error{"DB insert", err, errors.Wrap(err, 0).ErrorStack()}
+		return 0, &Error{fmt.Errorf("DB insert: %w", err), errors.Wrap(err, 0).ErrorStack()}
 	}
 	return id, nil
 }

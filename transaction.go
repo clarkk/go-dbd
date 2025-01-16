@@ -19,7 +19,7 @@ func NewTx(ctx context.Context) (*Tx, error){
 	var err error
 	if tx.tx, err = db.BeginTx(ctx, nil); err != nil {
 		if ctx_canceled(err) {
-			return nil, &Timeout_error{"DB transaction begin", err}
+			return nil, &Timeout_error{fmt.Errorf("DB transaction begin: %w", err), errors.Wrap(err, 0).ErrorStack()}
 		}
 		panic("DB transaction begin: "+err.Error())
 	}
@@ -33,7 +33,7 @@ func (t *Tx) Rollback() error {
 	if err := t.tx.Rollback(); err != nil {
 		t.tx = nil
 		if ctx_canceled(err) {
-			return &Timeout_error{"DB transaction rollback", err}
+			return &Timeout_error{fmt.Errorf("DB transaction rollback: %w", err), errors.Wrap(err, 0).ErrorStack()}
 		}
 		panic("DB transaction rollback: "+err.Error())
 	}
@@ -48,7 +48,7 @@ func (t *Tx) Commit() error {
 	if err := t.tx.Commit(); err != nil {
 		t.tx = nil
 		if ctx_canceled(err) {
-			return &Timeout_error{"DB transaction commit", err}
+			return &Timeout_error{fmt.Errorf("DB transaction commit: %w", err), errors.Wrap(err, 0).ErrorStack()}
 		}
 		panic("DB transaction commit: "+err.Error())
 	}
@@ -63,7 +63,7 @@ func (t *Tx) Query_row(query sqlc.SQL, scan []any) error {
 	
 	sql, err := query.Compile()
 	if err != nil {
-		return &Error{"DB transaction query row compile", err, errors.Wrap(err, 0).ErrorStack()}
+		return &Error{fmt.Errorf("DB transaction query row compile: %w", err), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
 	if err := t.tx.QueryRowContext(t.ctx, sql, query.Data()...).Scan(scan...); err != nil {
@@ -71,9 +71,9 @@ func (t *Tx) Query_row(query sqlc.SQL, scan []any) error {
 			return err
 		}
 		if ctx_canceled(err) {
-			return &Timeout_error{"DB transaction query row", err}
+			return &Timeout_error{fmt.Errorf("DB transaction query row: %w", err), errors.Wrap(err, 0).ErrorStack()}
 		}
-		return &Error{"DB transaction query row", err, errors.Wrap(err, 0).ErrorStack()}
+		return &Error{fmt.Errorf("DB transaction query row: %w", err), errors.Wrap(err, 0).ErrorStack()}
 	}
 	return nil
 }
@@ -85,15 +85,15 @@ func (t *Tx) Query(query sqlc.SQL) (*sql.Rows, error){
 	
 	sql, err := query.Compile()
 	if err != nil {
-		return nil, &Error{"DB transaction query compile", err, errors.Wrap(err, 0).ErrorStack()}
+		return nil, &Error{fmt.Errorf("DB transaction query compile: %w", err), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
 	rows, err := t.tx.QueryContext(t.ctx, sql, query.Data()...)
 	if err != nil {
 		if ctx_canceled(err) {
-			return nil, &Timeout_error{"DB transaction query", err}
+			return nil, &Timeout_error{fmt.Errorf("DB transaction query: %w", err), errors.Wrap(err, 0).ErrorStack()}
 		}
-		return nil, &Error{"DB transaction query", err, errors.Wrap(err, 0).ErrorStack()}
+		return nil, &Error{fmt.Errorf("DB transaction query: %w", err), errors.Wrap(err, 0).ErrorStack()}
 	}
 	return rows, nil
 }
@@ -106,14 +106,14 @@ func (t *Tx) Insert(query sqlc.SQL) (int, error){
 	var id int
 	sql, err := query.Compile()
 	if err != nil {
-		return id, &Error{"DB transaction insert compile", err, errors.Wrap(err, 0).ErrorStack()}
+		return id, &Error{fmt.Errorf("DB transaction insert compile: %w", err), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
 	if err := t.tx.QueryRowContext(t.ctx, sql+" RETURNING id", query.Data()...).Scan(&id); err != nil {
 		if ctx_canceled(err) {
-			return 0, &Timeout_error{"DB transaction insert", err}
+			return 0, &Timeout_error{fmt.Errorf("DB transaction insert: %w", err), errors.Wrap(err, 0).ErrorStack()}
 		}
-		return 0, &Error{"DB transaction insert", err, errors.Wrap(err, 0).ErrorStack()}
+		return 0, &Error{fmt.Errorf("DB transaction insert: %w", err), errors.Wrap(err, 0).ErrorStack()}
 	}
 	return id, nil
 }
@@ -125,14 +125,14 @@ func (t *Tx) Update(query sqlc.SQL) error {
 	
 	sql, err := query.Compile()
 	if err != nil {
-		return &Error{"DB transaction update compile", err, errors.Wrap(err, 0).ErrorStack()}
+		return &Error{fmt.Errorf("DB transaction update compile: %w", err), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
 	if _, err := t.tx.ExecContext(t.ctx, sql, query.Data()...); err != nil {
 		if ctx_canceled(err) {
-			return &Timeout_error{"DB transaction update", err}
+			return &Timeout_error{fmt.Errorf("DB transaction update: %w", err), errors.Wrap(err, 0).ErrorStack()}
 		}
-		return &Error{"DB transaction update", err, errors.Wrap(err, 0).ErrorStack()}
+		return &Error{fmt.Errorf("DB transaction update: %w", err), errors.Wrap(err, 0).ErrorStack()}
 	}
 	return nil
 }
