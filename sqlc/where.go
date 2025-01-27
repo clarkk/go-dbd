@@ -25,7 +25,7 @@ type (
 	}
 	
 	where_clauser interface {
-		where_clause(where_clause, ...any)
+		where_clause(clause where_clause, values ...any)
 	}
 	
 	where_clause struct {
