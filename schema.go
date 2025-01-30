@@ -2,6 +2,7 @@ package dbd
 
 import (
 	"log"
+	"sort"
 	"context"
 	"regexp"
 	"strconv"
@@ -98,6 +99,7 @@ func Schema_tables() []string {
 		s[i] = table
 		i++
 	}
+	sort.Strings(s)
 	return s
 }
 
