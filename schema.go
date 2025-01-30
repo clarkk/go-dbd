@@ -43,17 +43,17 @@ type (
 	schema_table 	map[string]schema_column
 	
 	schema_column struct {
-		Type		string
-		Subtype		string
-		Length		int
-		Length_dec 	int
-		Unsigned 	bool
-		Null		bool
-		Range 		length_range
-		Range_dec 	length_range_dec
+		data_type		string
+		data_subtype	string
+		length			int
+		length_dec 		int
+		unsigned 		bool
+		null			bool
+		range_int 		length_range_int
+		range_dec 		length_range_dec
 	}
 	
-	length_range struct {
+	length_range_int struct {
 		Min 	int
 		Max		int
 	}
@@ -117,6 +117,18 @@ func Schema_table_columns(table string) []string {
 	return s
 }
 
+func (s schema_column) Type() string {
+	return s.data_type
+}
+
+func (s schema_column) Length() int {
+	return s.length
+}
+
+func (s schema_column) Range_int() length_range_int {
+	return s.range_int
+}
+
 func fetch_schema_table(table string){
 	table_cols := schema_table{}
 	
@@ -144,8 +156,8 @@ func fetch_schema_table(table string){
 		)
 		
 		if matches := schema_int.FindStringSubmatch(format); len(matches) != 0 {
-			length, _ := strconv.Atoi(matches[2])
-			is_unsigned = check_unsigned(matches[3])
+			length, _		:= strconv.Atoi(matches[2])
+			is_unsigned 	= check_unsigned(matches[3])
 			
 			var (
 				min int
@@ -156,12 +168,12 @@ func fetch_schema_table(table string){
 			}
 			
 			table_cols[column] = schema_column{
-				Type:		SCHEMA_INT,
-				Subtype:	matches[1],
-				Length:		length,
-				Unsigned:	is_unsigned,
-				Null:		is_null,
-				Range:		length_range{min, min + int_range - 1},
+				data_type:		SCHEMA_INT,
+				data_subtype:	matches[1],
+				length:			length,
+				unsigned:		is_unsigned,
+				null:			is_null,
+				range_int:		length_range_int{min, min + int_range - 1},
 			}
 			continue
 		}
@@ -170,37 +182,37 @@ func fetch_schema_table(table string){
 			length, _ := strconv.Atoi(matches[2])
 			
 			table_cols[column] = schema_column{
-				Type:		SCHEMA_CHAR,
-				Subtype:	matches[1],
-				Length:		length,
-				Null:		is_null,
+				data_type:		SCHEMA_CHAR,
+				data_subtype:	matches[1],
+				length:			length,
+				null:			is_null,
 			}
 			continue
 		}
 		
 		if matches := schema_decimal.FindStringSubmatch(format); len(matches) != 0 {
-			length, _ := strconv.Atoi(matches[2])
-			dec, _ := strconv.Atoi(matches[3])
-			is_unsigned = check_unsigned(matches[4])
-			min, max := decimal_range(length, dec, is_unsigned)
+			length, _		:= strconv.Atoi(matches[2])
+			dec, _			:= strconv.Atoi(matches[3])
+			is_unsigned 	= check_unsigned(matches[4])
+			min, max		:= decimal_range(length, dec, is_unsigned)
 			
 			table_cols[column] = schema_column{
-				Type:		SCHEMA_DEC,
-				Subtype:	matches[1],
-				Length:		length,
-				Length_dec:	dec,
-				Unsigned:	is_unsigned,
-				Null:		is_null,
-				Range_dec:	length_range_dec{min, max},
+				data_type:		SCHEMA_DEC,
+				data_subtype:	matches[1],
+				length:			length,
+				length_dec:		dec,
+				unsigned:		is_unsigned,
+				null:			is_null,
+				range_dec:		length_range_dec{min, max},
 			}
 			continue
 		}
 		
 		if matches := schema_enum.FindStringSubmatch(format); len(matches) != 0 {
 			table_cols[column] = schema_column{
-				Type:		SCHEMA_CHAR,
-				Subtype:	matches[1],
-				Null:		is_null,
+				data_type:		SCHEMA_CHAR,
+				data_subtype:	matches[1],
+				null:			is_null,
 			}
 			continue
 		}
