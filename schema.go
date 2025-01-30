@@ -91,6 +91,16 @@ func Schema(table, column string) schema_column {
 	return col_schema
 }
 
+func Schema_tables() []string {
+	s := make([]string, len(db_tables))
+	i := 0
+	for table := range db_tables {
+		s[i] = table
+		i++
+	}
+	return s
+}
+
 func fetch_schema_table(table string){
 	table_cols := schema_table{}
 	
