@@ -114,7 +114,6 @@ func Schema_table_columns(table string) []string {
 		s[i] = column
 		i++
 	}
-	sort.Strings(s)
 	return s
 }
 
