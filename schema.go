@@ -108,9 +108,9 @@ func Schema_table_columns(table string) []string {
 	if !found {
 		panic("Unable to lookup table schema: "+table)
 	}
-	s := make([]string, len(db_tables[table]))
+	s := make([]string, len(table_schema))
 	i := 0
-	for column := range db_tables[table] {
+	for column := range table_schema {
 		s[i] = column
 		i++
 	}
