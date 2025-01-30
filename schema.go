@@ -87,7 +87,7 @@ func Fetch_schema(){
 func Schema(table, column string) schema_column {
 	col_schema, found := db_tables[table][column]
 	if !found {
-		panic("Unable to lookup schema column: "+table+"."+column)
+		panic("Unable to lookup table column schema: "+table+"."+column)
 	}
 	return col_schema
 }
@@ -97,6 +97,21 @@ func Schema_tables() []string {
 	i := 0
 	for table := range db_tables {
 		s[i] = table
+		i++
+	}
+	sort.Strings(s)
+	return s
+}
+
+func Schema_table_columns(table string) []string {
+	table_schema, found := db_tables[table]
+	if !found {
+		panic("Unable to lookup table schema: "+table)
+	}
+	s := make([]string, len(db_tables[table]))
+	i := 0
+	for column := range db_tables[table] {
+		s[i] = column
 		i++
 	}
 	sort.Strings(s)
