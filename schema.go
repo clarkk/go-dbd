@@ -92,7 +92,7 @@ func Schema(table, column string) schema_column {
 	return col_schema
 }
 
-func Schema_tables() []string {
+/*func Schema_tables() []string {
 	s := make([]string, len(db_tables))
 	i := 0
 	for table := range db_tables {
@@ -119,7 +119,7 @@ func Schema_table_columns(table string) []string {
 
 func (s schema_column) Type() string {
 	return s.data_type
-}
+}*/
 
 func (s schema_column) Length() int {
 	return s.length
