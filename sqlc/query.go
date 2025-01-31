@@ -81,7 +81,7 @@ func (q *query) compile_tables() error {
 		//	Get available char for base table (a-z)
 		if _, ok := q.tables[t]; ok {
 			const ascii_a = 97
-			for i := 0; i < 26; i++ {
+			for i := range 26 {
 				t = string(rune(ascii_a+i))
 				if _, ok := q.tables[t]; !ok {
 					q.tables[t] = q.table
