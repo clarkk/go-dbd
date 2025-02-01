@@ -2,13 +2,13 @@ package sqlc
 
 import "strings"
 
-type update struct {
+type Update_query struct {
 	query_where
 	fields 		map[string]any
 }
 
-func Update(table string, id uint64) *update {
-	return &update{
+func Update(table string, id uint64) *Update_query {
+	return &Update_query{
 		query_where: query_where{
 			query: query{
 				table:		table,
@@ -23,22 +23,22 @@ func Update(table string, id uint64) *update {
 	}
 }
 
-func (q *update) Fields(fields map[string]any) *update {
+func (q *Update_query) Fields(fields map[string]any) *Update_query {
 	q.fields = fields
 	return q
 }
 
-/*func (q *update) Left_join(table, t, field, field_foreign string) *update {
+/*func (q *Update_query) Left_join(table, t, field, field_foreign string) *Update_query {
 	q.left_join(table, t, field, field_foreign)
 	return q
 }*/
 
-func (q *update) Where(clauses *Where_clause) *update {
+func (q *Update_query) Where(clauses *Where_clause) *Update_query {
 	clauses.apply(q)
 	return q
 }
 
-func (q *update) Compile() (string, error){
+func (q *Update_query) Compile() (string, error){
 	if err := q.compile_tables(); err != nil {
 		return "", err
 	}
@@ -54,7 +54,7 @@ func (q *update) Compile() (string, error){
 	return s, nil
 }
 
-func (q *update) compile_update() string {
+func (q *Update_query) compile_update() string {
 	s := "UPDATE ."+q.table
 	/*if q.joined {
 		s += " "+q.t
@@ -62,7 +62,7 @@ func (q *update) compile_update() string {
 	return s+"\n"
 }
 
-func (q *update) compile_fields() string {
+func (q *Update_query) compile_fields() string {
 	list := make([]string, len(q.fields))
 	i := 0
 	for k, v := range q.fields {

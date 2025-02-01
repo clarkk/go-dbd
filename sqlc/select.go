@@ -6,7 +6,7 @@ import (
 )
 
 type (
-	select_ struct {
+	Select_query struct {
 		query_where
 		select_fields 	[]select_field
 		order 			[]string
@@ -24,8 +24,8 @@ type (
 	}
 )
 
-func Select(table string, id uint64) *select_ {
-	return &select_{
+func Select(table string, id uint64) *Select_query {
+	return &Select_query{
 		query_where: query_where{
 			query: query{
 				table:		table,
@@ -39,7 +39,7 @@ func Select(table string, id uint64) *select_ {
 	}
 }
 
-func (q *select_) Select(list []string) *select_ {
+func (q *Select_query) Select(list []string) *Select_query {
 	q.select_fields = make([]select_field, len(list))
 	for i, v := range list {
 		s := select_field{}
@@ -49,22 +49,22 @@ func (q *select_) Select(list []string) *select_ {
 	return q
 }
 
-func (q *select_) Left_join(table, t, field, field_foreign string) *select_ {
+func (q *Select_query) Left_join(table, t, field, field_foreign string) *Select_query {
 	q.left_join(table, t, field, field_foreign)
 	return q
 }
 
-func (q *select_) Where(clauses *Where_clause) *select_ {
+func (q *Select_query) Where(clauses *Where_clause) *Select_query {
 	clauses.apply(q)
 	return q
 }
 
-func (q *select_) Order(fields []string) *select_ {
+func (q *Select_query) Order(fields []string) *Select_query {
 	q.order = fields
 	return q
 }
 
-func (q *select_) Limit(start, length int) *select_ {
+func (q *Select_query) Limit(start, length int) *Select_query {
 	q.limit = limit{
 		start:	start,
 		length:	length,
@@ -72,7 +72,7 @@ func (q *select_) Limit(start, length int) *select_ {
 	return q
 }
 
-func (q *select_) Compile() (string, error){
+func (q *Select_query) Compile() (string, error){
 	if err := q.compile_tables(); err != nil {
 		return "", err
 	}
@@ -91,7 +91,7 @@ func (q *select_) Compile() (string, error){
 	return s, nil
 }
 
-func (q *select_) compile_select() string {
+func (q *Select_query) compile_select() string {
 	list := make([]string, len(q.select_fields))
 	for i, s := range q.select_fields {
 		list[i] = q.field(s.field)
@@ -102,7 +102,7 @@ func (q *select_) compile_select() string {
 	return "SELECT "+strings.Join(list, ", ")+"\n"
 }
 
-func (q *select_) compile_from() string {
+func (q *Select_query) compile_from() string {
 	s := "FROM ."+q.table
 	if q.joined {
 		s += " "+q.t
@@ -110,7 +110,7 @@ func (q *select_) compile_from() string {
 	return s+"\n"
 }
 
-func (q *select_) compile_order() string {
+func (q *Select_query) compile_order() string {
 	if len(q.order) == 0 {
 		return ""
 	}
@@ -120,6 +120,6 @@ func (q *select_) compile_order() string {
 	return "ORDER BY "+strings.Join(q.order, ", ")+"\n"
 }
 
-func (q *select_) compile_limit() string {
+func (q *Select_query) compile_limit() string {
 	return "LIMIT "+strconv.Itoa(q.limit.start)+","+strconv.Itoa(q.limit.length)+"\n"
 }

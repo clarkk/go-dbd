@@ -1,11 +1,11 @@
 package sqlc
 
-type delete struct {
+type Delete_query struct {
 	query_where
 }
 
-func Delete(table string, id uint64) *delete {
-	return &delete{
+func Delete(table string, id uint64) *Delete_query {
+	return &Delete_query{
 		query_where: query_where{
 			query: query{
 				table:		table,
@@ -19,17 +19,17 @@ func Delete(table string, id uint64) *delete {
 	}
 }
 
-/*func (q *delete) Left_join(table, t, field, field_foreign string) *delete {
+/*func (q *Delete_query) Left_join(table, t, field, field_foreign string) *Delete_query {
 	q.left_join(table, t, field, field_foreign)
 	return q
 }*/
 
-func (q *delete) Where(clauses *Where_clause) *delete {
+func (q *Delete_query) Where(clauses *Where_clause) *Delete_query {
 	clauses.apply(q)
 	return q
 }
 
-func (q *delete) Compile() (string, error){
+func (q *Delete_query) Compile() (string, error){
 	if err := q.compile_tables(); err != nil {
 		return "", err
 	}
@@ -45,7 +45,7 @@ func (q *delete) Compile() (string, error){
 	return s, nil
 }
 
-func (q *delete) compile_delete() string {
+func (q *Delete_query) compile_delete() string {
 	s := "DELETE FROM ."+q.table
 	/*if q.joined {
 		s += " "+q.t
