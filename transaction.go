@@ -7,18 +7,10 @@ import (
 	"github.com/clarkk/go-dbd/sqlc"
 )
 
-type (
-	Tx struct {
-		ctx		context.Context
-		tx		*sql.Tx
-	}
-	
-	Prepared struct {
-		ctx		context.Context
-		stmt 	*sql.Stmt
-		query 	sqlc.SQL
-	}
-)
+type Tx struct {
+	ctx		context.Context
+	tx		*sql.Tx
+}
 
 func NewTx(ctx context.Context) (*Tx, error){
 	tx := &Tx{
@@ -64,32 +56,19 @@ func (t *Tx) Commit() error {
 	return nil
 }
 
-func (t *Tx) Prepare(query sqlc.SQL) (*Prepared, error){
+func (t *Tx) Exec(query sqlc.SQL) error {
 	if t.tx == nil {
 		panic("DB transaction prepare: No active transaction")
 	}
 	
 	sql, err := query.Compile()
 	if err != nil {
-		return nil, &Error{"DB transaction prepare compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
+		return &Error{"DB transaction prepare compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
-	stmt, err := t.tx.PrepareContext(t.ctx, sql)
+	_, err := t.tx.ExecContext(t.ctx, sql, query.Data()...)
 	if err != nil {
-		msg 	:= sqlc.SQL_error("DB transaction prepare", query, err)
-		stack 	:= errors.Wrap(err, 0).ErrorStack()
-		if ctx_canceled(err) {
-			return nil, &Timeout_error{msg, stack}
-		}
-		return nil, &Error{msg, stack}
-	}
-	return &Prepared{t.ctx, stmt, query}, nil
-}
-
-func (p *Prepared) Exec(args... any) error {
-	_, err := p.stmt.ExecContext(p.ctx, args...)
-	if err != nil {
-		msg 	:= sqlc.SQL_error("DB transaction prepared execution", p.query, err)
+		msg 	:= sqlc.SQL_error("DB transaction execute", query, err)
 		stack 	:= errors.Wrap(err, 0).ErrorStack()
 		if ctx_canceled(err) {
 			return &Timeout_error{msg, stack}
