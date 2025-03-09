@@ -7,10 +7,18 @@ import (
 	"github.com/clarkk/go-dbd/sqlc"
 )
 
-type Tx struct {
-	ctx		context.Context
-	tx		*sql.Tx
-}
+type (
+	Tx struct {
+		ctx		context.Context
+		tx		*sql.Tx
+	}
+	
+	Prepared struct {
+		ctx		context.Context
+		stmt 	*sql.Stmt
+		query 	sqlc.SQL
+	}
+)
 
 func NewTx(ctx context.Context) (*Tx, error){
 	tx := &Tx{
@@ -56,7 +64,7 @@ func (t *Tx) Commit() error {
 	return nil
 }
 
-func (t *Tx) Prepare(query sqlc.SQL) (*sql.Stmt, error){
+func (t *Tx) Prepare(query sqlc.SQL) (*Prepared, error){
 	if t.tx == nil {
 		panic("DB transaction prepare: No active transaction")
 	}
@@ -68,14 +76,27 @@ func (t *Tx) Prepare(query sqlc.SQL) (*sql.Stmt, error){
 	
 	stmt, err := t.tx.PrepareContext(t.ctx, sql)
 	if err != nil {
-		msg := sqlc.SQL_error("DB transaction prepare", query, err)
-		stack := errors.Wrap(err, 0).ErrorStack()
+		msg 	:= sqlc.SQL_error("DB transaction prepare", query, err)
+		stack 	:= errors.Wrap(err, 0).ErrorStack()
 		if ctx_canceled(err) {
 			return nil, &Timeout_error{msg, stack}
 		}
 		return nil, &Error{msg, stack}
 	}
-	return stmt, nil
+	return &Prepared{t.ctx, stmt, query}, nil
+}
+
+func (p *Prepared) Exec(args... any) error {
+	_, err := p.stmt.ExecContext(p.ctx, args...)
+	if err != nil {
+		msg 	:= sqlc.SQL_error("DB transaction prepared execution", p.query, err)
+		stack 	:= errors.Wrap(err, 0).ErrorStack()
+		if ctx_canceled(err) {
+			return &Timeout_error{msg, stack}
+		}
+		return &Error{msg, stack}
+	}
+	return nil
 }
 
 func (t *Tx) Query_row(query sqlc.SQL, scan []any) (bool, error){
@@ -92,8 +113,8 @@ func (t *Tx) Query_row(query sqlc.SQL, scan []any) (bool, error){
 		if Is_empty_error(err) {
 			return true, nil
 		}
-		msg := sqlc.SQL_error("DB transaction query row", query, err)
-		stack := errors.Wrap(err, 0).ErrorStack()
+		msg 	:= sqlc.SQL_error("DB transaction query row", query, err)
+		stack 	:= errors.Wrap(err, 0).ErrorStack()
 		if ctx_canceled(err) {
 			return false, &Timeout_error{msg, stack}
 		}
@@ -114,8 +135,8 @@ func (t *Tx) Query(query sqlc.SQL) (*sql.Rows, error){
 	
 	rows, err := t.tx.QueryContext(t.ctx, sql, query.Data()...)
 	if err != nil {
-		msg := sqlc.SQL_error("DB transaction query", query, err)
-		stack := errors.Wrap(err, 0).ErrorStack()
+		msg 	:= sqlc.SQL_error("DB transaction query", query, err)
+		stack 	:= errors.Wrap(err, 0).ErrorStack()
 		if ctx_canceled(err) {
 			return nil, &Timeout_error{msg, stack}
 		}
@@ -136,8 +157,8 @@ func (t *Tx) Insert(query sqlc.SQL) (uint64, error){
 	}
 	
 	if err := t.tx.QueryRowContext(t.ctx, sql+"RETURNING id", query.Data()...).Scan(&id); err != nil {
-		msg := sqlc.SQL_error("DB transaction insert", query, err)
-		stack := errors.Wrap(err, 0).ErrorStack()
+		msg 	:= sqlc.SQL_error("DB transaction insert", query, err)
+		stack 	:= errors.Wrap(err, 0).ErrorStack()
 		if ctx_canceled(err) {
 			return 0, &Timeout_error{msg, stack}
 		}
@@ -157,8 +178,8 @@ func (t *Tx) Update(query sqlc.SQL) error {
 	}
 	
 	if _, err := t.tx.ExecContext(t.ctx, sql, query.Data()...); err != nil {
-		msg := sqlc.SQL_error("DB transaction update", query, err)
-		stack := errors.Wrap(err, 0).ErrorStack()
+		msg 	:= sqlc.SQL_error("DB transaction update", query, err)
+		stack 	:= errors.Wrap(err, 0).ErrorStack()
 		if ctx_canceled(err) {
 			return &Timeout_error{msg, stack}
 		}
@@ -182,8 +203,8 @@ func (t *Tx) Delete(query sqlc.SQL) (bool, error){
 		if Is_empty_error(err) {
 			return true, err
 		}
-		msg := sqlc.SQL_error("DB transaction delete", query, err)
-		stack := errors.Wrap(err, 0).ErrorStack()
+		msg 	:= sqlc.SQL_error("DB transaction delete", query, err)
+		stack 	:= errors.Wrap(err, 0).ErrorStack()
 		if ctx_canceled(err) {
 			return false, &Timeout_error{msg, stack}
 		}
