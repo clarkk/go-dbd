@@ -58,12 +58,12 @@ func (t *Tx) Commit() error {
 
 func (t *Tx) Exec(query sqlc.SQL) error {
 	if t.tx == nil {
-		panic("DB transaction prepare: No active transaction")
+		panic("DB transaction execute: No active transaction")
 	}
 	
 	sql, err := query.Compile()
 	if err != nil {
-		return &Error{"DB transaction prepare compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
+		return &Error{"DB transaction execute compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
 	_, err = t.tx.ExecContext(t.ctx, sql, query.Data()...)
