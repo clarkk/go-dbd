@@ -16,12 +16,12 @@ type (
 	
 	query struct {
 		table 	string
-		t 		string
 		data 	[]any
 	}
 	
 	query_join struct {
 		query
+		t 		string
 		tables 	map[string]string
 		joined 	bool
 		joins 	[]join
