@@ -180,7 +180,7 @@ func (t *Tx) Delete(query sqlc.SQL) (bool, error){
 	var id uint64
 	if err := t.tx.QueryRowContext(t.ctx, sql+"RETURNING id").Scan(&id); err != nil {
 		if Is_empty_error(err) {
-			return true, err
+			return true, nil
 		}
 		msg 	:= sqlc.SQL_error("DB transaction delete", query, err)
 		stack 	:= errors.Wrap(err, 0).ErrorStack()
