@@ -205,7 +205,7 @@ func fetch_schema_table(table string){
 			dec, _			:= strconv.Atoi(matches[3])
 			is_unsigned 	= check_unsigned(matches[4])
 			min, max		:= decimal_range(length, dec, is_unsigned)
-			fmt.Println(format, matches)
+			fmt.Println(format, min, max)
 			table_cols[column] = schema_column{
 				data_type:		SCHEMA_DEC,
 				data_subtype:	matches[1],
