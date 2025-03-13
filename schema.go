@@ -134,6 +134,10 @@ func (s schema_column) Range_int() length_range_int {
 	return s.range_int
 }
 
+func (s schema_column) Range_dec() length_range_dec {
+	return s.range_dec
+}
+
 func fetch_schema_table(table string){
 	table_cols := schema_table{}
 	
