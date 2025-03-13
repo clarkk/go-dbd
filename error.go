@@ -7,6 +7,8 @@ import (
 	"database/sql"
 )
 
+var ErrNotFound = errors.New("Not found")
+
 type (
 	Error struct {
 		error 	string

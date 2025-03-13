@@ -90,7 +90,7 @@ func (t *Tx) Query_row(query sqlc.SQL, scan []any) (bool, error){
 	
 	if err := t.tx.QueryRowContext(t.ctx, sql, query.Data()...).Scan(scan...); err != nil {
 		if Is_empty_error(err) {
-			return true, nil
+			return true, ErrNotFound
 		}
 		msg 	:= sqlc.SQL_error("DB transaction query row", query, err)
 		stack 	:= errors.Wrap(err, 0).ErrorStack()
@@ -180,7 +180,7 @@ func (t *Tx) Delete(query sqlc.SQL) (bool, error){
 	var id uint64
 	if err := t.tx.QueryRowContext(t.ctx, sql+"RETURNING id").Scan(&id); err != nil {
 		if Is_empty_error(err) {
-			return true, nil
+			return true, ErrNotFound
 		}
 		msg 	:= sqlc.SQL_error("DB transaction delete", query, err)
 		stack 	:= errors.Wrap(err, 0).ErrorStack()
