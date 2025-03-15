@@ -4,7 +4,14 @@ type Delete_query struct {
 	query_where
 }
 
-func Delete(table string, id uint64) *Delete_query {
+func Delete_id(table string, id uint64) *Delete_query {
+	q := Delete(table)
+	q.use_id 	= true
+	q.id 		= id
+	return q
+}
+
+func Delete(table string) *Delete_query {
 	return &Delete_query{
 		query_where: query_where{
 			query_join: query_join{
@@ -16,7 +23,6 @@ func Delete(table string, id uint64) *Delete_query {
 			},
 			where:		[]where_clause{},
 			where_data:	[]any{},
-			id:			id,
 		},
 	}
 }

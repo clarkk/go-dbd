@@ -25,7 +25,14 @@ type (
 	}
 )
 
-func Select(table string, id uint64) *Select_query {
+func Select_id(table string, id uint64) *Select_query {
+	q := Select(table)
+	q.use_id 	= true
+	q.id 		= id
+	return q
+}
+
+func Select(table string) *Select_query {
 	return &Select_query{
 		query_where: query_where{
 			query_join: query_join{
@@ -37,7 +44,6 @@ func Select(table string, id uint64) *Select_query {
 			},
 			where:		[]where_clause{},
 			where_data:	[]any{},
-			id:			id,
 		},
 	}
 }

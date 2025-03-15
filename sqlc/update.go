@@ -7,7 +7,14 @@ type Update_query struct {
 	fields 		Map
 }
 
-func Update(table string, id uint64) *Update_query {
+func Update_id(table string, id uint64) *Update_query {
+	q := Update(table)
+	q.use_id 	= true
+	q.id 		= id
+	return q
+}
+
+func Update(table string) *Update_query {
 	return &Update_query{
 		query_where: query_where{
 			query_join: query_join{
@@ -19,7 +26,6 @@ func Update(table string, id uint64) *Update_query {
 			},
 			where:		[]where_clause{},
 			where_data:	[]any{},
-			id:			id,
 		},
 		fields: 	Map{},
 	}

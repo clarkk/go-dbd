@@ -31,6 +31,7 @@ type (
 		query_join
 		where 		[]where_clause
 		where_data 	[]any
+		use_id		bool
 		id 			uint64
 	}
 	
@@ -120,7 +121,7 @@ func (q *query_where) where_clause(clause where_clause, value... any){
 
 func (q *query_where) compile_where() (string, error){
 	length := len(q.where)
-	if q.id != 0 {
+	if q.use_id {
 		length++
 	}
 	if length == 0 {
@@ -130,7 +131,7 @@ func (q *query_where) compile_where() (string, error){
 	var j int
 	duplicates := map[string]string{}
 	sql := make([]string, length)
-	if q.id != 0 {
+	if q.use_id {
 		sql[j] = q.field("id")+"="+strconv.FormatUint(q.id, 10)
 		j++
 	}
