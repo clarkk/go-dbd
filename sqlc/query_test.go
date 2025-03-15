@@ -572,6 +572,40 @@ WHERE u.email=test1 && c.timeout>test2`
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
 		}
 	})
+	
+	t.Run("select for update", func(t *testing.T){
+		query := Select("user", 0).
+			Select([]string{
+				"id",
+				"email",
+			}).
+			Where(Where().
+				Eq("id", 123),
+			).
+			Read_lock()
+		
+		sql, _ := query.Compile()
+		
+		want :=
+`SELECT id, email
+FROM .user
+WHERE id=?
+FOR UPDATE`
+		got := strings.TrimSpace(sql)
+		if got != want {
+			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
+		}
+		
+		want =
+`SELECT id, email
+FROM .user
+WHERE id=123
+FOR UPDATE`
+		got = SQL_debug(query)
+		if got != want {
+			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
+		}
+	})
 }
 
 func Test_insert(t *testing.T){
