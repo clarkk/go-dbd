@@ -11,6 +11,7 @@ type (
 		select_fields 	[]select_field
 		order 			[]string
 		limit 			limit
+		read_lock		bool
 	}
 	
 	select_field struct {
@@ -74,6 +75,11 @@ func (q *Select_query) Limit(start, length int) *Select_query {
 	return q
 }
 
+func (q *Select_query) Read_lock() *Select_query {
+	q.read_lock = true
+	return q
+}
+
 func (q *Select_query) Compile() (string, error){
 	if err := q.compile_tables(); err != nil {
 		return "", err
@@ -89,6 +95,9 @@ func (q *Select_query) Compile() (string, error){
 	s += sql_where+q.compile_order()
 	if q.limit.start != 0 || q.limit.length != 0 {
 		s += q.compile_limit()
+	}
+	if q.read_lock {
+		s += "FOR UPDATE\n"
 	}
 	return s, nil
 }
