@@ -20,8 +20,8 @@ type (
 	}
 	
 	limit struct {
-		start 		int
-		length 		int
+		offset 		int
+		limit 		int
 	}
 )
 
@@ -73,11 +73,8 @@ func (q *Select_query) Order(fields []string) *Select_query {
 	return q
 }
 
-func (q *Select_query) Limit(start, length int) *Select_query {
-	q.limit = limit{
-		start:	start,
-		length:	length,
-	}
+func (q *Select_query) Limit(offset, limit int) *Select_query {
+	q.limit = limit{offset, limit}
 	return q
 }
 
@@ -99,7 +96,7 @@ func (q *Select_query) Compile() (string, error){
 		return "", err
 	}
 	s += sql_where+q.compile_order()
-	if q.limit.start != 0 || q.limit.length != 0 {
+	if q.limit.limit != 0 {
 		s += q.compile_limit()
 	}
 	if q.read_lock {
@@ -138,5 +135,5 @@ func (q *Select_query) compile_order() string {
 }
 
 func (q *Select_query) compile_limit() string {
-	return "LIMIT "+strconv.Itoa(q.limit.start)+","+strconv.Itoa(q.limit.length)+"\n"
+	return "LIMIT "+strconv.Itoa(q.limit.offset)+","+strconv.Itoa(q.limit.limit)+"\n"
 }
