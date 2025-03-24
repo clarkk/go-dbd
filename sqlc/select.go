@@ -19,7 +19,7 @@ type (
 		alias 		string
 	}
 	
-	limit struct {
+	select_limit struct {
 		offset 		int
 		limit 		int
 	}
@@ -74,7 +74,7 @@ func (q *Select_query) Order(fields []string) *Select_query {
 }
 
 func (q *Select_query) Limit(offset, limit int) *Select_query {
-	q.limit = limit{offset, limit}
+	q.limit = select_limit{offset, limit}
 	return q
 }
 
