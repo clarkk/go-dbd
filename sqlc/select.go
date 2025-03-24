@@ -10,7 +10,7 @@ type (
 		query_where
 		select_fields 	[]select_field
 		order 			[]string
-		limit 			limit
+		select_limit 	limit
 		read_lock		bool
 	}
 	
