@@ -93,6 +93,36 @@ ORDER BY a.name, u.time DESC`
 		}
 	})
 	
+	t.Run("select function", func(t *testing.T){
+		query := Select("user").
+			Select([]string{
+				"count|id",
+			}).
+			Group([]string{
+				"id",
+			})
+		
+		sql, _ := query.Compile()
+		
+		want :=
+`SELECT count(id)
+FROM .user
+GROUP BY id`
+		got := strings.TrimSpace(sql)
+		if got != want {
+			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
+		}
+		
+		want =
+`SELECT count(id)
+FROM .user
+GROUP BY id`
+		got = SQL_debug(query)
+		if got != want {
+			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
+		}
+	})
+	
 	t.Run("select id empty", func(t *testing.T){
 		query := Select_id("user", 0).
 			Select([]string{

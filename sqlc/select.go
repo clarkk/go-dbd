@@ -9,6 +9,7 @@ type (
 	Select_query struct {
 		query_where
 		select_fields 	[]select_field
+		group			[]string
 		order 			[]string
 		limit 			select_limit
 		read_lock		bool
@@ -52,8 +53,10 @@ func Select(table string) *Select_query {
 func (q *Select_query) Select(list []string) *Select_query {
 	q.select_fields = make([]select_field, len(list))
 	for i, v := range list {
-		s := select_field{}
-		if function, field, found := strings.Cut(v, "|"); found {
+		s := select_field{
+			field: v,
+		}
+		if function, field, found := strings.Cut(s.field, "|"); found {
 			s.field		= field
 			s.function	= function
 		}
@@ -70,6 +73,11 @@ func (q *Select_query) Left_join(table, t, field, field_foreign string) *Select_
 
 func (q *Select_query) Where(clauses *Where_clause) *Select_query {
 	clauses.apply(q)
+	return q
+}
+
+func (q *Select_query) Group(fields []string) *Select_query {
+	q.group = fields
 	return q
 }
 
@@ -100,7 +108,7 @@ func (q *Select_query) Compile() (string, error){
 	if err != nil {
 		return "", err
 	}
-	s += sql_where+q.compile_order()
+	s += sql_where+q.compile_group()+q.compile_order()
 	if q.limit.limit != 0 {
 		s += q.compile_limit()
 	}
@@ -130,6 +138,16 @@ func (q *Select_query) compile_from() string {
 		s += " "+q.t
 	}
 	return s+"\n"
+}
+
+func (q *Select_query) compile_group() string {
+	if len(q.group) == 0 {
+		return ""
+	}
+	for i, v := range q.group {
+		q.group[i] = q.field(v)
+	}
+	return "GROUP BY "+strings.Join(q.group, ", ")+"\n"
 }
 
 func (q *Select_query) compile_order() string {
