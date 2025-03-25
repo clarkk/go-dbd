@@ -22,8 +22,8 @@ type (
 	}
 	
 	select_limit struct {
-		offset 		int
-		limit 		int
+		offset 		uint32
+		limit 		uint8
 	}
 )
 
@@ -86,7 +86,7 @@ func (q *Select_query) Order(fields []string) *Select_query {
 	return q
 }
 
-func (q *Select_query) Limit(offset, limit int) *Select_query {
+func (q *Select_query) Limit(offset uint32, limit uint8) *Select_query {
 	q.limit = select_limit{offset, limit}
 	return q
 }
@@ -161,5 +161,5 @@ func (q *Select_query) compile_order() string {
 }
 
 func (q *Select_query) compile_limit() string {
-	return "LIMIT "+strconv.Itoa(q.limit.offset)+","+strconv.Itoa(q.limit.limit)+"\n"
+	return "LIMIT "+strconv.FormatUint(uint64(q.limit.offset), 10)+","+strconv.FormatUint(uint64(q.limit.limit), 10)+"\n"
 }
