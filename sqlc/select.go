@@ -16,6 +16,7 @@ type (
 	
 	select_field struct {
 		field 		string
+		function	string
 		alias 		string
 	}
 	
@@ -52,7 +53,11 @@ func (q *Select_query) Select(list []string) *Select_query {
 	q.select_fields = make([]select_field, len(list))
 	for i, v := range list {
 		s := select_field{}
-		s.field, s.alias, _ = strings.Cut(v, " ")
+		if function, field, found := strings.Cut(v, "|"); found {
+			s.field		= field
+			s.function	= function
+		}
+		s.field, s.alias, _ = strings.Cut(s.field, " ")
 		q.select_fields[i] = s
 	}
 	return q
@@ -109,6 +114,9 @@ func (q *Select_query) compile_select() string {
 	list := make([]string, len(q.select_fields))
 	for i, s := range q.select_fields {
 		list[i] = q.field(s.field)
+		if s.function != "" {
+			list[i] = s.function+"("+list[i]+")"
+		}
 		if s.alias != "" {
 			list[i] += " "+s.alias
 		}
