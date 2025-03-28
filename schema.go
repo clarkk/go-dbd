@@ -54,8 +54,8 @@ type (
 	}
 	
 	length_range_int struct {
-		Min 	int
-		Max		int
+		Min 	int64
+		Max		int64
 	}
 	
 	length_range_dec struct {
@@ -182,7 +182,7 @@ func fetch_schema_table(table string){
 				length:			length,
 				unsigned:		is_unsigned,
 				null:			is_null,
-				range_int:		length_range_int{min, min + int_range - 1},
+				range_int:		length_range_int{int64(min), int64(min + int_range - 1)},
 			}
 			continue
 		}
