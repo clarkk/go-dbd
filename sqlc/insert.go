@@ -1,10 +1,14 @@
 package sqlc
 
-import "strings"
+import (
+	"strings"
+	"slices"
+)
 
 type Insert_query struct {
 	query_join
-	fields 		Map
+	fields 				Map
+	update_duplicate	bool
 }
 
 func Insert(table string) *Insert_query {
@@ -18,6 +22,11 @@ func Insert(table string) *Insert_query {
 		},
 		fields: 	Map{},
 	}
+}
+
+func (q *Insert_query) Update_duplicate() *Insert_query {
+	q.update_duplicate = true
+	return q
 }
 
 func (q *Insert_query) Fields(fields map[string]any) *Insert_query {
@@ -34,10 +43,16 @@ func (q *Insert_query) Compile() (string, error){
 	if err := q.compile_tables(); err != nil {
 		return "", err
 	}
-	s := q.compile_insert()+q.compile_fields()
+	sql, data := q.compile_fields()
+	q.data = data
+	s := q.compile_insert()+"SET "+sql+"\n"
 	/*if len(q.joins) != 0 {
 		s += q.compile_joins()
 	}*/
+	if q.update_duplicate {
+		s += "ON DUPLICATE KEY UPDATE "+sql+"\n"
+		q.data = slices.Concat(q.data, data)
+	}
 	return s, nil
 }
 
@@ -49,13 +64,14 @@ func (q *Insert_query) compile_insert() string {
 	return s+"\n"
 }
 
-func (q *Insert_query) compile_fields() string {
-	list := make([]string, len(q.fields))
+func (q *Insert_query) compile_fields() (string, []any){
+	sql := make([]string, len(q.fields))
+	data := make([]any, len(q.fields))
 	i := 0
 	for k, v := range q.fields {
-		list[i]	= q.field(k)+"=?"
-		q.data 	= append(q.data, v)
+		sql[i]	= q.field(k)+"=?"
+		data[i] = v
 		i++
 	}
-	return "SET "+strings.Join(list, ", ")+"\n"
+	return strings.Join(sql, ", "), data
 }

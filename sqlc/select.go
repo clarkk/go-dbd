@@ -50,6 +50,11 @@ func Select(table string) *Select_query {
 	}
 }
 
+func (q *Select_query) Read_lock() *Select_query {
+	q.read_lock = true
+	return q
+}
+
 func (q *Select_query) Select(list []string) *Select_query {
 	q.select_fields = make([]select_field, len(list))
 	for i, v := range list {
@@ -88,11 +93,6 @@ func (q *Select_query) Order(fields []string) *Select_query {
 
 func (q *Select_query) Limit(offset uint32, limit uint8) *Select_query {
 	q.limit = select_limit{offset, limit}
-	return q
-}
-
-func (q *Select_query) Read_lock() *Select_query {
-	q.read_lock = true
 	return q
 }
 

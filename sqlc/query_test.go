@@ -730,6 +730,35 @@ SET time_login=123`
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
 		}
 	})
+	
+	t.Run("insert update duplicate", func(t *testing.T){
+		query := Insert("user").
+			Update_duplicate().
+			Fields(map[string]any{
+				"time_login":	123,
+				"name":			"test",
+			})
+		
+		sql, _ := query.Compile()
+		
+		want :=
+`INSERT .user
+SET time_login=?, name=?
+ON DUPLICATE KEY UPDATE time_login=?, name=?`
+		got := strings.TrimSpace(sql)
+		if got != want {
+			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
+		}
+		
+		want =
+`INSERT .user
+SET time_login=123, name=test
+ON DUPLICATE KEY UPDATE time_login=123, name=test`
+		got = SQL_debug(query)
+		if got != want {
+			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
+		}
+	})
 }
 
 func Test_inserts(t *testing.T){
