@@ -146,26 +146,26 @@ func (t *Tx) Insert(query sqlc.SQL) (uint64, error){
 	return id, nil
 }
 
-func (t *Tx) Insert_no_return(query sqlc.SQL) (uint64, error){
+func (t *Tx) Insert_no_return(query sqlc.SQL) error {
 	if t.tx == nil {
 		panic("DB transaction insert no return: No active transaction")
 	}
 	
-	var id uint64
 	sql, err := query.Compile()
 	if err != nil {
-		return id, &Error{"DB transaction insert no return compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
+		return &Error{"DB transaction insert no return compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
-	if err := t.tx.QueryRowContext(t.ctx, sql, query.Data()...).Scan(&id); err != nil {
+	_, err = t.tx.ExecContext(t.ctx, sql, query.Data()...)
+	if err != nil {
 		msg 	:= sqlc.SQL_error("DB transaction insert no return", query, err)
 		stack 	:= errors.Wrap(err, 0).ErrorStack()
 		if ctx_canceled(err) {
-			return 0, &Timeout_error{msg, stack}
+			return &Timeout_error{msg, stack}
 		}
-		return 0, &Error{msg, stack}
+		return &Error{msg, stack}
 	}
-	return id, nil
+	return nil
 }
 
 func (t *Tx) Update(query sqlc.SQL) error {
