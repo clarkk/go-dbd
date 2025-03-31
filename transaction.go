@@ -200,7 +200,7 @@ func (t *Tx) Delete(query sqlc.SQL) (bool, error){
 	}
 	
 	var id uint64
-	if err := t.tx.QueryRowContext(t.ctx, sql+"RETURNING id").Scan(&id); err != nil {
+	if err := t.tx.QueryRowContext(t.ctx, sql+"RETURNING id", query.Data()...).Scan(&id); err != nil {
 		if Is_empty_error(err) {
 			return true, ErrNotFound
 		}
