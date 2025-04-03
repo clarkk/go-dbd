@@ -2,6 +2,7 @@ package sqlc
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -21,10 +22,11 @@ type (
 	
 	query_join struct {
 		query
-		t 		string
-		tables 	map[string]string
-		joined 	bool
-		joins 	[]join
+		t 			string
+		tables 		map[string]string
+		joined 		bool
+		joined_t	bool
+		joins 		[]join
 	}
 	
 	query_where struct {
@@ -39,6 +41,7 @@ type (
 		mode 			string
 		table 			string
 		t 				string
+		join_t			string
 		field 			string
 		field_foreign 	string
 	}
@@ -61,11 +64,18 @@ func (q *query) Data() []any {
 }
 
 func (q *query_join) left_join(table, t, field, field_foreign string){
+	var join_t string
+	if before, _, found := strings.Cut(field_foreign, "."); found {
+		q.joined_t	= true
+		join_t		= before
+	}
+	
 	q.joined = true
 	q.joins = append(q.joins, join{
 		mode:			"LEFT JOIN",
 		table:			table,
 		t:				t,
+		join_t:			join_t,
 		field:			field,
 		field_foreign:	field_foreign,
 	})
@@ -100,6 +110,19 @@ func (q *query_join) compile_tables() error {
 }
 
 func (q *query_join) compile_joins() string {
+	if q.joined_t {
+		first_join	:= []join{}
+		second_join	:= []join{}
+		for _, j := range q.joins {
+			if j.join_t == "" {
+				first_join = append(first_join, j)
+			} else {
+				second_join = append(second_join, j)
+			}
+		}
+		q.joins = slices.Concat(first_join, second_join)
+	}
+	
 	var sql string
 	for _, j := range q.joins {
 		sql += j.mode+" ."+j.table+" "+j.t+" ON "+j.t+"."+j.field+"="+q.field(j.field_foreign)+"\n"

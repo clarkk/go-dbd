@@ -101,7 +101,7 @@ func (q *Select_query) Compile() (string, error){
 		return "", err
 	}
 	s := q.compile_select()+q.compile_from()
-	if len(q.joins) != 0 {
+	if q.joined {
 		s += q.compile_joins()
 	}
 	sql_where, err := q.compile_where()
