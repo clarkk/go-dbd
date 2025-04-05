@@ -65,6 +65,24 @@ func Query_row(ctx context.Context, query sqlc.SQL, scan []any) (bool, error){
 	return false, nil
 }
 
+func Query(ctx context.Context, query sqlc.SQL) (*sql.Rows, error){
+	sql, err := query.Compile()
+	if err != nil {
+		return nil, &Error{"DB query compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
+	}
+	
+	rows, err := db.QueryContext(ctx, sql, query.Data()...)
+	if err != nil {
+		msg := sqlc.SQL_error("DB query", query, err)
+		stack := errors.Wrap(err, 0).ErrorStack()
+		if ctx_canceled(err) {
+			return nil, &Timeout_error{msg, stack}
+		}
+		return nil, &Error{msg, stack}
+	}
+	return rows, nil
+}
+
 func Insert(ctx context.Context, query sqlc.SQL) (uint64, error){
 	var id uint64
 	sql, err := query.Compile()
