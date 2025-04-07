@@ -13,6 +13,7 @@ const (
 	SCHEMA_CHAR 	= "char"
 	SCHEMA_INT 		= "int"
 	SCHEMA_DEC 		= "decimal"
+	SCHEMA_TEXT		= "text"
 	
 	TYPE_TINYINT 	= "tinyint"
 	TYPE_SMALLINT	= "smallint"
@@ -36,6 +37,7 @@ var (
 	schema_char 	= regexp.MustCompile(`^(varchar|char)\((\d+)\)`)
 	schema_decimal 	= regexp.MustCompile(`^(decimal)\((\d+),(\d+)\)(?: (.*))?`)
 	schema_enum 	= regexp.MustCompile(`^(enum)\((.*)\)`)
+	schema_text 	= regexp.MustCompile(`^(tinytext|text|mediumtext|longtext)$`)
 )
 
 type (
@@ -220,6 +222,15 @@ func fetch_schema_table(table string){
 		if matches := schema_enum.FindStringSubmatch(format); len(matches) != 0 {
 			table_cols[column] = schema_column{
 				data_type:		SCHEMA_CHAR,
+				data_subtype:	matches[1],
+				null:			is_null,
+			}
+			continue
+		}
+		
+		if matches := schema_text.FindStringSubmatch(format); len(matches) != 0 {
+			table_cols[column] = schema_column{
+				data_type:		SCHEMA_TEXT,
 				data_subtype:	matches[1],
 				null:			is_null,
 			}
