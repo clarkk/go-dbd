@@ -947,3 +947,51 @@ WHERE id=100`
 		}
 	})
 }
+
+func Test_select_json(t *testing.T){
+	t.Run("json table", func(t *testing.T){
+		j := JSON_table("j").
+			Source_key_value("p.document_languages", "$[*]").
+			Column_path("lang_id", "int unsigned", "$.key").
+			Column_path("description", "text", "$.value.description")
+		
+		query := Select("payment_term").
+			Select([]string{
+				"d.language",
+				"j.description",
+			}).
+			JSON_table(j).
+			Left_join("document_language", "d", "id", "j.lang_id").
+			Where(Where().
+				Eq("id", 34),
+			)
+		
+		sql, _ := query.Compile()
+		
+		want :=
+`SELECT d.language, j.description
+FROM .payment_term p, JSON_TABLE(
+	JSON_KEY_VALUE(p.document_languages, '$'), '$[*]'
+	COLUMNS (lang_id int unsigned PATH '$.key', description text PATH '$.value.description')
+) j
+LEFT JOIN .document_language d ON d.id=j.lang_id
+WHERE p.id=?`
+		got := strings.TrimSpace(sql)
+		if got != want {
+			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
+		}
+		
+		want =
+`SELECT d.language, j.description
+FROM .payment_term p, JSON_TABLE(
+	JSON_KEY_VALUE(p.document_languages, '$'), '$[*]'
+	COLUMNS (lang_id int unsigned PATH '$.key', description text PATH '$.value.description')
+) j
+LEFT JOIN .document_language d ON d.id=j.lang_id
+WHERE p.id=34`
+		got = SQL_debug(query)
+		if got != want {
+			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
+		}
+	})
+}
