@@ -955,16 +955,13 @@ func Test_select_json(t *testing.T){
 			Column_path("lang_id", "int unsigned", "$.key").
 			Column_path("description", "text", "$.value.description")
 		
-		query := Select("payment_term").
+		query := Select_id("payment_term", 34).
 			Select([]string{
 				"d.language",
 				"j.description",
 			}).
 			JSON_table(j).
-			Left_join("document_language", "d", "id", "j.lang_id").
-			Where(Where().
-				Eq("id", 34),
-			)
+			Left_join("document_language", "d", "id", "j.lang_id")
 		
 		sql, _ := query.Compile()
 		
@@ -975,7 +972,7 @@ FROM .payment_term p, JSON_TABLE(
 	COLUMNS (lang_id int unsigned PATH '$.key', description text PATH '$.value.description')
 ) j
 LEFT JOIN .document_language d ON d.id=j.lang_id
-WHERE p.id=?`
+WHERE p.id=34`
 		got := strings.TrimSpace(sql)
 		if got != want {
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
@@ -989,6 +986,33 @@ FROM .payment_term p, JSON_TABLE(
 ) j
 LEFT JOIN .document_language d ON d.id=j.lang_id
 WHERE p.id=34`
+		got = SQL_debug(query)
+		if got != want {
+			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
+		}
+	})
+}
+
+func Test_update_json(t *testing.T){
+	t.Run("json remove", func(t *testing.T){
+		query := Update_id("payment_term", 34).
+			JSON_remove("document_languages", "$.784")
+		
+		sql, _ := query.Compile()
+		
+		want :=
+`UPDATE .payment_term
+SET document_languages=JSON_REMOVE(document_languages, '$.784')
+WHERE id=34`
+		got := strings.TrimSpace(sql)
+		if got != want {
+			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
+		}
+		
+		want =
+`UPDATE .payment_term
+SET document_languages=JSON_REMOVE(document_languages, '$.784')
+WHERE id=34`
 		got = SQL_debug(query)
 		if got != want {
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)

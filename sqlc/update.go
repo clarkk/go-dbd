@@ -2,10 +2,18 @@ package sqlc
 
 import "strings"
 
-type Update_query struct {
-	query_where
-	fields 		Map
-}
+type (
+	Update_query struct {
+		query_where
+		fields 		Map
+		json_remove	*json_remove
+	}
+	
+	json_remove struct {
+		json_doc	string
+		json_path	string
+	}
+)
 
 func Update_id(table string, id uint64) *Update_query {
 	q := Update(table)
@@ -33,6 +41,14 @@ func Update(table string) *Update_query {
 
 func (q *Update_query) Fields(fields map[string]any) *Update_query {
 	q.fields = fields
+	return q
+}
+
+func (q *Update_query) JSON_remove(json_doc, json_path string) *Update_query {
+	q.json_remove = &json_remove{
+		json_doc:	json_doc,
+		json_path:	json_path,
+	}
 	return q
 }
 
@@ -77,6 +93,9 @@ func (q *Update_query) compile_fields() string {
 		list[i]	= q.field(k)+"=?"
 		q.data 	= append(q.data, v)
 		i++
+	}
+	if q.json_remove != nil {
+		list = append(list, q.field(q.json_remove.json_doc)+"=JSON_REMOVE("+q.field(q.json_remove.json_doc)+", '"+q.json_remove.json_path+"')")
 	}
 	return "SET "+strings.Join(list, ", ")+"\n"
 }
