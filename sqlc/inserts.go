@@ -7,10 +7,11 @@ import (
 
 type Inserts_query struct {
 	query
-	fields 		[]Map
-	col_count	int
-	col_map		Map
-	col_keys	[]string
+	fields 				[]Map
+	update_duplicate	bool
+	col_count			int
+	col_map				Map
+	col_keys			[]string
 }
 
 func Inserts(table string) *Inserts_query {
@@ -21,6 +22,11 @@ func Inserts(table string) *Inserts_query {
 		},
 		col_map:	Map{},
 	}
+}
+
+func (q *Inserts_query) Update_duplicate() *Inserts_query {
+	q.update_duplicate = true
+	return q
 }
 
 func (q *Inserts_query) Fields(fields map[string]any) *Inserts_query {
@@ -43,7 +49,15 @@ func (q *Inserts_query) Compile() (string, error){
 	if err != nil {
 		return "", err
 	}
-	return s+f, nil
+	s += f
+	if q.update_duplicate {
+		list := make([]string, len(q.col_keys))
+		for i, key := range q.col_keys {
+			list[i] = key+"=VALUES("+key+")"
+		}
+		s += "ON DUPLICATE KEY UPDATE "+strings.Join(list, ", ")+"\n"
+	}
+	return s, nil
 }
 
 func (q *Inserts_query) compile_inserts() (string, error){
@@ -73,5 +87,5 @@ func (q *Inserts_query) compile_fields() (string, error){
 		}
 		list[i] = "("+strings.Join(row, ", ")+")"
 	}
-	return "VALUES "+strings.Join(list, ","), nil
+	return "VALUES "+strings.Join(list, ",")+"\n", nil
 }
