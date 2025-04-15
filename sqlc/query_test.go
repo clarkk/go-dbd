@@ -802,7 +802,7 @@ VALUES (123, test1),(456, test2),(789, test3),(101112, test4)`
 	
 	t.Run("inserts update duplicate", func(t *testing.T){
 		query := Inserts("account").
-			Update_duplicate().
+			Update_duplicate(nil).
 			Fields(map[string]any{
 				"account_number":	123,
 				"name":				"test1",
@@ -827,6 +827,41 @@ ON DUPLICATE KEY UPDATE account_number=VALUES(account_number), name=VALUES(name)
 `INSERT .account (account_number, name)
 VALUES (123, test1),(456, test2)
 ON DUPLICATE KEY UPDATE account_number=VALUES(account_number), name=VALUES(name)`
+		got = SQL_debug(query)
+		if got != want {
+			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
+		}
+	})
+	
+	t.Run("inserts update duplicate fields", func(t *testing.T){
+		query := Inserts("account").
+			Update_duplicate([]string{
+				"name",
+			}).
+			Fields(map[string]any{
+				"account_number":	123,
+				"name":				"test1",
+			}).
+			Fields(map[string]any{
+				"account_number":	456,
+				"name":				"test2",
+			})
+		
+		sql, _ := query.Compile()
+		
+		want :=
+`INSERT .account (account_number, name)
+VALUES (?, ?),(?, ?)
+ON DUPLICATE KEY UPDATE name=VALUES(name)`
+		got := strings.TrimSpace(sql)
+		if got != want {
+			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
+		}
+		
+		want =
+`INSERT .account (account_number, name)
+VALUES (123, test1),(456, test2)
+ON DUPLICATE KEY UPDATE name=VALUES(name)`
 		got = SQL_debug(query)
 		if got != want {
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)

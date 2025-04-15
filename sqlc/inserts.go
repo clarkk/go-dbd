@@ -7,11 +7,12 @@ import (
 
 type Inserts_query struct {
 	query
-	fields 				[]Map
-	update_duplicate	bool
-	col_count			int
-	col_map				Map
-	col_keys			[]string
+	fields 					[]Map
+	update_duplicate		bool
+	update_dublicate_fields []string
+	col_count				int
+	col_map					Map
+	col_keys				[]string
 }
 
 func Inserts(table string) *Inserts_query {
@@ -24,8 +25,9 @@ func Inserts(table string) *Inserts_query {
 	}
 }
 
-func (q *Inserts_query) Update_duplicate() *Inserts_query {
-	q.update_duplicate = true
+func (q *Inserts_query) Update_duplicate(update_fields []string) *Inserts_query {
+	q.update_duplicate			= true
+	q.update_dublicate_fields	= update_fields
 	return q
 }
 
@@ -51,9 +53,17 @@ func (q *Inserts_query) Compile() (string, error){
 	}
 	s += f
 	if q.update_duplicate {
-		list := make([]string, len(q.col_keys))
-		for i, key := range q.col_keys {
-			list[i] = key+"=VALUES("+key+")"
+		var list []string
+		if q.update_dublicate_fields != nil {
+			list = make([]string, len(q.update_dublicate_fields))
+			for i, key := range q.update_dublicate_fields {
+				list[i] = key+"=VALUES("+key+")"
+			}
+		} else {
+			list = make([]string, len(q.col_keys))
+			for i, key := range q.col_keys {
+				list[i] = key+"=VALUES("+key+")"
+			}
 		}
 		s += "ON DUPLICATE KEY UPDATE "+strings.Join(list, ", ")+"\n"
 	}
