@@ -67,6 +67,7 @@ func (q *Inserts_query) Compile() (string, error){
 		}
 		s += "ON DUPLICATE KEY UPDATE "+strings.Join(list, ", ")+"\n"
 	}
+	fmt.Println("DATA compiled!", len(q.data), q.data)
 	return s, nil
 }
 
