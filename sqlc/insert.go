@@ -65,8 +65,9 @@ func (q *Insert_query) compile_insert() string {
 }
 
 func (q *Insert_query) compile_fields() (string, []any){
-	sql := make([]string, len(q.fields))
-	data := make([]any, len(q.fields))
+	length	:= len(q.fields)
+	sql		:= make([]string, length)
+	data	:= make([]any, length)
 	i := 0
 	for k, v := range q.fields {
 		sql[i]	= q.field(k)+"=?"

@@ -66,7 +66,9 @@ func (q *Update_query) Compile() (string, error){
 	if err := q.compile_tables(); err != nil {
 		return "", err
 	}
-	s := q.compile_update()+q.compile_fields()
+	sql, data := q.compile_fields()
+	q.data = data
+	s := q.compile_update()+"SET "+sql+"\n"
 	/*if len(q.joins) != 0 {
 		s += q.compile_joins()
 	}*/
@@ -86,16 +88,18 @@ func (q *Update_query) compile_update() string {
 	return s+"\n"
 }
 
-func (q *Update_query) compile_fields() string {
-	list := make([]string, len(q.fields))
+func (q *Update_query) compile_fields() (string, []any){
+	length	:= len(q.fields)
+	sql		:= make([]string, length)
+	data	:= make([]any, length)
 	i := 0
 	for k, v := range q.fields {
-		list[i]	= q.field(k)+"=?"
-		q.data 	= append(q.data, v)
+		sql[i]	= q.field(k)+"=?"
+		data[i] = v
 		i++
 	}
 	if q.json_remove != nil {
-		list = append(list, q.field(q.json_remove.json_doc)+"=JSON_REMOVE("+q.field(q.json_remove.json_doc)+", '"+q.json_remove.json_path+"')")
+		sql = append(sql, q.field(q.json_remove.json_doc)+"=JSON_REMOVE("+q.field(q.json_remove.json_doc)+", '"+q.json_remove.json_path+"')")
 	}
-	return "SET "+strings.Join(list, ", ")+"\n"
+	return strings.Join(sql, ", "), data
 }

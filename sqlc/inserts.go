@@ -47,11 +47,12 @@ func (q *Inserts_query) Compile() (string, error){
 	if err != nil {
 		return "", err
 	}
-	f, err := q.compile_fields()
+	sql, data, err := q.compile_fields()
 	if err != nil {
 		return "", err
 	}
-	s += f
+	s += "VALUES "+sql+"\n"
+	q.data = data
 	if q.update_duplicate {
 		var list []string
 		if q.update_dublicate_fields != nil {
@@ -67,7 +68,6 @@ func (q *Inserts_query) Compile() (string, error){
 		}
 		s += "ON DUPLICATE KEY UPDATE "+strings.Join(list, ", ")+"\n"
 	}
-	fmt.Println("DATA compiled!", "len:", len(q.data), "data:", q.data)
 	return s, nil
 }
 
@@ -84,19 +84,23 @@ func (q *Inserts_query) compile_inserts() (string, error){
 	return "INSERT ."+q.table+" ("+strings.Join(q.col_keys, ", ")+")\n", nil
 }
 
-func (q *Inserts_query) compile_fields() (string, error){
-	list := make([]string, len(q.fields))
+func (q *Inserts_query) compile_fields() (string, []any, error){
+	length	:= len(q.fields)
+	sql		:= make([]string, length)
+	data	:= make([]any, length * q.col_count)
+	j := 0
 	for i, fields := range q.fields {
 		if q.col_count != len(fields) {
-			return "", fmt.Errorf("Insert rows inconsistency")
+			return "", nil, fmt.Errorf("Insert rows inconsistency")
 		}
 		
 		row := make([]string, q.col_count)
 		for i, key := range q.col_keys {
-			row[i] = "?"
-			q.data = append(q.data, fields[key])
+			row[i]	= "?"
+			data[j]	= fields[key]
+			j++
 		}
-		list[i] = "("+strings.Join(row, ", ")+")"
+		sql[i] = "("+strings.Join(row, ", ")+")"
 	}
-	return "VALUES "+strings.Join(list, ",")+"\n", nil
+	return strings.Join(sql, ","), data, nil
 }
