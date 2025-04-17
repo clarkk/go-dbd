@@ -32,7 +32,6 @@ func (q *Inserts_query) Update_duplicate(update_fields []string) *Inserts_query 
 }
 
 func (q *Inserts_query) Fields(fields map[string]any) *Inserts_query {
-	fmt.Println("apply:", len(fields), fields)
 	if q.col_count == 0 {
 		q.col_count = len(fields)
 	}
@@ -40,7 +39,6 @@ func (q *Inserts_query) Fields(fields map[string]any) *Inserts_query {
 		q.col_map[k] = nil
 	}
 	q.fields = append(q.fields, fields)
-	fmt.Println("fields:", len(q.fields), q.fields)
 	return q
 }
 
@@ -86,7 +84,6 @@ func (q *Inserts_query) compile_inserts() (string, error){
 }
 
 func (q *Inserts_query) compile_fields() (string, error){
-	fmt.Println("fields compile:", len(q.fields), q.fields)
 	list := make([]string, len(q.fields))
 	for i, fields := range q.fields {
 		if q.col_count != len(fields) {
@@ -100,6 +97,5 @@ func (q *Inserts_query) compile_fields() (string, error){
 		}
 		list[i] = "("+strings.Join(row, ", ")+")"
 	}
-	fmt.Println("data compile:", len(q.data), q.data)
 	return "VALUES "+strings.Join(list, ",")+"\n", nil
 }
