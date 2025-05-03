@@ -7,8 +7,9 @@ import (
 
 type Insert_query struct {
 	query_join
-	fields 				Map
-	update_duplicate	bool
+	fields 					Map
+	update_duplicate		bool
+	update_dublicate_fields []string
 }
 
 func Insert(table string) *Insert_query {
@@ -24,8 +25,9 @@ func Insert(table string) *Insert_query {
 	}
 }
 
-func (q *Insert_query) Update_duplicate() *Insert_query {
-	q.update_duplicate = true
+func (q *Insert_query) Update_duplicate(update_fields []string) *Insert_query {
+	q.update_duplicate			= true
+	q.update_dublicate_fields	= update_fields
 	return q
 }
 
@@ -50,8 +52,14 @@ func (q *Insert_query) Compile() (string, error){
 		s += q.compile_joins()
 	}*/
 	if q.update_duplicate {
-		s += "ON DUPLICATE KEY UPDATE "+sql+"\n"
-		q.data = slices.Concat(q.data, data)
+		if q.update_dublicate_fields != nil {
+			sql, data = q.compile_update_duplicate_fields()
+			s += "ON DUPLICATE KEY UPDATE "+sql+"\n"
+			q.data = slices.Concat(q.data, data)
+		} else {
+			s += "ON DUPLICATE KEY UPDATE "+sql+"\n"
+			q.data = slices.Concat(q.data, data)
+		}
 	}
 	return s, nil
 }
@@ -73,6 +81,17 @@ func (q *Insert_query) compile_fields() (string, []any){
 		sql[i]	= q.field(k)+"=?"
 		data[i] = v
 		i++
+	}
+	return strings.Join(sql, ", "), data
+}
+
+func (q *Insert_query) compile_update_duplicate_fields() (string, []any){
+	length	:= len(q.update_dublicate_fields)
+	sql		:= make([]string, length)
+	data	:= make([]any, length)
+	for i, field := range q.update_dublicate_fields {
+		sql[i]	= q.field(field)+"=?"
+		data[i] = q.fields[field]
 	}
 	return strings.Join(sql, ", "), data
 }
