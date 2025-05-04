@@ -1,6 +1,7 @@
 package sqlc
 
 import (
+	"fmt"
 	"strings"
 	"slices"
 )
@@ -53,7 +54,10 @@ func (q *Insert_query) Compile() (string, error){
 	}*/
 	if q.update_duplicate {
 		if q.update_dublicate_fields != nil {
-			sql, data = q.compile_update_duplicate_fields()
+			sql, data, err := q.compile_update_duplicate_fields()
+			if err != nil {
+				return "", err
+			}
 			s += "ON DUPLICATE KEY UPDATE "+sql+"\n"
 			q.data = slices.Concat(q.data, data)
 		} else {
@@ -85,13 +89,17 @@ func (q *Insert_query) compile_fields() (string, []any){
 	return strings.Join(sql, ", "), data
 }
 
-func (q *Insert_query) compile_update_duplicate_fields() (string, []any){
+func (q *Insert_query) compile_update_duplicate_fields() (string, []any, error){
+	var found bool
 	length	:= len(q.update_dublicate_fields)
 	sql		:= make([]string, length)
 	data	:= make([]any, length)
 	for i, field := range q.update_dublicate_fields {
-		sql[i]	= q.field(field)+"=?"
-		data[i] = q.fields[field]
+		sql[i]			= q.field(field)+"=?"
+		data[i], found	= q.fields[field]
+		if !found {
+			return "", nil, fmt.Errorf("Invalid update duplicate fields")
+		}
 	}
-	return strings.Join(sql, ", "), data
+	return strings.Join(sql, ", "), data, nil
 }

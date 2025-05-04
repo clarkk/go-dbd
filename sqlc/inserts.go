@@ -56,8 +56,12 @@ func (q *Inserts_query) Compile() (string, error){
 	if q.update_duplicate {
 		var list []string
 		if q.update_dublicate_fields != nil {
+			var found bool
 			list = make([]string, len(q.update_dublicate_fields))
 			for i, key := range q.update_dublicate_fields {
+				if _, found = q.col_map[key]; !found {
+					return "", fmt.Errorf("Invalid update duplicate fields")
+				}
 				list[i] = key+"=VALUES("+key+")"
 			}
 		} else {
