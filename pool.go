@@ -114,7 +114,7 @@ func Update(ctx context.Context, query sqlc.SQL) (sql.Result, error){
 		if ctx_canceled(err) {
 			return nil, &Timeout_error{msg, stack}
 		}
-		return nil &Error{msg, stack}
+		return nil, &Error{msg, stack}
 	}
 	return result, nil
 }
