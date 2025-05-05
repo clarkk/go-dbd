@@ -56,7 +56,7 @@ func (t *Tx) Commit() error {
 	return nil
 }
 
-func (t *Tx) Exec(query sqlc.SQL) (*sql.Result, error){
+func (t *Tx) Exec(query sqlc.SQL) (sql.Result, error){
 	if t.tx == nil {
 		panic("DB transaction execute: No active transaction")
 	}

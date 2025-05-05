@@ -101,7 +101,7 @@ func Insert(ctx context.Context, query sqlc.SQL) (uint64, error){
 	return id, nil
 }
 
-func Update(ctx context.Context, query sqlc.SQL) (*sql.Result, error){
+func Update(ctx context.Context, query sqlc.SQL) (sql.Result, error){
 	sql, err := query.Compile()
 	if err != nil {
 		return nil, &Error{"DB update compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
