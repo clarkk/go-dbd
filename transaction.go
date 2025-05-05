@@ -56,26 +56,26 @@ func (t *Tx) Commit() error {
 	return nil
 }
 
-func (t *Tx) Exec(query sqlc.SQL) error {
+func (t *Tx) Exec(query sqlc.SQL) (*sql.Result, error){
 	if t.tx == nil {
 		panic("DB transaction execute: No active transaction")
 	}
 	
 	sql, err := query.Compile()
 	if err != nil {
-		return &Error{"DB transaction execute compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
+		return nil, &Error{"DB transaction execute compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
-	_, err = t.tx.ExecContext(t.ctx, sql, query.Data()...)
+	result, err = t.tx.ExecContext(t.ctx, sql, query.Data()...)
 	if err != nil {
 		msg 	:= sqlc.SQL_error("DB transaction execute", query, err)
 		stack 	:= errors.Wrap(err, 0).ErrorStack()
 		if ctx_canceled(err) {
-			return &Timeout_error{msg, stack}
+			return nil, &Timeout_error{msg, stack}
 		}
-		return &Error{msg, stack}
+		return nil, &Error{msg, stack}
 	}
-	return nil
+	return result, nil
 }
 
 func (t *Tx) Query_row(query sqlc.SQL, scan []any) (bool, error){
