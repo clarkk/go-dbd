@@ -66,7 +66,7 @@ func (t *Tx) Exec(query sqlc.SQL) (sql.Result, error){
 		return nil, &Error{"DB transaction execute compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
-	result, err = t.tx.ExecContext(t.ctx, sql, query.Data()...)
+	result, err := t.tx.ExecContext(t.ctx, sql, query.Data()...)
 	if err != nil {
 		msg 	:= sqlc.SQL_error("DB transaction execute", query, err)
 		stack 	:= errors.Wrap(err, 0).ErrorStack()
