@@ -3,18 +3,19 @@ package sqlc
 import "strings"
 
 const (
-	op_eq 		= "="
-	op_not_eq 	= "!="
-	op_gt 		= ">"
-	op_gteq 	= ">="
-	op_lt 		= "<"
-	op_lteq 	= "<="
-	op_null 	= "null"
-	op_not_null = "not_null"
-	op_bt 		= "bt"
-	op_not_bt 	= "not_bt"
-	op_in 		= "in"
-	op_not_in 	= "not_in"
+	op_eq 			= "="
+	op_not_eq 		= "!="
+	op_gt 			= ">"
+	op_gteq 		= ">="
+	op_lt 			= "<"
+	op_lteq 		= "<="
+	op_null 		= "null"
+	op_not_null 	= "not_null"
+	op_bt 			= "bt"
+	op_not_bt 		= "not_bt"
+	op_in 			= "in"
+	op_in_subquery 	= "in_sub"
+	op_not_in 		= "not_in"
 )
 
 type (
@@ -32,6 +33,7 @@ type (
 		field 		string
 		operator 	string
 		sql 		string
+		subquery	*Select_query
 	}
 )
 
@@ -101,6 +103,11 @@ func (w *Where_clause) In(field string, values []any) *Where_clause {
 	return w
 }
 
+func (w *Where_clause) In_subquery(field string, query SQL) *Where_clause {
+	w.clause(field, op_in_subquery, query)
+	return w
+}
+
 func (w *Where_clause) Not_in(field string, values []any) *Where_clause {
 	w.clause(field, op_not_in, values)
 	return w
@@ -153,6 +160,16 @@ func (w *Where_clause) apply(query where_clauser){
 					sql:		" IN ("+where_clause_in(len(w.values[i].([]any)))+")",
 				},
 				w.values[i],
+			)
+		case op_in_subquery:
+			query.where_clause(
+				where_clause{
+					field:		field,
+					operator:	operator,
+					sql:		" IN (%s)",
+					subquery:	w.values[i].(*Select_query),
+				},
+				nil,
 			)
 		case op_not_in:
 			query.where_clause(

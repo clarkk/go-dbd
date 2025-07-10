@@ -572,6 +572,55 @@ LIMIT 0,10`
 		}
 	})
 	
+	t.Run("select in subquery", func(t *testing.T){
+		subquery := Select("user").
+			Select([]string{
+				"id",
+			}).
+			Where(Where().
+				Eq("name", "subquery_value"),
+			)
+		
+		query := Select("user").
+			Select([]string{
+				"id",
+				"email",
+			}).
+			Where(Where().
+				In_subquery("id", subquery).
+				Eq("name", "9"),
+			).
+			Limit(0, 10)
+		
+		sql, _ := query.Compile()
+		
+		want :=
+`SELECT id, email
+FROM .user
+WHERE id IN (SELECT id
+FROM .user
+WHERE name=?
+) && name=?
+LIMIT 0,10`
+		got := strings.TrimSpace(sql)
+		if got != want {
+			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
+		}
+		
+		want =
+`SELECT id, email
+FROM .user
+WHERE id IN (SELECT id
+FROM .user
+WHERE name=subquery_value
+) && name=9
+LIMIT 0,10`
+		got = SQL_debug(query)
+		if got != want {
+			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
+		}
+	})
+	
 	t.Run("select not in", func(t *testing.T){
 		query := Select("user").
 			Select([]string{

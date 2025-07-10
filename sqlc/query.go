@@ -178,6 +178,14 @@ func (q *query_where) compile_where() (string, error){
 			duplicates[clause.field] = clause.operator
 		}
 		
+		if clause.subquery != nil {
+			sql, err := clause.subquery.Compile()
+			if err != nil {
+				return "", err
+			}
+			clause.sql = fmt.Sprintf(clause.sql, sql)
+		}
+		
 		sql[j] = q.field(clause.field)+clause.sql
 		j++
 		
@@ -185,12 +193,17 @@ func (q *query_where) compile_where() (string, error){
 			continue
 		}
 		
-		//	Flatten data slices
-		switch v := q.where_data[i].(type) {
-		case []any:
-			q.data = append(q.data, v...)
-		default:
-			q.data = append(q.data, v)
+		//	Apply data
+		if clause.subquery != nil {
+			q.data = append(q.data, clause.subquery.Data()...)
+		} else {
+			//	Flatten data slices
+			switch v := q.where_data[i].(type) {
+			case []any:
+				q.data = append(q.data, v...)
+			default:
+				q.data = append(q.data, v)
+			}
 		}
 	}
 	return "WHERE "+strings.Join(sql, " && ")+"\n", nil
