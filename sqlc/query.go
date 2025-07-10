@@ -183,7 +183,7 @@ func (q *query_where) compile_where() (string, error){
 			if err != nil {
 				return "", err
 			}
-			clause.sql = fmt.Sprintf(clause.sql, sql)
+			clause.sql = strings.Replace(clause.sql, "?", sql, 1)
 		}
 		
 		sql[j] = q.field(clause.field)+clause.sql

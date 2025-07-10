@@ -166,7 +166,7 @@ func (w *Where_clause) apply(query where_clauser){
 				where_clause{
 					field:		field,
 					operator:	operator,
-					sql:		" IN (%s)",
+					sql:		" IN (?)",
 					subquery:	w.values[i].(*Select_query),
 				},
 				nil,
