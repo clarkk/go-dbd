@@ -26,6 +26,10 @@ func NewTx(ctx context.Context) (*Tx, error){
 	return tx, nil
 }
 
+func (t *Tx) Context() context.Context {
+	return t.ctx
+}
+
 func (t *Tx) Rollback() error {
 	if t.tx == nil {
 		return nil
