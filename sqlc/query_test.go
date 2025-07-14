@@ -757,7 +757,7 @@ FOR UPDATE`
 func Test_insert(t *testing.T){
 	t.Run("insert", func(t *testing.T){
 		query := Insert("user").
-			Fields(map[string]any{
+			Fields(Map{
 				"time_login": 123,
 			})
 		
@@ -783,7 +783,7 @@ SET time_login=123`
 	t.Run("insert update duplicate", func(t *testing.T){
 		query := Insert("user").
 			Update_duplicate(nil).
-			Fields(map[string]any{
+			Fields(Map{
 				"time_login":	123,
 				"name":			"test",
 			})
@@ -814,7 +814,7 @@ ON DUPLICATE KEY UPDATE time_login=123, name=test`
 			Update_duplicate([]string{
 				"time_login",
 			}).
-			Fields(map[string]any{
+			Fields(Map{
 				"time_login":	123,
 				"name":			"test",
 			})
@@ -844,19 +844,19 @@ ON DUPLICATE KEY UPDATE time_login=123`
 func Test_inserts(t *testing.T){
 	t.Run("inserts", func(t *testing.T){
 		query := Inserts("account").
-			Fields(map[string]any{
+			Fields(Map{
 				"account_number":	123,
 				"name":				"test1",
 			}).
-			Fields(map[string]any{
+			Fields(Map{
 				"account_number":	456,
 				"name":				"test2",
 			}).
-			Fields(map[string]any{
+			Fields(Map{
 				"account_number":	789,
 				"name":				"test3",
 			}).
-			Fields(map[string]any{
+			Fields(Map{
 				"account_number":	101112,
 				"name":				"test4",
 			})
@@ -883,11 +883,11 @@ VALUES (123, test1),(456, test2),(789, test3),(101112, test4)`
 	t.Run("inserts update duplicate", func(t *testing.T){
 		query := Inserts("account").
 			Update_duplicate(nil).
-			Fields(map[string]any{
+			Fields(Map{
 				"account_number":	123,
 				"name":				"test1",
 			}).
-			Fields(map[string]any{
+			Fields(Map{
 				"account_number":	456,
 				"name":				"test2",
 			})
@@ -918,11 +918,11 @@ ON DUPLICATE KEY UPDATE account_number=VALUES(account_number), name=VALUES(name)
 			Update_duplicate([]string{
 				"name",
 			}).
-			Fields(map[string]any{
+			Fields(Map{
 				"account_number":	123,
 				"name":				"test1",
 			}).
-			Fields(map[string]any{
+			Fields(Map{
 				"account_number":	456,
 				"name":				"test2",
 			})
@@ -952,7 +952,7 @@ ON DUPLICATE KEY UPDATE name=VALUES(name)`
 func Test_update(t *testing.T){
 	t.Run("update id empty", func(t *testing.T){
 		query := Update_id("user", 0).
-			Fields(map[string]any{
+			Fields(Map{
 				"time_login": 123,
 			})
 		
@@ -979,7 +979,7 @@ WHERE id=0`
 	
 	t.Run("update id set", func(t *testing.T){
 		query := Update_id("user", 100).
-			Fields(map[string]any{
+			Fields(Map{
 				"time_login": 123,
 			})
 		
@@ -1006,7 +1006,7 @@ WHERE id=100`
 	
 	t.Run("update", func(t *testing.T){
 		query := Update("user").
-			Fields(map[string]any{
+			Fields(Map{
 				"time_login": 123,
 			})
 		
