@@ -21,7 +21,7 @@ type (
 	}
 )
 
-func Is_empty_error(err error) bool {
+func Has_no_rows(err error) bool {
 	return errors.Is(err, sql.ErrNoRows)
 }
 

@@ -52,7 +52,7 @@ func Query_row(ctx context.Context, query sqlc.SQL, scan []any) (bool, error){
 	}
 	
 	if err := db.QueryRowContext(ctx, sql, query.Data()...).Scan(scan...); err != nil {
-		if Is_empty_error(err) {
+		if Has_no_rows(err) {
 			return true, ErrNotFound
 		}
 		msg := sqlc.SQL_error("DB query row", query, err)
