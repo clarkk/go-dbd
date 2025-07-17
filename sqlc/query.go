@@ -56,7 +56,7 @@ func SQL_debug(q SQL) string {
 }
 
 func SQL_error(msg string, q SQL, err error) string {
-	return msg+": "+SQL_debug(q)+" "+err.Error()
+	return msg+"\nERROR: "+err.Error()+"\nSQL: "+SQL_debug(q)
 }
 
 func (q *query) Data() []any {
