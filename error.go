@@ -26,11 +26,7 @@ func No_rows_error(err error) bool {
 }
 
 func (e *Error) Error() string {
-	return e.error
-}
-
-func (e *Error) Log(){
-	log.Printf("%s: %s", e.error, e.stack)
+	return e.error+": "+e.stack
 }
 
 func (e *Timeout_error) Error() string {
