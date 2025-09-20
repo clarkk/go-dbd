@@ -810,35 +810,61 @@ ON DUPLICATE KEY UPDATE time_login=123, name=test`
 	})
 	
 	t.Run("insert update duplicate operator", func(t *testing.T){
-		/*query := Insert("user").
+		query := Insert("user").
 			Update_duplicate_operator(Fields().
 				Add("balance", 12).
 				Sub("draft", 10),
-			).
-			Fields(Map{
-				"balance":	123,
-				"draft":	456,
-			})
+				nil,
+			)
 		
 		sql, _ := query.Compile()
 		
 		want :=
 `INSERT .user
 SET balance=?, draft=?
-ON DUPLICATE KEY UPDATE balance=?, draft=?`
+ON DUPLICATE KEY UPDATE balance=balance+?, draft=draft-?`
 		got := strings.TrimSpace(sql)
 		if got != want {
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
-		}*/
+		}
 		
-		/*want =
+		want =
 `INSERT .user
-SET time_login=123, name=test
-ON DUPLICATE KEY UPDATE time_login=123, name=test`
+SET balance=12, draft=10
+ON DUPLICATE KEY UPDATE balance=balance+12, draft=draft-10`
 		got = SQL_debug(query)
 		if got != want {
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
-		}*/
+		}
+	})
+	
+	t.Run("insert update duplicate operator fields", func(t *testing.T){
+		query := Insert("user").
+			Update_duplicate_operator(Fields().
+				Add("balance", 12).
+				Sub("draft", 10),
+				[]string{"draft"},
+			)
+		
+		sql, _ := query.Compile()
+		
+		want :=
+`INSERT .user
+SET balance=?, draft=?
+ON DUPLICATE KEY UPDATE draft=draft-?`
+		got := strings.TrimSpace(sql)
+		if got != want {
+			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
+		}
+		
+		want =
+`INSERT .user
+SET balance=12, draft=10
+ON DUPLICATE KEY UPDATE draft=draft-10`
+		got = SQL_debug(query)
+		if got != want {
+			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
+		}
 	})
 	
 	t.Run("insert update duplicate fields", func(t *testing.T){

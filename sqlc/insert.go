@@ -11,6 +11,7 @@ type Insert_query struct {
 	fields 						*Fields_clause
 	update_duplicate			bool
 	update_dublicate_fields 	[]string
+	map_fields					map[string]int
 }
 
 func Insert(table string) *Insert_query {
@@ -22,6 +23,7 @@ func Insert(table string) *Insert_query {
 			},
 			joins: 		[]join{},
 		},
+		map_fields: map[string]int{},
 	}
 }
 
@@ -32,8 +34,8 @@ func (q *Insert_query) Update_duplicate(update_fields []string) *Insert_query {
 }
 
 func (q *Insert_query) Update_duplicate_operator(fields *Fields_clause, update_fields []string) *Insert_query {
-	q.update_duplicate			= true
 	q.fields 					= fields
+	q.update_duplicate			= true
 	q.update_dublicate_fields	= update_fields
 	return q
 }
@@ -55,31 +57,22 @@ func (q *Insert_query) Compile() (string, error){
 	if err := q.compile_tables(); err != nil {
 		return "", err
 	}
-	sql, data := q.compile_fields()
+	sql, data, err := q.compile_fields()
+	if err != nil {
+		return "", err
+	}
 	q.data = data
 	s := q.compile_insert()+"SET "+sql+"\n"
 	/*if len(q.joins) != 0 {
 		s += q.compile_joins()
 	}*/
 	if q.update_duplicate {
-		if q.update_dublicate_fields != nil {
-			sql, data, err := q.compile_update_duplicate_fields()
-			if err != nil {
-				return "", err
-			}
-			s += "ON DUPLICATE KEY UPDATE "+sql+"\n"
-			q.data = slices.Concat(q.data, data)
-		} else if q.fields_duplicate_operator != nil {
-			sql, data, err := q.compile_fields_duplicate_operator()
-			if err != nil {
-				return "", err
-			}
-			s += "ON DUPLICATE KEY UPDATE "+sql+"\n"
-			q.data = slices.Concat(q.data, data)
-		} else {
-			s += "ON DUPLICATE KEY UPDATE "+sql+"\n"
-			q.data = slices.Concat(q.data, data)
+		sql, data, err := q.compile_update_duplicate_fields()
+		if err != nil {
+			return "", err
 		}
+		s += "ON DUPLICATE KEY UPDATE "+sql+"\n"
+		q.data = slices.Concat(q.data, data)
 	}
 	return s, nil
 }
@@ -92,82 +85,64 @@ func (q *Insert_query) compile_insert() string {
 	return s+"\n"
 }
 
-func (q *Insert_query) compile_fields() (string, []any){
-	length	:= len(q.fields)
-	if q.fields_duplicate_operator != nil {
-		length += len(q.fields_duplicate_operator.fields)
-	}
+func (q *Insert_query) compile_fields() (string, []any, error){
+	length	:= len(q.fields.fields)
 	sql		:= make([]string, length)
 	data	:= make([]any, length)
-	i := 0
-	for k, v := range q.fields {
-		sql[i]	= q.field(k)+"=?"
-		data[i] = v
-		i++
-	}
-	if q.fields_duplicate_operator != nil {
-		for j, field := range q.fields_duplicate_operator.fields {
-			switch operator := q.fields_duplicate_operator.operators[j]; operator {
-			case op_update_add:
-				sql[i]	= q.field(field)+"="+q.field(field)+"+?"
-				data[i] = q.fields_duplicate_operator.values[j]
-				i++
-			case op_update_sub:
-				sql[i]	= q.field(field)+"="+q.field(field)+"-?"
-				data[i] = q.fields_duplicate_operator.values[j]
-				i++
-			default:
-				sql[i]	= q.field(field)+"=?"
-				data[i] = q.fields_duplicate_operator.values[j]
-				i++
-			}
+	unique	:= map[string]bool{}
+	for i, field := range q.fields.fields {
+		if _, found := unique[field]; found {
+			return "", nil, fmt.Errorf("Duplicate field: %s", field)
 		}
+		sql[i]				= q.field(field)+"=?"
+		data[i]				= q.fields.values[i]
+		
+		unique[field]		= true
+		q.map_fields[field]	= i
 	}
-	return strings.Join(sql, ", "), data
+	return strings.Join(sql, ", "), data, nil
 }
 
 func (q *Insert_query) compile_update_duplicate_fields() (string, []any, error){
-	var found bool
-	length	:= len(q.update_dublicate_fields)
-	sql		:= make([]string, length)
-	data	:= make([]any, length)
-	for i, field := range q.update_dublicate_fields {
-		sql[i]			= q.field(field)+"=?"
-		data[i], found	= q.fields[field]
-		if !found {
-			return "", nil, fmt.Errorf("Invalid update duplicate fields")
+	if q.update_dublicate_fields != nil {
+		length	:= len(q.update_dublicate_fields)
+		sql		:= make([]string, length)
+		data	:= make([]any, length)
+		for i, field := range q.update_dublicate_fields {
+			j, found := q.map_fields[field]
+			if !found {
+				return "", nil, fmt.Errorf("Invalid field: %s", field)
+			}
+			switch operator := q.fields.operators[j]; operator {
+			case op_update_add:
+				sql[i]	= q.field(field)+"="+q.field(field)+"+?"
+				data[i] = q.fields.values[j]
+			case op_update_sub:
+				sql[i]	= q.field(field)+"="+q.field(field)+"-?"
+				data[i] = q.fields.values[j]
+			default:
+				sql[i]	= q.field(field)+"=?"
+				data[i] = q.fields.values[j]
+			}
 		}
-	}
-	return strings.Join(sql, ", "), data, nil
-}
-
-func (q *Insert_query) compile_fields_duplicate_operator() (string, []any, error){
-	//var found bool
-	length	:= len(q.fields_duplicate_operator.fields)
-	sql		:= make([]string, length)
-	data	:= make([]any, length)
-	for i, field := range q.fields_duplicate_operator.fields {
-		switch operator := q.fields_duplicate_operator.operators[i]; operator {
-		case op_update_add:
-			sql[i]	= q.field(field)+"="+q.field(field)+"+?"
-			data[i] = q.fields_duplicate_operator.values[i]
-			i++
-		case op_update_sub:
-			sql[i]	= q.field(field)+"="+q.field(field)+"-?"
-			data[i] = q.fields_duplicate_operator.values[i]
-			i++
-		default:
-			sql[i]	= q.field(field)+"=?"
-			data[i] = q.fields_duplicate_operator.values[i]
-			i++
+		return strings.Join(sql, ", "), data, nil
+	} else {
+		length	:= len(q.fields.fields)
+		sql		:= make([]string, length)
+		data	:= make([]any, length)
+		for i, field := range q.fields.fields {
+			switch operator := q.fields.operators[i]; operator {
+			case op_update_add:
+				sql[i]	= q.field(field)+"="+q.field(field)+"+?"
+				data[i] = q.fields.values[i]
+			case op_update_sub:
+				sql[i]	= q.field(field)+"="+q.field(field)+"-?"
+				data[i] = q.fields.values[i]
+			default:
+				sql[i]	= q.field(field)+"=?"
+				data[i] = q.fields.values[i]
+			}
 		}
-		
-		
-		/*sql[i]			= q.field(field)+"=?"
-		data[i], found	= q.fields[field]
-		if !found {
-			return "", nil, fmt.Errorf("Invalid update duplicate fields")
-		}*/
+		return strings.Join(sql, ", "), data, nil
 	}
-	return strings.Join(sql, ", "), data, nil
 }
