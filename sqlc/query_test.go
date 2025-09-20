@@ -1028,6 +1028,34 @@ SET time_login=123`
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
 		}
 	})
+	
+	t.Run("update operator", func(t *testing.T){
+		query := Update_id("user", 123).
+			Fields_operator(Fields().
+				Add("balance", 12).
+				Sub("draft", 10),
+			)
+		
+		sql, _ := query.Compile()
+		
+		want :=
+`UPDATE .user
+SET balance=balance+?, draft=draft-?
+WHERE id=123`
+		got := strings.TrimSpace(sql)
+		if got != want {
+			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
+		}
+		
+		want =
+`UPDATE .user
+SET balance=balance+12, draft=draft-10
+WHERE id=123`
+		got = SQL_debug(query)
+		if got != want {
+			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
+		}
+	})
 }
 
 func Test_delete(t *testing.T){

@@ -5,8 +5,9 @@ import "strings"
 type (
 	Update_query struct {
 		query_where
-		fields 		Map
-		json_remove	*json_remove
+		fields 				Map
+		fields_operator		*Fields_clause
+		json_remove			*json_remove
 	}
 	
 	json_remove struct {
@@ -41,6 +42,11 @@ func Update(table string) *Update_query {
 
 func (q *Update_query) Fields(fields map[string]any) *Update_query {
 	q.fields = fields
+	return q
+}
+
+func (q *Update_query) Fields_operator(fields *Fields_clause) *Update_query {
+	q.fields_operator = fields
 	return q
 }
 
@@ -90,6 +96,9 @@ func (q *Update_query) compile_update() string {
 
 func (q *Update_query) compile_fields() (string, []any){
 	length	:= len(q.fields)
+	if q.fields_operator != nil {
+		length += len(q.fields_operator.fields)
+	}
 	sql		:= make([]string, length)
 	data	:= make([]any, length)
 	i := 0
@@ -97,6 +106,24 @@ func (q *Update_query) compile_fields() (string, []any){
 		sql[i]	= q.field(k)+"=?"
 		data[i] = v
 		i++
+	}
+	if q.fields_operator != nil {
+		for j, field := range q.fields_operator.fields {
+			switch operator := q.fields_operator.operators[j]; operator {
+			case op_update_add:
+				sql[i]	= q.field(field)+"="+q.field(field)+"+?"
+				data[i] = q.fields_operator.values[j]
+				i++
+			case op_update_sub:
+				sql[i]	= q.field(field)+"="+q.field(field)+"-?"
+				data[i] = q.fields_operator.values[j]
+				i++
+			default:
+				sql[i]	= q.field(field)+"=?"
+				data[i] = q.fields_operator.values[j]
+				i++
+			}
+		}
 	}
 	if q.json_remove != nil {
 		sql = append(sql, q.field(q.json_remove.json_doc)+"=JSON_REMOVE("+q.field(q.json_remove.json_doc)+", '"+q.json_remove.json_path+"')")

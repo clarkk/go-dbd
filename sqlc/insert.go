@@ -8,9 +8,10 @@ import (
 
 type Insert_query struct {
 	query_join
-	fields 					Map
-	update_duplicate		bool
-	update_dublicate_fields []string
+	fields 						Map
+	fields_duplicate_operator	*Fields_clause
+	update_duplicate			bool
+	update_dublicate_fields 	[]string
 }
 
 func Insert(table string) *Insert_query {
@@ -29,6 +30,11 @@ func Insert(table string) *Insert_query {
 func (q *Insert_query) Update_duplicate(update_fields []string) *Insert_query {
 	q.update_duplicate			= true
 	q.update_dublicate_fields	= update_fields
+	return q
+}
+
+func (q *Insert_query) Update_duplicate_operator(fields *Fields_clause) *Insert_query {
+	q.fields_duplicate_operator = fields
 	return q
 }
 
@@ -78,6 +84,9 @@ func (q *Insert_query) compile_insert() string {
 
 func (q *Insert_query) compile_fields() (string, []any){
 	length	:= len(q.fields)
+	if q.fields_duplicate_operator != nil {
+		length += len(q.fields_duplicate_operator.fields)
+	}
 	sql		:= make([]string, length)
 	data	:= make([]any, length)
 	i := 0
@@ -85,6 +94,24 @@ func (q *Insert_query) compile_fields() (string, []any){
 		sql[i]	= q.field(k)+"=?"
 		data[i] = v
 		i++
+	}
+	if q.fields_duplicate_operator != nil {
+		for j, field := range q.fields_duplicate_operator.fields {
+			switch operator := q.fields_duplicate_operator.operators[j]; operator {
+			case op_update_add:
+				sql[i]	= q.field(field)+"="+q.field(field)+"+?"
+				data[i] = q.fields_duplicate_operator.values[j]
+				i++
+			case op_update_sub:
+				sql[i]	= q.field(field)+"="+q.field(field)+"-?"
+				data[i] = q.fields_duplicate_operator.values[j]
+				i++
+			default:
+				sql[i]	= q.field(field)+"=?"
+				data[i] = q.fields_duplicate_operator.values[j]
+				i++
+			}
+		}
 	}
 	return strings.Join(sql, ", "), data
 }
