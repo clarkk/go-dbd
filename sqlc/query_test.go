@@ -809,6 +809,38 @@ ON DUPLICATE KEY UPDATE time_login=123, name=test`
 		}
 	})
 	
+	t.Run("insert update duplicate operator", func(t *testing.T){
+		/*query := Insert("user").
+			Update_duplicate_operator(Fields().
+				Add("balance", 12).
+				Sub("draft", 10),
+			).
+			Fields(Map{
+				"balance":	123,
+				"draft":	456,
+			})
+		
+		sql, _ := query.Compile()
+		
+		want :=
+`INSERT .user
+SET balance=?, draft=?
+ON DUPLICATE KEY UPDATE balance=?, draft=?`
+		got := strings.TrimSpace(sql)
+		if got != want {
+			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
+		}*/
+		
+		/*want =
+`INSERT .user
+SET time_login=123, name=test
+ON DUPLICATE KEY UPDATE time_login=123, name=test`
+		got = SQL_debug(query)
+		if got != want {
+			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
+		}*/
+	})
+	
 	t.Run("insert update duplicate fields", func(t *testing.T){
 		query := Insert("user").
 			Update_duplicate([]string{
@@ -1117,78 +1149,6 @@ WHERE id=100`
 		
 		want =
 `DELETE FROM .user`
-		got = SQL_debug(query)
-		if got != want {
-			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
-		}
-	})
-}
-
-func Test_select_json(t *testing.T){
-	t.Run("json table", func(t *testing.T){
-		j := JSON_table("j").
-			Source_key_value("p.document_languages", "$[*]").
-			Column_path("lang_id", "int unsigned", "$.key").
-			Column_path("description", "text", "$.value.description")
-		
-		query := Select_id("payment_term", 34).
-			Select([]string{
-				"d.language",
-				"j.description",
-			}).
-			JSON_table(j).
-			Left_join("document_language", "d", "id", "j.lang_id")
-		
-		sql, _ := query.Compile()
-		
-		want :=
-`SELECT d.language, j.description
-FROM .payment_term p, JSON_TABLE(
-	JSON_KEY_VALUE(p.document_languages, '$'), '$[*]'
-	COLUMNS (lang_id int unsigned PATH '$.key', description text PATH '$.value.description')
-) j
-LEFT JOIN .document_language d ON d.id=j.lang_id
-WHERE p.id=34`
-		got := strings.TrimSpace(sql)
-		if got != want {
-			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
-		}
-		
-		want =
-`SELECT d.language, j.description
-FROM .payment_term p, JSON_TABLE(
-	JSON_KEY_VALUE(p.document_languages, '$'), '$[*]'
-	COLUMNS (lang_id int unsigned PATH '$.key', description text PATH '$.value.description')
-) j
-LEFT JOIN .document_language d ON d.id=j.lang_id
-WHERE p.id=34`
-		got = SQL_debug(query)
-		if got != want {
-			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
-		}
-	})
-}
-
-func Test_update_json(t *testing.T){
-	t.Run("json remove", func(t *testing.T){
-		query := Update_id("payment_term", 34).
-			JSON_remove("document_languages", "$.784")
-		
-		sql, _ := query.Compile()
-		
-		want :=
-`UPDATE .payment_term
-SET document_languages=JSON_REMOVE(document_languages, '$.784')
-WHERE id=34`
-		got := strings.TrimSpace(sql)
-		if got != want {
-			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
-		}
-		
-		want =
-`UPDATE .payment_term
-SET document_languages=JSON_REMOVE(document_languages, '$.784')
-WHERE id=34`
 		got = SQL_debug(query)
 		if got != want {
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)

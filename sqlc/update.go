@@ -1,20 +1,14 @@
 package sqlc
 
-import "strings"
-
-type (
-	Update_query struct {
-		query_where
-		fields 				Map
-		fields_operator		*Fields_clause
-		json_remove			*json_remove
-	}
-	
-	json_remove struct {
-		json_doc	string
-		json_path	string
-	}
+import (
+	"fmt"
+	"strings"
 )
+
+type Update_query struct {
+	query_where
+	fields 		*Fields_clause
+}
 
 func Update_id(table string, id uint64) *Update_query {
 	q := Update(table)
@@ -36,25 +30,19 @@ func Update(table string) *Update_query {
 			where:		[]where_clause{},
 			where_data:	[]any{},
 		},
-		fields: 	Map{},
 	}
 }
 
 func (q *Update_query) Fields(fields map[string]any) *Update_query {
-	q.fields = fields
+	q.fields = Fields()
+	for field, value := range fields {
+		q.fields.Value(field, value)
+	}
 	return q
 }
 
 func (q *Update_query) Fields_operator(fields *Fields_clause) *Update_query {
-	q.fields_operator = fields
-	return q
-}
-
-func (q *Update_query) JSON_remove(json_doc, json_path string) *Update_query {
-	q.json_remove = &json_remove{
-		json_doc:	json_doc,
-		json_path:	json_path,
-	}
+	q.fields = fields
 	return q
 }
 
@@ -72,7 +60,10 @@ func (q *Update_query) Compile() (string, error){
 	if err := q.compile_tables(); err != nil {
 		return "", err
 	}
-	sql, data := q.compile_fields()
+	sql, data, err := q.compile_fields()
+	if err != nil {
+		return "", err
+	}
 	q.data = data
 	s := q.compile_update()+"SET "+sql+"\n"
 	/*if len(q.joins) != 0 {
@@ -94,39 +85,27 @@ func (q *Update_query) compile_update() string {
 	return s+"\n"
 }
 
-func (q *Update_query) compile_fields() (string, []any){
-	length	:= len(q.fields)
-	if q.fields_operator != nil {
-		length += len(q.fields_operator.fields)
-	}
+func (q *Update_query) compile_fields() (string, []any, error){
+	length	:= len(q.fields.fields)
 	sql		:= make([]string, length)
 	data	:= make([]any, length)
-	i := 0
-	for k, v := range q.fields {
-		sql[i]	= q.field(k)+"=?"
-		data[i] = v
-		i++
-	}
-	if q.fields_operator != nil {
-		for j, field := range q.fields_operator.fields {
-			switch operator := q.fields_operator.operators[j]; operator {
-			case op_update_add:
-				sql[i]	= q.field(field)+"="+q.field(field)+"+?"
-				data[i] = q.fields_operator.values[j]
-				i++
-			case op_update_sub:
-				sql[i]	= q.field(field)+"="+q.field(field)+"-?"
-				data[i] = q.fields_operator.values[j]
-				i++
-			default:
-				sql[i]	= q.field(field)+"=?"
-				data[i] = q.fields_operator.values[j]
-				i++
-			}
+	unique	:= map[string]bool{}
+	for i, field := range q.fields.fields {
+		if _, found := unique[field]; found {
+			return "", nil, fmt.Errorf("Duplicate field: %s", field)
 		}
+		switch operator := q.fields.operators[i]; operator {
+		case op_update_add:
+			sql[i]	= q.field(field)+"="+q.field(field)+"+?"
+			data[i] = q.fields.values[i]
+		case op_update_sub:
+			sql[i]	= q.field(field)+"="+q.field(field)+"-?"
+			data[i] = q.fields.values[i]
+		default:
+			sql[i]	= q.field(field)+"=?"
+			data[i] = q.fields.values[i]
+		}
+		unique[field] = true
 	}
-	if q.json_remove != nil {
-		sql = append(sql, q.field(q.json_remove.json_doc)+"=JSON_REMOVE("+q.field(q.json_remove.json_doc)+", '"+q.json_remove.json_path+"')")
-	}
-	return strings.Join(sql, ", "), data
+	return strings.Join(sql, ", "), data, nil
 }

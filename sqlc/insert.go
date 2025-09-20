@@ -8,8 +8,7 @@ import (
 
 type Insert_query struct {
 	query_join
-	fields 						Map
-	fields_duplicate_operator	*Fields_clause
+	fields 						*Fields_clause
 	update_duplicate			bool
 	update_dublicate_fields 	[]string
 }
@@ -23,7 +22,6 @@ func Insert(table string) *Insert_query {
 			},
 			joins: 		[]join{},
 		},
-		fields: 	Map{},
 	}
 }
 
@@ -33,13 +31,18 @@ func (q *Insert_query) Update_duplicate(update_fields []string) *Insert_query {
 	return q
 }
 
-func (q *Insert_query) Update_duplicate_operator(fields *Fields_clause) *Insert_query {
-	q.fields_duplicate_operator = fields
+func (q *Insert_query) Update_duplicate_operator(fields *Fields_clause, update_fields []string) *Insert_query {
+	q.update_duplicate			= true
+	q.fields 					= fields
+	q.update_dublicate_fields	= update_fields
 	return q
 }
 
 func (q *Insert_query) Fields(fields map[string]any) *Insert_query {
-	q.fields = fields
+	q.fields = Fields()
+	for field, value := range fields {
+		q.fields.Value(field, value)
+	}
 	return q
 }
 
@@ -61,6 +64,13 @@ func (q *Insert_query) Compile() (string, error){
 	if q.update_duplicate {
 		if q.update_dublicate_fields != nil {
 			sql, data, err := q.compile_update_duplicate_fields()
+			if err != nil {
+				return "", err
+			}
+			s += "ON DUPLICATE KEY UPDATE "+sql+"\n"
+			q.data = slices.Concat(q.data, data)
+		} else if q.fields_duplicate_operator != nil {
+			sql, data, err := q.compile_fields_duplicate_operator()
 			if err != nil {
 				return "", err
 			}
@@ -127,6 +137,37 @@ func (q *Insert_query) compile_update_duplicate_fields() (string, []any, error){
 		if !found {
 			return "", nil, fmt.Errorf("Invalid update duplicate fields")
 		}
+	}
+	return strings.Join(sql, ", "), data, nil
+}
+
+func (q *Insert_query) compile_fields_duplicate_operator() (string, []any, error){
+	//var found bool
+	length	:= len(q.fields_duplicate_operator.fields)
+	sql		:= make([]string, length)
+	data	:= make([]any, length)
+	for i, field := range q.fields_duplicate_operator.fields {
+		switch operator := q.fields_duplicate_operator.operators[i]; operator {
+		case op_update_add:
+			sql[i]	= q.field(field)+"="+q.field(field)+"+?"
+			data[i] = q.fields_duplicate_operator.values[i]
+			i++
+		case op_update_sub:
+			sql[i]	= q.field(field)+"="+q.field(field)+"-?"
+			data[i] = q.fields_duplicate_operator.values[i]
+			i++
+		default:
+			sql[i]	= q.field(field)+"=?"
+			data[i] = q.fields_duplicate_operator.values[i]
+			i++
+		}
+		
+		
+		/*sql[i]			= q.field(field)+"=?"
+		data[i], found	= q.fields[field]
+		if !found {
+			return "", nil, fmt.Errorf("Invalid update duplicate fields")
+		}*/
 	}
 	return strings.Join(sql, ", "), data, nil
 }

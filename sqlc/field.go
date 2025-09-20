@@ -15,6 +15,11 @@ func Fields() *Fields_clause {
 	return &Fields_clause{}
 }
 
+func (f *Fields_clause) Value(field string, value any) *Fields_clause {
+	f.clause(field, "", value)
+	return f
+}
+
 func (f *Fields_clause) Add(field string, value any) *Fields_clause {
 	f.clause(field, op_update_add, value)
 	return f
