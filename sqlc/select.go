@@ -9,7 +9,6 @@ type (
 	Select_query struct {
 		query_where
 		select_fields 	[]select_field
-		json_table		*json_table
 		group			[]string
 		order 			[]string
 		limit 			select_limit
@@ -69,11 +68,6 @@ func (q *Select_query) Select(list []string) *Select_query {
 		s.field, s.alias, _ = strings.Cut(s.field, " ")
 		q.select_fields[i] = s
 	}
-	return q
-}
-
-func (q *Select_query) JSON_table(j *json_table) *Select_query {
-	q.json_table = j
 	return q
 }
 
@@ -142,9 +136,6 @@ func (q *Select_query) compile_from() string {
 	s := "FROM ."+q.table
 	if q.joined {
 		s += " "+q.t
-	}
-	if q.json_table != nil {
-		s += q.json_table.compile()
 	}
 	return s+"\n"
 }
