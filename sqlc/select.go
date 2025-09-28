@@ -1,4 +1,4 @@
-package sqlc
+3package sqlc
 
 import (
 	"strings"
@@ -123,7 +123,12 @@ func (q *Select_query) compile_select() string {
 	for i, s := range q.select_fields {
 		list[i] = q.field(s.field)
 		if s.function != "" {
-			list[i] = s.function+"("+list[i]+")"
+			switch s.function {
+			case "sum_zero":
+				list[i] = "IFNULL(SUM("+list[i]+"), 0)"
+			default:
+				list[i] = strings.ToUpper(s.function)+"("+list[i]+")"
+			}
 		}
 		if s.alias != "" {
 			list[i] += " "+s.alias
