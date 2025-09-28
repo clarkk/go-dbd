@@ -1,4 +1,4 @@
-3package sqlc
+package sqlc
 
 import (
 	"strings"
