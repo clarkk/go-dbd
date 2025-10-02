@@ -20,6 +20,7 @@ const (
 
 type (
 	Where_clause struct {
+		wrapped		*Where_clause
 		fields 		[]string
 		operators 	[]string
 		values 		[]any
@@ -39,6 +40,10 @@ type (
 
 func Where() *Where_clause {
 	return &Where_clause{}
+}
+
+func (w *Where_clause) Wrap(wrap *Where_clause){
+	w.wrapped = wrap
 }
 
 func (w *Where_clause) Eq(field string, value any) *Where_clause {
@@ -114,6 +119,10 @@ func (w *Where_clause) Not_in(field string, values []any) *Where_clause {
 }
 
 func (w *Where_clause) apply(query where_clauser){
+	if w.wrapped != nil {
+		w.wrapped.apply(query)
+	}
+	
 	for i, field := range w.fields {
 		switch operator := w.operators[i]; operator {
 		case op_null:

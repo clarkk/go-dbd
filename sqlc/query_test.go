@@ -50,6 +50,54 @@ func Test_error(t *testing.T){
 	})
 }
 
+func Test_select_where_wrap(t *testing.T){
+	t.Run("where wrap", func(t *testing.T){
+		where_inner := Where().
+			Eq("u.inner", "test1")
+		
+		where_middle := Where().
+			Eq("middle", "test2")
+		
+		where_middle.Wrap(where_inner)
+		
+		where_outer := Where().
+			Eq("outer", "test3")
+		
+		where_outer.Wrap(where_middle)
+		
+		query := Select("user").
+			Select([]string{
+				"id",
+				"email",
+				"u.time",
+			}).
+			Left_join("user_block", "u", "id", "user_id").
+			Where(where_outer)
+		
+		sql, _ := query.Compile()
+		
+		want :=
+`SELECT a.id, a.email, u.time
+FROM .user a
+LEFT JOIN .user_block u ON u.id=a.user_id
+WHERE u.inner=? && a.middle=? && a.outer=?`
+		got := strings.TrimSpace(sql)
+		if got != want {
+			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
+		}
+		
+		want =
+`SELECT a.id, a.email, u.time
+FROM .user a
+LEFT JOIN .user_block u ON u.id=a.user_id
+WHERE u.inner=test1 && a.middle=test2 && a.outer=test3`
+		got = SQL_debug(query)
+		if got != want {
+			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
+		}
+	})
+}
+
 func Test_select(t *testing.T){
 	t.Run("table abbreviation collisions", func(t *testing.T){
 		query := Select("user").
@@ -105,7 +153,7 @@ ORDER BY a.name, u.time DESC`
 		sql, _ := query.Compile()
 		
 		want :=
-`SELECT count(id)
+`SELECT COUNT(id)
 FROM .user
 GROUP BY id`
 		got := strings.TrimSpace(sql)
@@ -114,7 +162,7 @@ GROUP BY id`
 		}
 		
 		want =
-`SELECT count(id)
+`SELECT COUNT(id)
 FROM .user
 GROUP BY id`
 		got = SQL_debug(query)
