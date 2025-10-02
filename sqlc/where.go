@@ -42,8 +42,9 @@ func Where() *Where_clause {
 	return &Where_clause{}
 }
 
-func (w *Where_clause) Wrap(wrap *Where_clause){
+func (w *Where_clause) Wrap(wrap *Where_clause) *Where_clause {
 	w.wrapped = wrap
+	return w
 }
 
 func (w *Where_clause) Eq(field string, value any) *Where_clause {
