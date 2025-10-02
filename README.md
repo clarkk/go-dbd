@@ -10,7 +10,7 @@ All packages are extremely simple and lightweight by design
 # go-dbd/sqlc
 Compile complex MySQL queries as prepared statements.
 
-## Select query
+## SELECT
 ```
 import (
   "fmt"
@@ -51,7 +51,7 @@ ORDER BY name, id DESC
 LIMIT 0,10
 ``` 
 
-## Select query by id
+## SELECT by id
 ```
 import (
   "fmt"
@@ -80,7 +80,7 @@ FROM .user
 WHERE id=123
 ``` 
 
-## Select for update (read lock)
+## SELECT ... FOR UPDATE (read lock)
 Select rows with read lock until the transaction has finished (commit/rollback) to avoid race conditions.
 ```
 import (
@@ -112,7 +112,7 @@ WHERE id=123
 FOR UPDATE
 ``` 
 
-## Select query with Eqs()
+## SELECT with Eqs()
 Instead of using multiple `Eq()` they can all be added at once in a map via `Eqs()`
 ```
 import (
@@ -148,7 +148,7 @@ FROM .user
 WHERE name='test' && email='test@domain.com'
 ``` 
 
-## Select join query
+## SELECT ... LEFT JOIN
 ```
 import (
   "fmt"
@@ -187,7 +187,7 @@ LEFT JOIN .client c ON c.id=u.client_id
 WHERE u.name='test' && u.email='test@domain.com' && c.active=1
 ```
 
-## Select where with sub-query
+## SELECT with sub-query
 ```
 import (
   "fmt"
@@ -231,7 +231,7 @@ WHERE name='subquery_value'
 )
 ```
 
-## Select wrap where
+## SELECT and wrap where
 ```
 import (
   "fmt"
@@ -276,7 +276,7 @@ LEFT JOIN .user_block u ON u.id=a.user_id
 WHERE u.inner='test1' && a.middle='test2' && a.outer='test3'
 ```
 
-## Insert query
+## INSERT
 ```
 import (
   "fmt"
@@ -303,7 +303,7 @@ INSERT .user
 SET name='john', email='alias@test.com'
 ```
 
-## Insert on duplicate update query
+## INSERT ... ON DUPLICATE KEY UPDATE
 ```
 import (
   "fmt"
@@ -332,7 +332,7 @@ SET name='john', email='alias@test.com'
 ON DUPLICATE KEY UPDATE name='john', email='alias@test.com'
 ```
 
-## Insert on duplicate update query (update specific fields)
+## INSERT ... ON DUPLICATE KEY UPDATE (update only specified fields)
 ```
 import (
   "fmt"
@@ -363,7 +363,7 @@ SET name='john', email='alias@test.com'
 ON DUPLICATE KEY UPDATE name='john'
 ```
 
-## Insert on duplicate update query (with operators)
+## INSERT ... ON DUPLICATE KEY UPDATE (with operator +=)
 ```
 import (
   "fmt"
@@ -392,7 +392,7 @@ SET balance=12, deleted=-10
 ON DUPLICATE KEY UPDATE balance=balance+12, deleted=deleted-10
 ```
 
-## Insert multiple
+## INSERT ... VALUES
 ```
 import (
   "fmt"
@@ -431,7 +431,7 @@ INSERT .account (account, name)
 VALUES (123, test1),(456, test2),(789, test3),(101112, test4)
 ```
 
-## Update query
+## UPDATE
 ```
 import (
   "fmt"
@@ -458,7 +458,7 @@ SET name='michael'
 WHERE id=123
 ```
 
-## Delete query
+## DELETE
 ```
 import (
   "fmt"
