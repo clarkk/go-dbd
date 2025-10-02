@@ -117,9 +117,6 @@ func (q *Insert_query) compile_update_duplicate_fields() (string, []any, error){
 			case op_update_add:
 				sql[i]	= q.field(field)+"="+q.field(field)+"+?"
 				data[i] = q.fields.values[j]
-			case op_update_sub:
-				sql[i]	= q.field(field)+"="+q.field(field)+"-?"
-				data[i] = q.fields.values[j]
 			default:
 				sql[i]	= q.field(field)+"=?"
 				data[i] = q.fields.values[j]
@@ -134,9 +131,6 @@ func (q *Insert_query) compile_update_duplicate_fields() (string, []any, error){
 			switch operator := q.fields.operators[i]; operator {
 			case op_update_add:
 				sql[i]	= q.field(field)+"="+q.field(field)+"+?"
-				data[i] = q.fields.values[i]
-			case op_update_sub:
-				sql[i]	= q.field(field)+"="+q.field(field)+"-?"
 				data[i] = q.fields.values[i]
 			default:
 				sql[i]	= q.field(field)+"=?"

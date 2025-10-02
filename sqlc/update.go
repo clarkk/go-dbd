@@ -98,9 +98,6 @@ func (q *Update_query) compile_fields() (string, []any, error){
 		case op_update_add:
 			sql[i]	= q.field(field)+"="+q.field(field)+"+?"
 			data[i] = q.fields.values[i]
-		case op_update_sub:
-			sql[i]	= q.field(field)+"="+q.field(field)+"-?"
-			data[i] = q.fields.values[i]
 		default:
 			sql[i]	= q.field(field)+"=?"
 			data[i] = q.fields.values[i]

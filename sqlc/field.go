@@ -1,9 +1,6 @@
 package sqlc
 
-const (
-	op_update_add	= "+"
-	op_update_sub	= "-"
-)
+const op_update_add = "+"
 
 type Fields_clause struct {
 	fields 		[]string
@@ -22,11 +19,6 @@ func (f *Fields_clause) Value(field string, value any) *Fields_clause {
 
 func (f *Fields_clause) Add(field string, value any) *Fields_clause {
 	f.clause(field, op_update_add, value)
-	return f
-}
-
-func (f *Fields_clause) Sub(field string, value any) *Fields_clause {
-	f.clause(field, op_update_sub, value)
 	return f
 }
 

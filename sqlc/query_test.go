@@ -861,7 +861,7 @@ ON DUPLICATE KEY UPDATE time_login=123, name=test`
 		query := Insert("user").
 			Update_duplicate_operator(Fields().
 				Add("balance", 12).
-				Sub("draft", 10),
+				Add("draft", -10),
 				nil,
 			)
 		
@@ -870,7 +870,7 @@ ON DUPLICATE KEY UPDATE time_login=123, name=test`
 		want :=
 `INSERT .user
 SET balance=?, draft=?
-ON DUPLICATE KEY UPDATE balance=balance+?, draft=draft-?`
+ON DUPLICATE KEY UPDATE balance=balance+?, draft=draft+?`
 		got := strings.TrimSpace(sql)
 		if got != want {
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
@@ -878,8 +878,8 @@ ON DUPLICATE KEY UPDATE balance=balance+?, draft=draft-?`
 		
 		want =
 `INSERT .user
-SET balance=12, draft=10
-ON DUPLICATE KEY UPDATE balance=balance+12, draft=draft-10`
+SET balance=12, draft=-10
+ON DUPLICATE KEY UPDATE balance=balance+12, draft=draft+-10`
 		got = SQL_debug(query)
 		if got != want {
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
@@ -890,7 +890,7 @@ ON DUPLICATE KEY UPDATE balance=balance+12, draft=draft-10`
 		query := Insert("user").
 			Update_duplicate_operator(Fields().
 				Add("balance", 12).
-				Sub("draft", 10),
+				Add("draft", -10),
 				[]string{"draft"},
 			)
 		
@@ -899,7 +899,7 @@ ON DUPLICATE KEY UPDATE balance=balance+12, draft=draft-10`
 		want :=
 `INSERT .user
 SET balance=?, draft=?
-ON DUPLICATE KEY UPDATE draft=draft-?`
+ON DUPLICATE KEY UPDATE draft=draft+?`
 		got := strings.TrimSpace(sql)
 		if got != want {
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
@@ -907,8 +907,8 @@ ON DUPLICATE KEY UPDATE draft=draft-?`
 		
 		want =
 `INSERT .user
-SET balance=12, draft=10
-ON DUPLICATE KEY UPDATE draft=draft-10`
+SET balance=12, draft=-10
+ON DUPLICATE KEY UPDATE draft=draft+-10`
 		got = SQL_debug(query)
 		if got != want {
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
@@ -1139,14 +1139,14 @@ SET time_login=123`
 		query := Update_id("user", 123).
 			Fields_operator(Fields().
 				Add("balance", 12).
-				Sub("draft", 10),
+				Add("draft", -10),
 			)
 		
 		sql, _ := query.Compile()
 		
 		want :=
 `UPDATE .user
-SET balance=balance+?, draft=draft-?
+SET balance=balance+?, draft=draft+?
 WHERE id=123`
 		got := strings.TrimSpace(sql)
 		if got != want {
@@ -1155,7 +1155,7 @@ WHERE id=123`
 		
 		want =
 `UPDATE .user
-SET balance=balance+12, draft=draft-10
+SET balance=balance+12, draft=draft+-10
 WHERE id=123`
 		got = SQL_debug(query)
 		if got != want {
