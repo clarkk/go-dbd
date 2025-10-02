@@ -21,7 +21,7 @@ where := sqlc.Where().
   Eq("name", "test").
   Eq("email", "test@domain.com")
 
-query := sqlc.Select("user", 0).
+query := sqlc.Select("user").
   Select([]string{
     "id",
     "name",
@@ -58,7 +58,7 @@ import (
   "github.com/clarkk/go-dbd/sqlc"
 )
 
-query := sqlc.Select("user", 123).
+query := sqlc.Select_id("user", 123).
   Select([]string{
     "id",
     "name",
@@ -88,7 +88,7 @@ import (
   "github.com/clarkk/go-dbd/sqlc"
 )
 
-query := sqlc.Select("user", 123).
+query := sqlc.Select_id("user", 123).
   Select([]string{
     "id",
     "name",
@@ -125,7 +125,7 @@ where := sqlc.Where().Eqs(sqlc.Map{
   "email":  "test@domain.com",
 })
 
-query := sqlc.Select("user", 0).
+query := sqlc.Select("user").
   Select([]string{
     "id",
     "name",
@@ -161,7 +161,7 @@ where := sqlc.Where().Eqs(sqlc.Map{
   "c.active":  1,
 })
 
-query := sqlc.Select("user", 0).
+query := sqlc.Select("user").
   Select([]string{
     "id",
     "c.timeout",
@@ -205,7 +205,7 @@ subquery := sqlc.Select("user").
 where := sqlc.Where().
   In_subquery("id", subquery).
 
-query := sqlc.Select("user", 0).
+query := sqlc.Select("user").
   Select([]string{
     "id",
     "name",
@@ -438,7 +438,7 @@ import (
   "github.com/clarkk/go-dbd/sqlc"
 )
 
-query := sqlc.Update("user", 123).
+query := sqlc.Update_id("user", 123).
   Fields(sqlc.Map{
     "name": "michael",
   })
@@ -465,7 +465,7 @@ import (
   "github.com/clarkk/go-dbd/sqlc"
 )
 
-query := sqlc.Delete("user", 123)
+query := sqlc.Delete_id("user", 123)
 
 sql, err := query.Compile()
 if err != nil {
