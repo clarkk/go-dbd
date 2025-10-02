@@ -372,7 +372,7 @@ import (
 
 fields := sqlc.Fields().
   Add("balance", 12).
-  Sub("deleted", 10)
+  Add("deleted", -10)
 
 query := sqlc.Insert("sum").
   Update_duplicate_operator(fields, nil)
@@ -389,7 +389,7 @@ fmt.Println(sql, query.Data(), sqlc.SQL_debug(query))
 ```
 INSERT .sum
 SET balance=12, deleted=-10
-ON DUPLICATE KEY UPDATE balance=balance+12, deleted=deleted-10
+ON DUPLICATE KEY UPDATE balance=balance+12, deleted=deleted+-10
 ```
 
 ## INSERT ... VALUES
