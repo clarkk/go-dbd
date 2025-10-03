@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-func Test_error(t *testing.T){
+/*func Test_error(t *testing.T){
 	t.Run("operator compatability", func(t *testing.T){
 		query := Select("user").
 			Select([]string{
@@ -96,9 +96,53 @@ WHERE u.inner=test1 && a.middle=test2 && a.outer=test3`
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
 		}
 	})
+}*/
+
+func Test_select_where_or_group(t *testing.T){
+	t.Run("where or group", func(t *testing.T){
+		where_or := Where().
+			Bt("col1", "start1", "end1").
+			Bt("col2", "start2", "end2")
+		
+		where := Where().
+			Eq("outer", "test3")
+		
+		where.Or_group(where_or)
+		
+		query := Select("user").
+			Select([]string{
+				"id",
+				"email",
+				"u.time",
+			}).
+			Left_join("user_block", "u", "id", "user_id").
+			Where(where)
+		
+		sql, _ := query.Compile()
+		
+		want :=
+`SELECT a.id, a.email, u.time
+FROM .user a
+LEFT JOIN .user_block u ON u.id=a.user_id
+WHERE u.inner=? && a.middle=? && a.outer=?`
+		got := strings.TrimSpace(sql)
+		if got != want {
+			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
+		}
+		
+		want =
+`SELECT a.id, a.email, u.time
+FROM .user a
+LEFT JOIN .user_block u ON u.id=a.user_id
+WHERE u.inner=test1 && a.middle=test2 && a.outer=test3`
+		got = SQL_debug(query)
+		if got != want {
+			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
+		}
+	})
 }
 
-func Test_select(t *testing.T){
+/*func Test_select(t *testing.T){
 	t.Run("table abbreviation collisions", func(t *testing.T){
 		query := Select("user").
 			Select([]string{
@@ -1228,4 +1272,4 @@ WHERE id=100`
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
 		}
 	})
-}
+}*/

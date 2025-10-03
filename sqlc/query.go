@@ -33,8 +33,14 @@ type (
 		query_join
 		where 		[]where_clause
 		where_data 	[]any
+		or_groups	[]*or_group
 		use_id		bool
 		id 			uint64
+	}
+	
+	or_group struct {
+		where 		[]where_clause
+		where_data 	[]any
 	}
 	
 	join struct {
@@ -142,8 +148,19 @@ func (q *query_where) where_clause(clause where_clause, value... any){
 	q.where_data 	= append(q.where_data, value...)
 }
 
+func (q *query_where) where_or_group() *or_group {
+	g := &or_group{}
+	q.or_groups = append(q.or_groups, g)
+	return g
+}
+
+func (g *or_group) where_clause(clause where_clause, value... any){
+	g.where 		= append(g.where, clause)
+	g.where_data 	= append(g.where_data, value...)
+}
+
 func (q *query_where) compile_where() (string, error){
-	length := len(q.where)
+	length := len(q.where) + len(q.or_groups)
 	if q.use_id {
 		length++
 	}
@@ -152,12 +169,31 @@ func (q *query_where) compile_where() (string, error){
 	}
 	
 	var j int
-	duplicates := map[string]string{}
 	sql := make([]string, length)
 	if q.use_id {
 		sql[j] = q.field("id")+"="+strconv.FormatUint(q.id, 10)
 		j++
 	}
+	
+	//	Apply "or groups"
+	if q.or_groups != nil {
+		for _, group := range q.or_groups {
+			fmt.Println("group where:", group.where)
+			fmt.Println("group where data:", group.where_data)
+			
+			var g int
+			sql_group := make([]string, len(group.where))
+			for i, clause := range group.where {
+				fmt.Println(i, clause)
+				
+				sql_group[g] = q.field(clause.field)+clause.sql
+				g++
+			}
+			fmt.Println("sql_group:", sql_group)
+		}
+	}
+	
+	duplicates := map[string]string{}
 	for i, clause := range q.where {
 		if operator, ok := duplicates[clause.field]; ok {
 			switch operator {

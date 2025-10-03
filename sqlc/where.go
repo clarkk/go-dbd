@@ -16,11 +16,15 @@ const (
 	op_in 			= "in"
 	op_in_subquery 	= "in_sub"
 	op_not_in 		= "not_in"
+	
+	sql_op_bt		= "BETWEEN ? AND ?"
 )
 
 type (
 	Where_clause struct {
 		wrapped		*Where_clause
+		or_groups	[]*Where_clause
+		
 		fields 		[]string
 		operators 	[]string
 		values 		[]any
@@ -28,6 +32,7 @@ type (
 	
 	where_clauser interface {
 		where_clause(clause where_clause, values ...any)
+		where_or_group() *or_group
 	}
 	
 	where_clause struct {
@@ -45,6 +50,10 @@ func Where() *Where_clause {
 func (w *Where_clause) Wrap(wrap *Where_clause) *Where_clause {
 	w.wrapped = wrap
 	return w
+}
+
+func (w *Where_clause) Or_group(where *Where_clause){
+	w.or_groups = append(w.or_groups, where)
 }
 
 func (w *Where_clause) Eq(field string, value any) *Where_clause {
@@ -124,6 +133,12 @@ func (w *Where_clause) apply(query where_clauser){
 		w.wrapped.apply(query)
 	}
 	
+	if w.or_groups != nil {
+		for _, group := range w.or_groups {
+			group.apply_or_group(query)
+		}
+	}
+	
 	for i, field := range w.fields {
 		switch operator := w.operators[i]; operator {
 		case op_null:
@@ -149,7 +164,7 @@ func (w *Where_clause) apply(query where_clauser){
 				where_clause{
 					field:		field,
 					operator:	operator,
-					sql:		" BETWEEN ? AND ?",
+					sql:		" "+sql_op_bt,
 				},
 				w.values[i],
 			)
@@ -203,10 +218,28 @@ func (w *Where_clause) apply(query where_clauser){
 	}
 }
 
-func (w *Where_clause) clause(field, operator string, value any){
+func (w *Where_clause) apply_or_group(query where_clauser){
+	group := query.where_or_group()
+	
+	for i, field := range w.fields {
+		switch operator := w.operators[i]; operator {
+		case op_bt:
+			group.where_clause(
+				where_clause{
+					field:		field,
+					operator:	operator,
+					sql:		" "+sql_op_bt,
+				},
+				w.values[i],
+			)
+		}
+	}
+}
+
+func (w *Where_clause) clause(field, operator string, value ...any){
 	w.fields 	= append(w.fields, field)
 	w.operators = append(w.operators, operator)
-	w.values 	= append(w.values, value)
+	w.values 	= append(w.values, value...)
 }
 
 func where_clause_in(i int) string {
