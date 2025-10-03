@@ -178,18 +178,23 @@ func (q *query_where) compile_where() (string, error){
 	//	Apply "or groups"
 	if q.or_groups != nil {
 		for _, group := range q.or_groups {
-			fmt.Println("group where:", group.where)
-			fmt.Println("group where data:", group.where_data)
-			
 			var g int
 			sql_group := make([]string, len(group.where))
 			for i, clause := range group.where {
-				fmt.Println(i, clause)
-				
 				sql_group[g] = q.field(clause.field)+clause.sql
 				g++
+				
+				//	Flatten data slices
+				switch v := group.where_data[i].(type) {
+				case []any:
+					q.data = append(q.data, v...)
+				default:
+					q.data = append(q.data, v)
+				}
 			}
-			fmt.Println("sql_group:", sql_group)
+			
+			sql[j] = "("+strings.Join(sql_group, " || ")+")"
+			j++
 		}
 	}
 	

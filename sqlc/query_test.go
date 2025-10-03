@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-/*func Test_error(t *testing.T){
+func Test_error(t *testing.T){
 	t.Run("operator compatability", func(t *testing.T){
 		query := Select("user").
 			Select([]string{
@@ -96,7 +96,7 @@ WHERE u.inner=test1 && a.middle=test2 && a.outer=test3`
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
 		}
 	})
-}*/
+}
 
 func Test_select_where_or_group(t *testing.T){
 	t.Run("where or group", func(t *testing.T){
@@ -124,7 +124,7 @@ func Test_select_where_or_group(t *testing.T){
 `SELECT a.id, a.email, u.time
 FROM .user a
 LEFT JOIN .user_block u ON u.id=a.user_id
-WHERE u.inner=? && a.middle=? && a.outer=?`
+WHERE (a.col1 BETWEEN ? AND ? || a.col2 BETWEEN ? AND ?) && a.outer=?`
 		got := strings.TrimSpace(sql)
 		if got != want {
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
@@ -134,7 +134,7 @@ WHERE u.inner=? && a.middle=? && a.outer=?`
 `SELECT a.id, a.email, u.time
 FROM .user a
 LEFT JOIN .user_block u ON u.id=a.user_id
-WHERE u.inner=test1 && a.middle=test2 && a.outer=test3`
+WHERE (a.col1 BETWEEN start1 AND end1 || a.col2 BETWEEN start2 AND end2) && a.outer=test3`
 		got = SQL_debug(query)
 		if got != want {
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
@@ -142,7 +142,7 @@ WHERE u.inner=test1 && a.middle=test2 && a.outer=test3`
 	})
 }
 
-/*func Test_select(t *testing.T){
+func Test_select(t *testing.T){
 	t.Run("table abbreviation collisions", func(t *testing.T){
 		query := Select("user").
 			Select([]string{
@@ -1272,4 +1272,4 @@ WHERE id=100`
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
 		}
 	})
-}*/
+}
