@@ -187,7 +187,7 @@ LEFT JOIN .client c ON c.id=u.client_id
 WHERE u.name='test' && u.email='test@domain.com' && c.active=1
 ```
 
-## SELECT with sub-query
+## WHERE with sub-query
 ```
 import (
   "fmt"
@@ -231,7 +231,46 @@ WHERE name='subquery_value'
 )
 ```
 
-## SELECT and wrap where
+## WHERE with "or group"
+```
+import (
+  "fmt"
+  "github.com/clarkk/go-dbd/sqlc"
+)
+
+where_or := sqlc.Where().
+  Bt("col1", "start1", "end1").
+  Bt("col2", "start2", "end2")
+
+where := sqlc.Where().
+  Eq("outer", "test3")
+
+where.Or_group(where_or)
+
+query := sqlc.Select("user").
+  Select([]string{
+    "id",
+    "name",
+    "email",
+  }).
+  Where(where)
+
+sql, err := query.Compile()
+if err != nil {
+  panic(err)
+}
+
+fmt.Println(sql, query.Data(), sqlc.SQL_debug(query))
+```
+
+### SQL
+```
+SELECT id, name, email
+FROM .user
+WHERE (a.col1 BETWEEN start1 AND end1 || a.col2 BETWEEN start2 AND end2) && a.outer=test3
+```
+
+## WHERE wrapping
 ```
 import (
   "fmt"
