@@ -52,8 +52,9 @@ func (w *Where_clause) Wrap(wrap *Where_clause) *Where_clause {
 	return w
 }
 
-func (w *Where_clause) Or_group(where *Where_clause){
+func (w *Where_clause) Or_group(where *Where_clause) *Where_clause {
 	w.or_groups = append(w.or_groups, where)
+	return w
 }
 
 func (w *Where_clause) Eq(field string, value any) *Where_clause {
