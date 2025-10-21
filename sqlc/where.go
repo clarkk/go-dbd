@@ -234,7 +234,7 @@ func (w *Where_clause) apply_or_group(query where_clauser){
 				w.values[i],
 			)
 		default:
-			query.where_clause(
+			group.where_clause(
 				where_clause{
 					field:		field,
 					operator:	operator,
