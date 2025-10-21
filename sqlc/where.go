@@ -211,7 +211,7 @@ func (w *Where_clause) apply(query where_clauser){
 				where_clause{
 					field:		field,
 					operator:	operator,
-					sql:		w.operators[i]+"?",
+					sql:		operator+"?",
 				},
 				w.values[i],
 			)
@@ -230,6 +230,15 @@ func (w *Where_clause) apply_or_group(query where_clauser){
 					field:		field,
 					operator:	operator,
 					sql:		" "+sql_op_bt,
+				},
+				w.values[i],
+			)
+		default:
+			query.where_clause(
+				where_clause{
+					field:		field,
+					operator:	operator,
+					sql:		operator+"?",
 				},
 				w.values[i],
 			)

@@ -203,7 +203,7 @@ subquery := sqlc.Select("user").
   )
 
 where := sqlc.Where().
-  In_subquery("id", subquery).
+  In_subquery("id", subquery)
 
 query := sqlc.Select("user").
   Select([]string{
@@ -470,7 +470,7 @@ INSERT .account (account, name)
 VALUES (123, test1),(456, test2),(789, test3),(101112, test4)
 ```
 
-## UPDATE
+## UPDATE by id
 ```
 import (
   "fmt"
@@ -497,7 +497,33 @@ SET name='michael'
 WHERE id=123
 ```
 
-## DELETE
+## UPDATE
+```
+import (
+  "fmt"
+  "github.com/clarkk/go-dbd/sqlc"
+)
+
+query := sqlc.Update("user").
+  Fields(sqlc.Map{
+    "name": "michael",
+  })
+
+sql, err := query.Compile()
+if err != nil {
+  panic(err)
+}
+
+fmt.Println(sql, query.Data(), sqlc.SQL_debug(query))
+```
+
+### SQL
+```
+UPDATE .user
+SET name='michael'
+```
+
+## DELETE by id
 ```
 import (
   "fmt"
@@ -518,6 +544,28 @@ fmt.Println(sql, query.Data(), sqlc.SQL_debug(query))
 ```
 DELETE FROM .user
 WHERE id=123
+```
+
+## DELETE
+```
+import (
+  "fmt"
+  "github.com/clarkk/go-dbd/sqlc"
+)
+
+query := sqlc.Delete("user")
+
+sql, err := query.Compile()
+if err != nil {
+  panic(err)
+}
+
+fmt.Println(sql, query.Data(), sqlc.SQL_debug(query))
+```
+
+### SQL
+```
+DELETE FROM .user
 ```
 
 ## Where clause
