@@ -137,6 +137,27 @@ func Update(ctx context.Context, query sqlc.SQL) (sql.Result, error){
 	return result, nil
 }
 
+func Delete(ctx context.Context, query sqlc.SQL) (bool, error){
+	sql, err := query.Compile()
+	if err != nil {
+		return false, &Error{"DB delete compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
+	}
+	
+	var id uint64
+	if err := db.QueryRowContext(ctx, sql+"RETURNING id", query.Data()...).Scan(&id); err != nil {
+		if No_rows_error(err) {
+			return true, ErrNotFound
+		}
+		msg 	:= sqlc.SQL_error("DB delete", query, err)
+		stack 	:= errors.Wrap(err, 0).ErrorStack()
+		if ctx_canceled(err) {
+			return false, &Timeout_error{msg, stack}
+		}
+		return false, &Error{msg, stack}
+	}
+	return false, nil
+}
+
 func Close(){
 	db.Close()
 }
