@@ -14,8 +14,9 @@ const (
 	op_bt 			= "bt"
 	op_not_bt 		= "not_bt"
 	op_in 			= "in"
-	op_in_subquery 	= "in_sub"
 	op_not_in 		= "not_in"
+	
+	op_in_subquery 	= "in_sub"
 	
 	sql_op_bt		= "BETWEEN ? AND ?"
 )

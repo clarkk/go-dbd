@@ -202,9 +202,20 @@ func (q *query_where) compile_where() (string, error){
 	for i, clause := range q.where {
 		if operator, ok := duplicates[clause.field]; ok {
 			switch operator {
+			//	Operator not compatable with "oposite" operators
+			case op_null:
+				if clause.operator == op_not_null {
+					return "", where_operator_error(clause.field, operator, clause.operator)
+				}
+			case op_not_null:
+				if clause.operator == op_null {
+					return "", where_operator_error(clause.field, operator, clause.operator)
+				}
+			
 			//	Operator not compatable with other operators
-			case op_eq, op_null, op_not_null, op_bt, op_not_bt, op_in, op_not_in:
+			case op_eq, op_not_eq, op_bt, op_not_bt, op_in, op_not_in:
 				return "", where_operator_error(clause.field, operator, clause.operator)
+			
 			//	Operator only compatable with "oposite" operators
 			case op_gt, op_gteq:
 				if clause.operator != op_lt && clause.operator != op_lteq {
