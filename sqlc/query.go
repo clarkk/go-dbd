@@ -139,7 +139,7 @@ func (q *query_join) compile_joins() string {
 			s := make([]string, len(j.conditions))
 			var i int
 			for column, value := range j.conditions {
-				s[i] = fmt.Printf(j.t+"."+column+"='%v'", value)
+				s[i] = fmt.Sprintf(j.t+"."+column+"='%v'", value)
 				i++
 			}
 			sql_conditions = strings.Join(s, " && ")
