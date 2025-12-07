@@ -142,7 +142,7 @@ func (q *query_join) compile_joins() string {
 				s[i] = fmt.Sprintf(j.t+"."+column+"='%v'", value)
 				i++
 			}
-			sql_conditions = strings.Join(s, " && ")
+			sql_conditions = " && "+strings.Join(s, " && ")
 		}
 		
 		sql += j.mode+" ."+j.table+" "+j.t+" ON "+j.t+"."+j.field+"="+q.field(j.field_foreign)+sql_conditions+"\n"
