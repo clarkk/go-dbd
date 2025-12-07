@@ -50,6 +50,7 @@ type (
 		join_t			string
 		field 			string
 		field_foreign 	string
+		conditions		Map
 	}
 )
 
@@ -69,7 +70,7 @@ func (q *query) Data() []any {
 	return q.data
 }
 
-func (q *query_join) left_join(table, t, field, field_foreign string){
+func (q *query_join) left_join(table, t, field, field_foreign string, conditions Map){
 	var join_t string
 	if before, _, found := strings.Cut(field_foreign, "."); found {
 		q.joined_t	= true
@@ -84,6 +85,7 @@ func (q *query_join) left_join(table, t, field, field_foreign string){
 		join_t:			join_t,
 		field:			field,
 		field_foreign:	field_foreign,
+		conditions:		conditions,
 	})
 }
 
@@ -116,22 +118,34 @@ func (q *query_join) compile_tables() error {
 }
 
 func (q *query_join) compile_joins() string {
+	//	If joins rely on third-party tables, add them as last (second priority)
 	if q.joined_t {
-		first_join	:= []join{}
-		second_join	:= []join{}
+		first_priority	:= []join{}
+		second_priority	:= []join{}
 		for _, j := range q.joins {
 			if j.join_t == "" {
-				first_join = append(first_join, j)
+				first_priority = append(first_priority, j)
 			} else {
-				second_join = append(second_join, j)
+				second_priority = append(second_priority, j)
 			}
 		}
-		q.joins = slices.Concat(first_join, second_join)
+		q.joins = slices.Concat(first_priority, second_priority)
 	}
 	
 	var sql string
 	for _, j := range q.joins {
-		sql += j.mode+" ."+j.table+" "+j.t+" ON "+j.t+"."+j.field+"="+q.field(j.field_foreign)+"\n"
+		var sql_conditions string
+		if j.conditions != nil {
+			s := make([]string, len(j.conditions))
+			var i int
+			for column, value := range j.conditions {
+				s[i] = fmt.Printf(j.t+"."+column+"='%v'", value)
+				i++
+			}
+			sql_conditions = strings.Join(s, " && ")
+		}
+		
+		sql += j.mode+" ."+j.table+" "+j.t+" ON "+j.t+"."+j.field+"="+q.field(j.field_foreign)+sql_conditions+"\n"
 	}
 	return sql
 }

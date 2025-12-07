@@ -71,8 +71,8 @@ func (q *Select_query) Select(list []string) *Select_query {
 	return q
 }
 
-func (q *Select_query) Left_join(table, t, field, field_foreign string) *Select_query {
-	q.left_join(table, t, field, field_foreign)
+func (q *Select_query) Left_join(table, t, field, field_foreign string, conditions Map) *Select_query {
+	q.left_join(table, t, field, field_foreign, conditions)
 	return q
 }
 
