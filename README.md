@@ -346,8 +346,8 @@ query := Union_all().
     "id",
     "email",
   }).
-  Add(query_union1).
-  Add(query_union2).
+  Union(query_union1).
+  Union(query_union2).
   Limit(0, 10)
 
 sql, err := query.Compile()
