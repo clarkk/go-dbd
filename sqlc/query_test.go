@@ -872,8 +872,8 @@ func Test_union(t *testing.T){
 				"col_id",
 				"col_email",
 			}).
-			Add(query_union1).
-			Add(query_union2).
+			Union(query_union1).
+			Union(query_union2).
 			Group([]string{
 				"grp1",
 			}).

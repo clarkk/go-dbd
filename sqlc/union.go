@@ -21,7 +21,7 @@ func Union_all() *Union_query {
 	}
 }
 
-func (q *Union_query) Add(query *Select_query) *Union_query {
+func (q *Union_query) Union(query *Select_query) *Union_query {
 	q.unions = append(q.unions, query)
 	return q
 }
