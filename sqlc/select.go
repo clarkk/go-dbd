@@ -9,6 +9,7 @@ type (
 	Select_query struct {
 		query_where
 		select_fields 	[]select_field
+		select_distinct	bool
 		group			[]string
 		order 			[]string
 		limit 			select_limit
@@ -68,6 +69,12 @@ func (q *Select_query) Select(list []string) *Select_query {
 		s.field, s.alias, _ = strings.Cut(s.field, " ")
 		q.select_fields[i] = s
 	}
+	return q
+}
+
+func (q *Select_query) Select_distinct(list []string) *Select_query {
+	q.Select(list)
+	q.select_distinct = true
 	return q
 }
 
@@ -135,7 +142,11 @@ func (q *Select_query) compile_select() string {
 			list[i] += " "+s.alias
 		}
 	}
-	return "SELECT "+strings.Join(list, ", ")+"\n"
+	if q.select_distinct {
+		return "SELECT DISTINCT "+strings.Join(list, ", ")+"\n"
+	} else {
+		return "SELECT "+strings.Join(list, ", ")+"\n"
+	}
 }
 
 func (q *Select_query) compile_from() string {

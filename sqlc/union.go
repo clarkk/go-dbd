@@ -31,6 +31,11 @@ func (q *Union_query) Select(list []string) *Union_query {
 	return q
 }
 
+func (q *Union_query) Select_distinct(list []string) *Union_query {
+	q.Select_query.Select_distinct(list)
+	return q
+}
+
 func (q *Union_query) Left_join(table, t, field, field_foreign string, conditions Map) *Union_query {
 	q.Select_query.Left_join(table, t, field, field_foreign, conditions)
 	return q
