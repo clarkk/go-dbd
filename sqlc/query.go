@@ -89,10 +89,9 @@ func (q *query_join) left_join(table, t, field, field_foreign string, conditions
 	})
 }
 
-func (q *query_join) compile_tables() error {
-	q.data = []any{}
-	t := string(q.table[0])
-	q.tables = map[string]string{}
+func (q *query_join) compile_tables(c string) error {
+	q.data		= []any{}
+	q.tables	= map[string]string{}
 	if q.joined {
 		//	Check for char collisions in joined tables
 		for _, j := range q.joins {
@@ -102,18 +101,18 @@ func (q *query_join) compile_tables() error {
 			q.tables[j.t] = j.table
 		}
 		//	Get available char for base table (a-z)
-		if _, ok := q.tables[t]; ok {
+		if _, ok := q.tables[c]; ok {
 			const ascii_a = 97
 			for i := range 26 {
-				t = string(rune(ascii_a+i))
-				if _, ok := q.tables[t]; !ok {
-					q.tables[t] = q.table
+				c = string(rune(ascii_a+i))
+				if _, ok := q.tables[c]; !ok {
+					q.tables[c] = q.table
 					break
 				}
 			}
 		}
 	}
-	q.t = t
+	q.t = c
 	return nil
 }
 
@@ -155,6 +154,10 @@ func (q *query_join) field(s string) string {
 		return q.t+"."+s
 	}
 	return s
+}
+
+func (q *query_join) base_table_short() string {
+	return string(q.table[0])
 }
 
 func (q *query_where) where_clause(clause where_clause, value... any){

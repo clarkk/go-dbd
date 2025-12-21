@@ -57,7 +57,8 @@ func (q *Update_query) Where(clauses *Where_clause) *Update_query {
 }
 
 func (q *Update_query) Compile() (string, error){
-	if err := q.compile_tables(); err != nil {
+	t := q.base_table_short()
+	if err := q.compile_tables(t); err != nil {
 		return "", err
 	}
 	sql, data, err := q.compile_fields()

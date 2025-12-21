@@ -54,7 +54,8 @@ func (q *Insert_query) Fields(fields map[string]any) *Insert_query {
 }*/
 
 func (q *Insert_query) Compile() (string, error){
-	if err := q.compile_tables(); err != nil {
+	t := q.base_table_short()
+	if err := q.compile_tables(t); err != nil {
 		return "", err
 	}
 	sql, data, err := q.compile_fields()

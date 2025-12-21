@@ -97,7 +97,8 @@ func (q *Select_query) Limit(offset uint32, limit uint8) *Select_query {
 }
 
 func (q *Select_query) Compile() (string, error){
-	if err := q.compile_tables(); err != nil {
+	t := q.base_table_short()
+	if err := q.compile_tables(t); err != nil {
 		return "", err
 	}
 	s := q.compile_select()+q.compile_from()

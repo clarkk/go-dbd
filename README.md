@@ -225,9 +225,10 @@ fmt.Println(sql, query.Data(), sqlc.SQL_debug(query))
 ```
 SELECT id, name, email
 FROM .user
-WHERE id IN (SELECT id
-FROM .user
-WHERE name='subquery_value'
+WHERE id IN (
+  SELECT id
+  FROM .user
+  WHERE name='subquery_value'
 )
 ```
 
@@ -313,6 +314,58 @@ SELECT a.id, a.email, u.time
 FROM .user a
 LEFT JOIN .user_block u ON u.id=a.user_id
 WHERE u.inner='test1' && a.middle='test2' && a.outer='test3'
+```
+
+## UNION
+```
+import (
+  "fmt"
+  "github.com/clarkk/go-dbd/sqlc"
+)
+
+query_union1 := Select("user").
+  Select([]string{
+    "user_id id",
+    "user_email email",
+  }).
+  Where(Where().
+    Eq("name", "test"),
+  )
+
+query_union2 := Select("group").
+  Select([]string{
+    "group_id id",
+    "group_email email",
+  }).
+  Where(Where().
+    Eq("email", "alias@domain.com"),
+  )
+
+query := Union_all().
+  Select([]string{
+    "id",
+    "email",
+  }).
+  Add(query_union1).
+  Add(query_union2).
+  Limit(0, 10)
+```
+
+### SQL
+```
+SELECT id, email
+FROM (
+  SELECT user_id id, user_email email
+  FROM .user
+  WHERE name='test'
+  
+  UNION ALL
+  
+  SELECT group_id id, group_email email
+  FROM .group
+  WHERE email='alias@domain.com'
+) t
+LIMIT 0,10
 ```
 
 ## INSERT

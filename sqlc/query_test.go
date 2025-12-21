@@ -71,7 +71,7 @@ func Test_select_where_wrap(t *testing.T){
 				"email",
 				"u.time",
 			}).
-			Left_join("user_block", "u", "id", "user_id").
+			Left_join("user_block", "u", "id", "user_id", nil).
 			Where(where_outer)
 		
 		sql, _ := query.Compile()
@@ -115,7 +115,7 @@ func Test_select_where_or_group(t *testing.T){
 				"email",
 				"u.time",
 			}).
-			Left_join("user_block", "u", "id", "user_id").
+			Left_join("user_block", "u", "id", "user_id", nil).
 			Where(where)
 		
 		sql, _ := query.Compile()
@@ -150,7 +150,7 @@ func Test_select(t *testing.T){
 				"email",
 				"u.time",
 			}).
-			Left_join("user_block", "u", "id", "user_id").
+			Left_join("user_block", "u", "id", "user_id", nil).
 			Where(Where().
 				Eq("email", "test1").
 				In("u.time", []any{1,2,3}),
@@ -785,7 +785,7 @@ WHERE id=123 && email=test1 && name=test2`
 				"id",
 				"c.timeout",
 			}).
-			Left_join("client", "c", "id", "client_id").
+			Left_join("client", "c", "id", "client_id", nil).
 			Where(Where().
 				Eq("email", "test1").
 				Gt("c.timeout", "test2"),
@@ -839,6 +839,79 @@ FOR UPDATE`
 FROM .user
 WHERE id=123
 FOR UPDATE`
+		got = SQL_debug(query)
+		if got != want {
+			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
+		}
+	})
+}
+
+func Test_union(t *testing.T){
+	t.Run("select union", func(t *testing.T){
+		query_union1 := Select("user").
+			Select([]string{
+				"id col_id",
+				"email col_email",
+			}).
+			Where(Where().
+				Eq("col1", 123).
+				Gt("email", "test2"),
+			)
+		
+		query_union2 := Select("group").
+			Select([]string{
+				"id col_id",
+				"email col_email",
+			}).
+			Where(Where().
+				Bt("col1", "start1", "end1"),
+			)
+		
+		query := Union_all().
+			Select([]string{
+				"col_id",
+				"col_email",
+			}).
+			Add(query_union1).
+			Add(query_union2).
+			Group([]string{
+				"grp1",
+			}).
+			Limit(0, 1)
+		
+		sql, _ := query.Compile()
+		
+		want :=
+`SELECT col_id, col_email
+FROM (
+SELECT id col_id, email col_email
+FROM .user
+WHERE col1=? && email>?
+UNION ALL
+SELECT id col_id, email col_email
+FROM .group
+WHERE col1 BETWEEN ? AND ?
+) t
+GROUP BY grp1
+LIMIT 0,1`
+		got := strings.TrimSpace(sql)
+		if got != want {
+			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
+		}
+		
+		want =
+`SELECT col_id, col_email
+FROM (
+SELECT id col_id, email col_email
+FROM .user
+WHERE col1=123 && email>test2
+UNION ALL
+SELECT id col_id, email col_email
+FROM .group
+WHERE col1 BETWEEN start1 AND end1
+) t
+GROUP BY grp1
+LIMIT 0,1`
 		got = SQL_debug(query)
 		if got != want {
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
