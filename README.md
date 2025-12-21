@@ -349,6 +349,13 @@ query := Union_all().
   Add(query_union1).
   Add(query_union2).
   Limit(0, 10)
+
+sql, err := query.Compile()
+if err != nil {
+  panic(err)
+}
+
+fmt.Println(sql, query.Data(), sqlc.SQL_debug(query))
 ```
 
 ### SQL
