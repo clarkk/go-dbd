@@ -160,9 +160,9 @@ func (q *query_join) base_table_short() string {
 	return string(q.table[0])
 }
 
-func (q *query_where) where_clause(clause where_clause, value... any){
+func (q *query_where) where_clause(clause where_clause, value any){
 	q.where 		= append(q.where, clause)
-	q.where_data 	= append(q.where_data, value...)
+	q.where_data 	= append(q.where_data, value)
 }
 
 func (q *query_where) where_or_group() *or_group {
@@ -171,9 +171,9 @@ func (q *query_where) where_or_group() *or_group {
 	return g
 }
 
-func (g *or_group) where_clause(clause where_clause, value... any){
+func (g *or_group) where_clause(clause where_clause, value any){
 	g.where 		= append(g.where, clause)
-	g.where_data 	= append(g.where_data, value...)
+	g.where_data 	= append(g.where_data, value)
 }
 
 func (q *query_where) compile_where() (string, error){

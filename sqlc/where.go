@@ -32,7 +32,7 @@ type (
 	}
 	
 	where_clauser interface {
-		where_clause(clause where_clause, values ...any)
+		where_clause(clause where_clause, values any)
 		where_or_group() *or_group
 	}
 	
@@ -143,51 +143,48 @@ func (w *Where_clause) apply(query where_clauser){
 	
 	for i, field := range w.fields {
 		switch operator := w.operators[i]; operator {
-		case op_null:
+		case op_null, op_not_null:
+			sql := " IS NULL"
+			if operator == op_not_null {
+				sql = " IS NOT NULL"
+			}
 			query.where_clause(
 				where_clause{
 					field:		field,
 					operator:	operator,
-					sql:		" IS NULL",
+					sql:		sql,
 				},
 				w.values[i],
 			)
-		case op_not_null:
+			
+		case op_bt, op_not_bt:
+			sql := " "+sql_op_bt
+			if operator == op_not_bt {
+				sql = " NOT"+sql
+			}
 			query.where_clause(
 				where_clause{
 					field:		field,
 					operator:	operator,
-					sql:		" IS NOT NULL",
+					sql:		sql,
 				},
 				w.values[i],
 			)
-		case op_bt:
+			
+		case op_in, op_not_in:
+			sql := " IN ("+where_clause_in(len(w.values[i].([]any)))+")"
+			if operator == op_not_in {
+				sql = " NOT"+sql
+			}
 			query.where_clause(
 				where_clause{
 					field:		field,
 					operator:	operator,
-					sql:		" "+sql_op_bt,
+					sql:		sql,
 				},
 				w.values[i],
 			)
-		case op_not_bt:
-			query.where_clause(
-				where_clause{
-					field:		field,
-					operator:	operator,
-					sql:		" NOT BETWEEN ? AND ?",
-				},
-				w.values[i],
-			)
-		case op_in:
-			query.where_clause(
-				where_clause{
-					field:		field,
-					operator:	operator,
-					sql:		" IN ("+where_clause_in(len(w.values[i].([]any)))+")",
-				},
-				w.values[i],
-			)
+			
 		case op_in_subquery:
 			query.where_clause(
 				where_clause{
@@ -198,15 +195,7 @@ func (w *Where_clause) apply(query where_clauser){
 				},
 				nil,
 			)
-		case op_not_in:
-			query.where_clause(
-				where_clause{
-					field:		field,
-					operator:	operator,
-					sql:		" NOT IN ("+where_clause_in(len(w.values[i].([]any)))+")",
-				},
-				w.values[i],
-			)
+		
 		default:
 			query.where_clause(
 				where_clause{
@@ -247,10 +236,10 @@ func (w *Where_clause) apply_or_group(query where_clauser){
 	}
 }
 
-func (w *Where_clause) clause(field, operator string, value ...any){
+func (w *Where_clause) clause(field, operator string, value any){
 	w.fields 	= append(w.fields, field)
 	w.operators = append(w.operators, operator)
-	w.values 	= append(w.values, value...)
+	w.values 	= append(w.values, value)
 }
 
 func where_clause_in(i int) string {
