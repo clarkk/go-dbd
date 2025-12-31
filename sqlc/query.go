@@ -11,6 +11,7 @@ import (
 const (
 	alloc_where_clause	= 15
 	alloc_join_clause	= 50
+	alloc_field_clause	= 10
 )
 
 type (

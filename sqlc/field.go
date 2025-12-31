@@ -2,14 +2,23 @@ package sqlc
 
 const op_update_add = "+"
 
-type Fields_clause struct {
-	fields 		[]string
-	operators 	[]string
-	values 		[]any
-}
+type (
+	Fields_clause struct {
+		entries		[]field_entry
+	}
+	
+	field_entry struct {
+		field		string
+		operator	string
+		value		any
+	}
+)
 
 func Fields() *Fields_clause {
-	return &Fields_clause{}
+	return &Fields_clause{
+		//	Preallocate 4 fields
+		entries: make([]field_entry, 0, 4),
+	}
 }
 
 func (f *Fields_clause) Value(field string, value any) *Fields_clause {
@@ -23,7 +32,9 @@ func (f *Fields_clause) Add(field string, value any) *Fields_clause {
 }
 
 func (f *Fields_clause) clause(field, operator string, value any){
-	f.fields 	= append(f.fields, field)
-	f.operators = append(f.operators, operator)
-	f.values 	= append(f.values, value)
+	f.entries = append(f.entries, field_entry{
+		field:		field,
+		operator:	operator,
+		value:		value,
+	})
 }

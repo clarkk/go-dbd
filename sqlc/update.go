@@ -2,6 +2,8 @@ package sqlc
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 )
 
@@ -35,8 +37,9 @@ func Update(table string) *Update_query {
 
 func (q *Update_query) Fields(fields map[string]any) *Update_query {
 	q.fields = Fields()
-	for field, value := range fields {
-		q.fields.Value(field, value)
+	keys := slices.Sorted(maps.Keys(fields))
+	for _, field := range keys {
+		q.fields.Value(field, fields[field])
 	}
 	return q
 }
@@ -61,11 +64,11 @@ func (q *Update_query) Compile() (string, error){
 	if err := q.compile_tables(t); err != nil {
 		return "", err
 	}
-	sql, data, err := q.compile_fields()
+	sql, err := q.compile_fields()
 	if err != nil {
 		return "", err
 	}
-	q.data = data
+	
 	s := q.compile_update()+"SET "+sql+"\n"
 	/*if len(q.joins) != 0 {
 		s += q.compile_joins()
@@ -86,24 +89,36 @@ func (q *Update_query) compile_update() string {
 	return s+"\n"
 }
 
-func (q *Update_query) compile_fields() (string, []any, error){
-	length	:= len(q.fields.fields)
-	sql		:= make([]string, length)
-	data	:= make([]any, length)
-	unique	:= map[string]bool{}
-	for i, field := range q.fields.fields {
-		if _, found := unique[field]; found {
-			return "", nil, fmt.Errorf("Duplicate field: %s", field)
+func (q *Update_query) compile_fields() (string, error){
+	length := len(q.fields.entries)
+	q.data = make([]any, 0, length)
+	unique := make(map[string]struct{}, length)
+	
+	var sb strings.Builder
+	//	Preallocation
+	sb.Grow(length * alloc_field_clause)
+	
+	for i, entry := range q.fields.entries {
+		if _, found := unique[entry.field]; found {
+			return "", fmt.Errorf("Duplicate field: %s", entry.field)
 		}
-		switch operator := q.fields.operators[i]; operator {
+		if i > 0 {
+			sb.WriteString(", ")
+		}
+		
+		switch entry.operator {
 		case op_update_add:
-			sql[i]	= q.field(field)+"="+q.field(field)+"+?"
-			data[i] = q.fields.values[i]
+			sb.WriteString(q.field(entry.field))
+			sb.WriteByte('=')
+			sb.WriteString(q.field(entry.field))
+			sb.WriteString("+?")
 		default:
-			sql[i]	= q.field(field)+"=?"
-			data[i] = q.fields.values[i]
+			sb.WriteString(q.field(entry.field))
+			sb.WriteString("=?")
 		}
-		unique[field] = true
+		
+		q.data				= append(q.data, entry.value)
+		unique[entry.field]	= struct{}{}
 	}
-	return strings.Join(sql, ", "), data, nil
+	return sb.String(), nil
 }
