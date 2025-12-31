@@ -131,22 +131,23 @@ func (q *query_join) compile_joins() string {
 		q.joins = slices.Concat(first_priority, second_priority)
 	}
 	
-	var sql string
+	var sb strings.Builder
 	for _, j := range q.joins {
-		var sql_conditions string
-		if j.conditions != nil {
-			s := make([]string, len(j.conditions))
-			var i int
+		fmt.Fprintf(&sb, "%s .%s %s ON %s.%s=%s", j.mode, j.table, j.t, j.t, j.field, q.field(j.field_foreign))
+		if len(j.conditions) > 0 {
+			first := true
 			for column, value := range j.conditions {
-				s[i] = fmt.Sprintf(j.t+"."+column+"='%v'", value)
-				i++
+				if first {
+					first = false
+				} else {
+					sb.WriteString(" && ")
+				}
+				fmt.Fprintf(&sb, "%s.%s='%v'", j.t, column, value)
 			}
-			sql_conditions = " && "+strings.Join(s, " && ")
 		}
-		
-		sql += j.mode+" ."+j.table+" "+j.t+" ON "+j.t+"."+j.field+"="+q.field(j.field_foreign)+sql_conditions+"\n"
+		sb.WriteByte('\n')
 	}
-	return sql
+	return sb.String()
 }
 
 func (q *query_join) field(s string) string {
