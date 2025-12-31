@@ -2,6 +2,7 @@ package sqlc
 
 import (
 	"fmt"
+	"maps"
 	"strconv"
 	"slices"
 	"strings"
@@ -154,14 +155,10 @@ func (q *query_join) compile_joins() string {
 		sb.WriteString(q.field(j.field_foreign))
 		
 		if len(j.conditions) > 0 {
-			first := true
-			for column, value := range j.conditions {
-				if first {
-					first = false
-				} else {
-					sb.WriteString(" && ")
-				}
-				
+			keys := slices.Sorted(maps.Keys(j.conditions))
+			
+			for _, column := range keys {
+				value := j.conditions[column]
 				sb.WriteString(" && ")
 				sb.WriteString(j.t)
 				sb.WriteByte('.')
@@ -243,13 +240,7 @@ func (q *query_where) compile_where() (string, error){
 				sb.WriteString(q.field(clause.field))
 				sb.WriteString(clause.sql)
 				
-				//	Flatten data slices
-				switch v := group.where_data[i].(type) {
-				case []any:
-					q.data = append(q.data, v...)
-				default:
-					q.data = append(q.data, v)
-				}
+				q.append_data(group.where_data[i])
 			}
 			
 			sb.WriteByte(')')
@@ -313,17 +304,20 @@ func (q *query_where) compile_where() (string, error){
 		if clause.subquery != nil {
 			q.data = append(q.data, clause.subquery.Data()...)
 		} else {
-			//	Flatten data slices
-			switch v := q.where_data[i].(type) {
-			case []any:
-				q.data = append(q.data, v...)
-			default:
-				q.data = append(q.data, v)
-			}
+			q.append_data(q.where_data[i])
 		}
 	}
 	sb.WriteByte('\n')
 	return sb.String(), nil
+}
+
+func (q *query) append_data(val any){
+	//	Flatten data slices
+	if v, ok := val.([]any); ok {
+		q.data = append(q.data, v...)
+	} else {
+		q.data = append(q.data, val)
+	}
 }
 
 func where_operator_error(field, operator1, operator2 string) error {

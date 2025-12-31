@@ -1,6 +1,10 @@
 package sqlc
 
-import "strings"
+import (
+	"maps"
+	"slices"
+	"strings"
+)
 
 const (
 	op_eq 			= "="
@@ -75,8 +79,9 @@ func (w *Where_clause) Not_eq(field string, value any) *Where_clause {
 }
 
 func (w *Where_clause) Eqs(fields map[string]any) *Where_clause {
-	for k, v := range fields {
-		w.clause(k, op_eq, v)
+	keys := slices.Sorted(maps.Keys(fields))
+	for _, k := range keys {
+		w.clause(k, op_eq, fields[k])
 	}
 	return w
 }
