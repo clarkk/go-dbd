@@ -48,7 +48,10 @@ type (
 )
 
 func Where() *Where_clause {
-	return &Where_clause{}
+	return &Where_clause{
+		//	Preallocation with 2 conditions
+		conditions: make([]condition, 0, 2),
+	}
 }
 
 func (w *Where_clause) Wrap(wrap *Where_clause) *Where_clause {
@@ -144,45 +147,49 @@ func (w *Where_clause) apply(query where_clauser){
 		}
 	}
 	
+	var sb strings.Builder
+	
 	for _, field := range w.conditions {
+		sb.Reset()
+		
 		switch field.operator {
 		case op_null, op_not_null:
-			sql := " IS NULL"
-			if field.operator == op_not_null {
-				sql = " IS NOT NULL"
+			if field.operator == op_null {
+				sb.WriteString(" IS NULL")
+			} else {
+				sb.WriteString(" IS NOT NULL")
 			}
 			query.where_clause(
 				where_clause{
 					field:		field.field,
 					operator:	field.operator,
-					sql:		sql,
+					sql:		sb.String(),
 				},
 				field.value,
 			)
 			
 		case op_bt, op_not_bt:
-			sql := " "+sql_op_bt
 			if field.operator == op_not_bt {
-				sql = " NOT"+sql
+				sb.WriteString(" NOT")
 			}
+			sb.WriteByte(' ')
+			sb.WriteString(sql_op_bt)
 			query.where_clause(
 				where_clause{
 					field:		field.field,
 					operator:	field.operator,
-					sql:		sql,
+					sql:		sb.String(),
 				},
 				field.value,
 			)
 			
 		case op_in, op_not_in:
-			var sb strings.Builder
 			if field.operator == op_not_in {
 				sb.WriteString(" NOT")
 			}
 			sb.WriteString(" IN (")
 			where_clause_in(len(field.value.([]any)), &sb)
 			sb.WriteByte(')')
-			
 			query.where_clause(
 				where_clause{
 					field:		field.field,
@@ -193,22 +200,25 @@ func (w *Where_clause) apply(query where_clauser){
 			)
 			
 		case op_in_subquery:
+			sb.WriteString(" IN (?)")
 			query.where_clause(
 				where_clause{
 					field:		field.field,
 					operator:	field.operator,
-					sql:		" IN (?)",
+					sql:		sb.String(),
 					subquery:	field.value.(*Select_query),
 				},
 				nil,
 			)
 		
 		default:
+			sb.WriteString(field.operator)
+			sb.WriteByte('?')
 			query.where_clause(
 				where_clause{
 					field:		field.field,
 					operator:	field.operator,
-					sql:		field.operator+"?",
+					sql:		sb.String(),
 				},
 				field.value,
 			)
@@ -217,25 +227,33 @@ func (w *Where_clause) apply(query where_clauser){
 }
 
 func (w *Where_clause) apply_or_group(query where_clauser){
+	var sb strings.Builder
+	
 	group := query.where_or_group()
 	for _, field := range w.conditions {
+		sb.Reset()
+		
 		switch field.operator {
 		case op_bt:
+			sb.WriteByte(' ')
+			sb.WriteString(sql_op_bt)
 			group.where_clause(
 				where_clause{
 					field:		field.field,
 					operator:	field.operator,
-					sql:		" "+sql_op_bt,
+					sql:		sb.String(),
 				},
 				field.value,
 			)
 			
 		default:
+			sb.WriteString(field.operator)
+			sb.WriteByte('?')
 			group.where_clause(
 				where_clause{
 					field:		field.field,
 					operator:	field.operator,
-					sql:		field.operator+"?",
+					sql:		sb.String(),
 				},
 				field.value,
 			)
@@ -252,6 +270,9 @@ func (w *Where_clause) clause(field, operator string, value any){
 }
 
 func where_clause_in(count int, sb *strings.Builder){
+	if count == 0 {
+		return
+	}
 	sb.Grow((count * 2) - 1)
 	for i := range count {
 		if i > 0 {
