@@ -148,6 +148,8 @@ func (w *Where_clause) apply(query where_clauser){
 	}
 	
 	var sb strings.Builder
+	//	Preallocation
+	sb.Grow(len(w.conditions) * alloc_where_clause)
 	
 	for _, field := range w.conditions {
 		sb.Reset()
@@ -206,6 +208,8 @@ func (w *Where_clause) apply(query where_clauser){
 
 func (w *Where_clause) apply_or_group(query where_clauser){
 	var sb strings.Builder
+	//	Preallocation
+	sb.Grow(len(w.conditions) * alloc_where_clause)
 	
 	group := query.where_or_group()
 	for _, field := range w.conditions {

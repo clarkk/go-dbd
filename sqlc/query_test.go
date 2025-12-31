@@ -100,14 +100,18 @@ WHERE u.inner=test1 && a.middle=test2 && a.outer=test3`
 
 func Test_select_where_or_group(t *testing.T){
 	t.Run("where or group", func(t *testing.T){
-		where_or := Where().
+		where_or1 := Where().
 			Bt("col1", "start1", "end1").
 			Bt("col2", "start2", "end2")
+		
+		where_or2 := Where().
+			Bt("col3", "start3", "end3")
 		
 		where := Where().
 			Eq("outer", "test3")
 		
-		where.Or_group(where_or)
+		where.Or_group(where_or1)
+		where.Or_group(where_or2)
 		
 		query := Select("user").
 			Select([]string{
@@ -124,7 +128,7 @@ func Test_select_where_or_group(t *testing.T){
 `SELECT a.id, a.email, u.time
 FROM .user a
 LEFT JOIN .user_block u ON u.id=a.user_id
-WHERE (a.col1 BETWEEN ? AND ? || a.col2 BETWEEN ? AND ?) && a.outer=?`
+WHERE (a.col1 BETWEEN ? AND ? || a.col2 BETWEEN ? AND ?) && (a.col3 BETWEEN ? AND ?) && a.outer=?`
 		got := strings.TrimSpace(sql)
 		if got != want {
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
@@ -134,7 +138,7 @@ WHERE (a.col1 BETWEEN ? AND ? || a.col2 BETWEEN ? AND ?) && a.outer=?`
 `SELECT a.id, a.email, u.time
 FROM .user a
 LEFT JOIN .user_block u ON u.id=a.user_id
-WHERE (a.col1 BETWEEN start1 AND end1 || a.col2 BETWEEN start2 AND end2) && a.outer=test3`
+WHERE (a.col1 BETWEEN start1 AND end1 || a.col2 BETWEEN start2 AND end2) && (a.col3 BETWEEN start3 AND end3) && a.outer=test3`
 		got = SQL_debug(query)
 		if got != want {
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)

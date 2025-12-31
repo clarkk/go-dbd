@@ -2,9 +2,14 @@ package sqlc
 
 import (
 	"fmt"
-	"slices"
 	"strconv"
+	"slices"
 	"strings"
+)
+
+const (
+	alloc_where_clause	= 15
+	alloc_join_clause	= 50
 )
 
 type (
@@ -117,7 +122,7 @@ func (q *query_join) compile_tables(c string) error {
 }
 
 func (q *query_join) compile_joins() string {
-	//	If joins rely on third-party tables, add them as last (second priority)
+	//	If joins rely on third-party tables, add them in the end (second priority)
 	if q.joined_t {
 		first_priority	:= []join{}
 		second_priority	:= []join{}
@@ -132,8 +137,22 @@ func (q *query_join) compile_joins() string {
 	}
 	
 	var sb strings.Builder
+	//	Preallocation
+	sb.Grow(len(q.joins) * alloc_join_clause)
+	
 	for _, j := range q.joins {
-		fmt.Fprintf(&sb, "%s .%s %s ON %s.%s=%s", j.mode, j.table, j.t, j.t, j.field, q.field(j.field_foreign))
+		sb.WriteString(j.mode)
+		sb.WriteString(" .")
+		sb.WriteString(j.table)
+		sb.WriteByte(' ')
+		sb.WriteString(j.t)
+		sb.WriteString(" ON ")
+		sb.WriteString(j.t)
+		sb.WriteByte('.')
+		sb.WriteString(j.field)
+		sb.WriteByte('=')
+		sb.WriteString(q.field(j.field_foreign))
+		
 		if len(j.conditions) > 0 {
 			first := true
 			for column, value := range j.conditions {
@@ -142,7 +161,14 @@ func (q *query_join) compile_joins() string {
 				} else {
 					sb.WriteString(" && ")
 				}
-				fmt.Fprintf(&sb, "%s.%s='%v'", j.t, column, value)
+				
+				sb.WriteString(" && ")
+				sb.WriteString(j.t)
+				sb.WriteByte('.')
+				sb.WriteString(column)
+				sb.WriteString("='")
+				fmt.Fprint(&sb, value) 
+				sb.WriteByte('\'')
 			}
 		}
 		sb.WriteByte('\n')
@@ -186,21 +212,36 @@ func (q *query_where) compile_where() (string, error){
 		return "", nil
 	}
 	
-	var j int
-	sql := make([]string, length)
+	var sb strings.Builder
+	//	Preallocation
+	sb.Grow((len(q.or_groups) + len(q.where)) * alloc_where_clause)
+	
+	sb.WriteString("WHERE ")
+	first := true
+	
 	if q.use_id {
-		sql[j] = q.field("id")+"="+strconv.FormatUint(q.id, 10)
-		j++
+		sb.WriteString(q.field("id"))
+		sb.WriteByte('=')
+		sb.WriteString(strconv.FormatUint(q.id, 10))
+		first = false
 	}
 	
 	//	Apply "or groups"
 	if q.or_groups != nil {
 		for _, group := range q.or_groups {
-			var g int
-			sql_group := make([]string, len(group.where))
+			if first {
+				first = false
+			} else {
+				sb.WriteString(" && ")
+			}
+			sb.WriteByte('(')
+			
 			for i, clause := range group.where {
-				sql_group[g] = q.field(clause.field)+clause.sql
-				g++
+				if i > 0 {
+					sb.WriteString(" || ")
+				}
+				sb.WriteString(q.field(clause.field))
+				sb.WriteString(clause.sql)
 				
 				//	Flatten data slices
 				switch v := group.where_data[i].(type) {
@@ -211,8 +252,7 @@ func (q *query_where) compile_where() (string, error){
 				}
 			}
 			
-			sql[j] = "("+strings.Join(sql_group, " || ")+")"
-			j++
+			sb.WriteByte(')')
 		}
 	}
 	
@@ -248,6 +288,12 @@ func (q *query_where) compile_where() (string, error){
 			duplicates[clause.field] = clause.operator
 		}
 		
+		if first {
+			first = false
+		} else {
+			sb.WriteString(" && ")
+		}
+		
 		if clause.subquery != nil {
 			sql, err := clause.subquery.Compile()
 			if err != nil {
@@ -256,8 +302,8 @@ func (q *query_where) compile_where() (string, error){
 			clause.sql = strings.Replace(clause.sql, "?", sql, 1)
 		}
 		
-		sql[j] = q.field(clause.field)+clause.sql
-		j++
+		sb.WriteString(q.field(clause.field))
+		sb.WriteString(clause.sql)
 		
 		if clause.operator == op_null || clause.operator == op_not_null {
 			continue
@@ -276,7 +322,8 @@ func (q *query_where) compile_where() (string, error){
 			}
 		}
 	}
-	return "WHERE "+strings.Join(sql, " && ")+"\n", nil
+	sb.WriteByte('\n')
+	return sb.String(), nil
 }
 
 func where_operator_error(field, operator1, operator2 string) error {
