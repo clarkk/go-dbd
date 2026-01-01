@@ -2,6 +2,8 @@ package sqlc
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 )
 
@@ -43,18 +45,26 @@ func (q *Inserts_query) Fields(fields map[string]any) *Inserts_query {
 }
 
 func (q *Inserts_query) Compile() (string, error){
-	s, err := q.compile_inserts()
+	sql_header, err := q.compile_inserts()
 	if err != nil {
 		return "", err
 	}
-	sql, data, err := q.compile_fields()
+	sql_fields, err := q.compile_fields()
 	if err != nil {
 		return "", err
 	}
-	s += "VALUES "+sql+"\n"
-	q.data = data
+	
+	var sb strings.Builder
+	//	Preallocation
+	sb.Grow(8 + len(sql_header) + len(sql_fields))
+	
+	sb.WriteString(sql_header)
+	sb.WriteString("VALUES ")
+	sb.WriteString(sql_fields)
+	sb.WriteByte('\n')
+	
 	if q.update_duplicate {
-		var list []string
+		/*var list []string
 		if q.update_dublicate_fields != nil {
 			var found bool
 			list = make([]string, len(q.update_dublicate_fields))
@@ -70,9 +80,9 @@ func (q *Inserts_query) Compile() (string, error){
 				list[i] = key+"=VALUES("+key+")"
 			}
 		}
-		s += "ON DUPLICATE KEY UPDATE "+strings.Join(list, ", ")+"\n"
+		s += "ON DUPLICATE KEY UPDATE "+strings.Join(list, ", ")+"\n"*/
 	}
-	return s, nil
+	return sb.String(), nil
 }
 
 func (q *Inserts_query) compile_inserts() (string, error){
@@ -88,15 +98,12 @@ func (q *Inserts_query) compile_inserts() (string, error){
 	sb.WriteString(q.table)
 	sb.WriteString(" (")
 	
-	q.col_keys = make([]string, q.col_count)
-	i := 0
-	for k := range q.col_map {
+	q.col_keys = slices.Sorted(maps.Keys(q.col_map))
+	for i, k := range q.col_keys {
 		if i > 0 {
 			sb.WriteString(", ")
 		}
 		sb.WriteString(k)
-		q.col_keys[i] = k
-		i++
 	}
 	
 	sb.WriteString(")\n")
@@ -104,23 +111,31 @@ func (q *Inserts_query) compile_inserts() (string, error){
 	return sb.String(), nil
 }
 
-func (q *Inserts_query) compile_fields() (string, []any, error){
+func (q *Inserts_query) compile_fields() (string, error){
 	length	:= len(q.fields)
-	sql		:= make([]string, length)
-	data	:= make([]any, length * q.col_count)
+	q.data	= make([]any, q.col_count * length)
+	
+	var sb strings.Builder
+	//	Preallocation
+	sb.Grow(length * alloc_field_assignment)
+	
 	j := 0
 	for i, fields := range q.fields {
 		if q.col_count != len(fields) {
-			return "", nil, fmt.Errorf("Insert rows inconsistency")
+			return "", fmt.Errorf("Insert rows inconsistency")
+		}
+		if i > 0 {
+			sb.WriteByte(',')
 		}
 		
-		row := make([]string, q.col_count)
-		for i, key := range q.col_keys {
-			row[i]	= "?"
-			data[j]	= fields[key]
+		sb.WriteByte('(')
+		placeholder_value_array(q.col_count, &sb)
+		sb.WriteByte(')')
+		
+		for _, key := range q.col_keys {
+			q.data[j] = fields[key]
 			j++
 		}
-		sql[i] = "("+strings.Join(row, ", ")+")"
 	}
-	return strings.Join(sql, ","), data, nil
+	return sb.String(), nil
 }

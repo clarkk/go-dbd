@@ -1092,7 +1092,7 @@ func Test_inserts(t *testing.T){
 		
 		want :=
 `INSERT .account (account_number, name)
-VALUES (?, ?),(?, ?),(?, ?),(?, ?)`
+VALUES (?,?),(?,?),(?,?),(?,?)`
 		got := strings.TrimSpace(sql)
 		if got != want {
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
@@ -1100,7 +1100,7 @@ VALUES (?, ?),(?, ?),(?, ?),(?, ?)`
 		
 		want =
 `INSERT .account (account_number, name)
-VALUES (123, test1),(456, test2),(789, test3),(101112, test4)`
+VALUES (123,test1),(456,test2),(789,test3),(101112,test4)`
 		got = SQL_debug(query)
 		if got != want {
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
@@ -1123,7 +1123,7 @@ VALUES (123, test1),(456, test2),(789, test3),(101112, test4)`
 		
 		want :=
 `INSERT .account (account_number, name)
-VALUES (?, ?),(?, ?)
+VALUES (?,?),(?,?)
 ON DUPLICATE KEY UPDATE account_number=VALUES(account_number), name=VALUES(name)`
 		got := strings.TrimSpace(sql)
 		if got != want {
@@ -1132,7 +1132,7 @@ ON DUPLICATE KEY UPDATE account_number=VALUES(account_number), name=VALUES(name)
 		
 		want =
 `INSERT .account (account_number, name)
-VALUES (123, test1),(456, test2)
+VALUES (123,test1),(456,test2)
 ON DUPLICATE KEY UPDATE account_number=VALUES(account_number), name=VALUES(name)`
 		got = SQL_debug(query)
 		if got != want {
@@ -1158,7 +1158,7 @@ ON DUPLICATE KEY UPDATE account_number=VALUES(account_number), name=VALUES(name)
 		
 		want :=
 `INSERT .account (account_number, name)
-VALUES (?, ?),(?, ?)
+VALUES (?,?),(?,?)
 ON DUPLICATE KEY UPDATE name=VALUES(name)`
 		got := strings.TrimSpace(sql)
 		if got != want {
@@ -1167,7 +1167,7 @@ ON DUPLICATE KEY UPDATE name=VALUES(name)`
 		
 		want =
 `INSERT .account (account_number, name)
-VALUES (123, test1),(456, test2)
+VALUES (123,test1),(456,test2)
 ON DUPLICATE KEY UPDATE name=VALUES(name)`
 		got = SQL_debug(query)
 		if got != want {

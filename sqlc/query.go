@@ -335,6 +335,17 @@ func (q *query) append_data(val any){
 	}
 }
 
+func placeholder_value_array(count int, sb *strings.Builder){
+	if count == 0 {
+		return
+	}
+	sb.Grow((count * 2) - 1)
+	sb.WriteByte('?')
+	for i := 1; i < count; i++ {
+		sb.WriteString(",?")
+	}
+}
+
 func where_operator_error(field, operator1, operator2 string) error {
 	return fmt.Errorf("Where clause operator incompatable on same field (%s): %s %s", field, operator1, operator2)
 }

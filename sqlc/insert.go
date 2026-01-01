@@ -89,9 +89,9 @@ func (q *Insert_query) Compile() (string, error){
 }
 
 func (q *Insert_query) compile_fields() (string, error){
-	length := len(q.fields.entries)
-	q.data = make([]any, length)
-	unique := make(map[string]struct{}, length)
+	length	:= len(q.fields.entries)
+	q.data	= make([]any, length)
+	unique	:= make(map[string]struct{}, length)
 	
 	var sb strings.Builder
 	//	Preallocation

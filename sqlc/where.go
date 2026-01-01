@@ -179,7 +179,7 @@ func (w *Where_clause) apply(query where_clauser){
 				sb.WriteString(" NOT")
 			}
 			sb.WriteString(" IN (")
-			where_clause_in(len(field.value.([]any)), &sb)
+			placeholder_value_array(len(field.value.([]any)), &sb)
 			sb.WriteByte(')')
 			
 		case op_in_subquery:
@@ -240,7 +240,7 @@ func (w *Where_clause) apply_or_group(query where_clauser){
 				sb.WriteString(" NOT")
 			}
 			sb.WriteString(" IN (")
-			where_clause_in(len(field.value.([]any)), &sb)
+			placeholder_value_array(len(field.value.([]any)), &sb)
 			sb.WriteByte(')')
 		
 		case op_in_subquery:
@@ -278,17 +278,4 @@ func (w *Where_clause) clause(field, operator string, value any){
 		operator:	operator,
 		value:		value,
 	})
-}
-
-func where_clause_in(count int, sb *strings.Builder){
-	if count == 0 {
-		return
-	}
-	sb.Grow((count * 2) - 1)
-	for i := range count {
-		if i > 0 {
-			sb.WriteByte(',')
-		}
-		sb.WriteByte('?')
-	}
 }
