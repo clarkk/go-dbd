@@ -3,7 +3,7 @@
 
 Database handling for MySQL/MariaDB
 
-All packages are extremely simple and lightweight by design
+All packages are extremely simple and lightweight by design. The queries are build with `strings.Builder` to reduce memory allocations.
 
 - [go-dbd/sqlc](#go-dbdsqlc) SQL compiler
 

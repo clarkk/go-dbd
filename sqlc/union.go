@@ -12,12 +12,17 @@ type Union_query struct {
 }
 
 func Union() *Union_query {
-	return &Union_query{}
+	return &Union_query{
+		//	Preallokation with 2 queries
+		unions:	make([]*Select_query, 0, 2),
+	}
 }
 
 func Union_all() *Union_query {
 	return &Union_query{
-		all: true,
+		//	Preallokation with 2 queries
+		unions:	make([]*Select_query, 0, 2),
+		all:	true,
 	}
 }
 
@@ -65,24 +70,47 @@ func (q *Union_query) Compile() (string, error){
 	if err := q.compile_tables("t"); err != nil {
 		return "", err
 	}
-	s := q.compile_select()
+	
+	sql_select := q.compile_select()
 	sql_from, err := q.compile_from()
 	if err != nil {
 		return "", err
 	}
-	s += sql_from
+	var (
+		sql_join	string
+		sql_limit	string
+	)
 	if q.joined {
-		s += q.compile_joins()
+		sql_join = q.compile_joins()
 	}
 	sql_where, err := q.compile_where()
 	if err != nil {
 		return "", err
 	}
-	s += sql_where+q.compile_group()+q.compile_order()
+	sql_group := q.compile_group()
+	sql_order := q.compile_order()
 	if q.limit.limit != 0 {
-		s += q.compile_limit()
+		sql_limit = q.compile_limit()
 	}
-	return s, nil
+	
+	var sb strings.Builder
+	//	Preallocation
+	sb.Grow(1 + len(sql_select) + len(sql_from) + len(sql_join) + len(sql_where) + len(sql_group) + len(sql_order) + len(sql_limit))
+	
+	sb.WriteString(sql_select)
+	sb.WriteString(sql_from)
+	if q.joined {
+		sb.WriteString(sql_join)
+	}
+	sb.WriteString(sql_where)
+	sb.WriteString(sql_group)
+	sb.WriteString(sql_order)
+	if q.limit.limit != 0 {
+		sb.WriteString(sql_limit)
+	}
+	
+	sb.WriteByte('\n')
+	return sb.String(), nil
 }
 
 func (q *Union_query) compile_from() (string, error){

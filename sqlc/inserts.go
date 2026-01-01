@@ -79,13 +79,29 @@ func (q *Inserts_query) compile_inserts() (string, error){
 	if q.col_count != len(q.col_map) {
 		return "", fmt.Errorf("Insert rows inconsistency")
 	}
+	
+	var sb strings.Builder
+	//	Preallocation
+	sb.Grow(12 + (q.col_count * alloc_select_field))
+	
+	sb.WriteString("INSERT .")
+	sb.WriteString(q.table)
+	sb.WriteString(" (")
+	
 	q.col_keys = make([]string, q.col_count)
 	i := 0
 	for k := range q.col_map {
+		if i > 0 {
+			sb.WriteString(", ")
+		}
+		sb.WriteString(k)
 		q.col_keys[i] = k
 		i++
 	}
-	return "INSERT ."+q.table+" ("+strings.Join(q.col_keys, ", ")+")\n", nil
+	
+	sb.WriteString(")\n")
+	
+	return sb.String(), nil
 }
 
 func (q *Inserts_query) compile_fields() (string, []any, error){
