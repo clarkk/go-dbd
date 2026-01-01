@@ -961,8 +961,8 @@ SET time_login=123`
 		
 		want :=
 `INSERT .user
-SET time_login=?, name=?
-ON DUPLICATE KEY UPDATE time_login=?, name=?`
+SET name=?, time_login=?
+ON DUPLICATE KEY UPDATE name=?, time_login=?`
 		got := strings.TrimSpace(sql)
 		if got != want {
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
@@ -970,8 +970,8 @@ ON DUPLICATE KEY UPDATE time_login=?, name=?`
 		
 		want =
 `INSERT .user
-SET time_login=123, name=test
-ON DUPLICATE KEY UPDATE time_login=123, name=test`
+SET name=test, time_login=123
+ON DUPLICATE KEY UPDATE name=test, time_login=123`
 		got = SQL_debug(query)
 		if got != want {
 			t.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
@@ -1050,7 +1050,7 @@ ON DUPLICATE KEY UPDATE draft=draft+-10`
 		
 		want :=
 `INSERT .user
-SET time_login=?, name=?
+SET name=?, time_login=?
 ON DUPLICATE KEY UPDATE time_login=?`
 		got := strings.TrimSpace(sql)
 		if got != want {
@@ -1059,7 +1059,7 @@ ON DUPLICATE KEY UPDATE time_login=?`
 		
 		want =
 `INSERT .user
-SET time_login=123, name=test
+SET name=test, time_login=123
 ON DUPLICATE KEY UPDATE time_login=123`
 		got = SQL_debug(query)
 		if got != want {

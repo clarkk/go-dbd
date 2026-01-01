@@ -69,14 +69,14 @@ func (q *Insert_query) Compile() (string, error){
 	/*if len(q.joins) != 0 {
 		s += q.compile_joins()
 	}*/
-	/*if q.update_duplicate {
+	if q.update_duplicate {
 		sql, data, err := q.compile_update_duplicate_fields()
 		if err != nil {
 			return "", err
 		}
 		s += "ON DUPLICATE KEY UPDATE "+sql+"\n"
 		q.data = slices.Concat(q.data, data)
-	}*/
+	}
 	return s, nil
 }
 
@@ -90,7 +90,7 @@ func (q *Insert_query) compile_insert() string {
 
 func (q *Insert_query) compile_fields() (string, error){
 	length := len(q.fields.entries)
-	q.data = make([]any, 0, length)
+	q.data = make([]any, length)
 	unique := make(map[string]struct{}, length)
 	
 	var sb strings.Builder
@@ -108,47 +108,69 @@ func (q *Insert_query) compile_fields() (string, error){
 		sb.WriteString(q.field(entry.field))
 		sb.WriteString("=?")
 		
-		q.data						= append(q.data, entry.value)
+		q.data[i]					= entry.value
 		unique[entry.field]			= struct{}{}
 		q.map_fields[entry.field]	= i
 	}
 	return sb.String(), nil
 }
 
-/*func (q *Insert_query) compile_update_duplicate_fields() (string, []any, error){
+func (q *Insert_query) compile_update_duplicate_fields() (string, []any, error){
+	var (
+		sb		strings.Builder
+		data	[]any
+	)
+	
 	if q.update_dublicate_fields != nil {
 		length	:= len(q.update_dublicate_fields)
-		sql		:= make([]string, length)
-		data	:= make([]any, length)
+		data	= make([]any, length)
+		
+		//	Preallocation
+		sb.Grow(length * alloc_field_clause)
+		
 		for i, field := range q.update_dublicate_fields {
 			j, found := q.map_fields[field]
 			if !found {
 				return "", nil, fmt.Errorf("Invalid field: %s", field)
 			}
-			switch operator := q.fields.operators[j]; operator {
-			case op_update_add:
-				sql[i]	= q.field(field)+"="+q.field(field)+"+?"
-				data[i] = q.fields.values[j]
-			default:
-				sql[i]	= q.field(field)+"=?"
-				data[i] = q.fields.values[j]
+			
+			if i > 0 {
+				sb.WriteString(", ")
 			}
+			
+			q.write_duplicate_field(&sb, q.field(field), q.fields.entries[j].operator)
+			
+			data[i] = q.fields.entries[j].value
 		}
-		return strings.Join(sql, ", "), data, nil
 	} else {
-		length	:= len(q.fields.fields)
-		sql		:= make([]string, length)
-		data	:= make([]any, length)
-		for i, field := range q.fields.fields {
-			switch operator := q.fields.operators[i]; operator {
-			case op_update_add:
-				sql[i]	= q.field(field)+"="+q.field(field)+"+?"
-				data[i] = q.fields.values[i]
-			default:
-				sql[i]	= q.field(field)+"=?"
-				data[i] = q.fields.values[i]
+		length	:= len(q.fields.entries)
+		data	= make([]any, length)
+		
+		//	Preallocation
+		sb.Grow(length * alloc_field_clause)
+		
+		for i, entry := range q.fields.entries {
+			if i > 0 {
+				sb.WriteString(", ")
 			}
+			
+			q.write_duplicate_field(&sb, q.field(entry.field), entry.operator)
+			
+			data[i] = entry.value
 		}
-		return strings.Join(sql, ", "), data, nil
 	}
-}*/
+	return sb.String(), data, nil
+}
+
+func (q *Insert_query) write_duplicate_field(sb *strings.Builder, field, operator string){
+	switch operator {
+	case op_update_add:
+		sb.WriteString(field)
+		sb.WriteByte('=')
+		sb.WriteString(field)
+		sb.WriteString("+?")
+	default:
+		sb.WriteString(field)
+		sb.WriteString("=?")
+	}
+}

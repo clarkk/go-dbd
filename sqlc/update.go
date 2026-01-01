@@ -91,7 +91,7 @@ func (q *Update_query) compile_update() string {
 
 func (q *Update_query) compile_fields() (string, error){
 	length := len(q.fields.entries)
-	q.data = make([]any, 0, length)
+	q.data = make([]any, length)
 	unique := make(map[string]struct{}, length)
 	
 	var sb strings.Builder
@@ -117,7 +117,7 @@ func (q *Update_query) compile_fields() (string, error){
 			sb.WriteString("=?")
 		}
 		
-		q.data				= append(q.data, entry.value)
+		q.data[i]			= entry.value
 		unique[entry.field]	= struct{}{}
 	}
 	return sb.String(), nil
