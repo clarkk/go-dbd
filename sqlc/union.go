@@ -13,14 +13,14 @@ type Union_query struct {
 
 func Union() *Union_query {
 	return &Union_query{
-		//	Preallokation with 2 queries
+		//	Preallocation with 2 queries
 		unions:	make([]*Select_query, 0, 2),
 	}
 }
 
 func Union_all() *Union_query {
 	return &Union_query{
-		//	Preallokation with 2 queries
+		//	Preallocation with 2 queries
 		unions:	make([]*Select_query, 0, 2),
 		all:	true,
 	}

@@ -131,13 +131,12 @@ func (q *Select_query) Compile() (string, error){
 		sql_limit = q.compile_limit()
 	}
 	
+	var sb strings.Builder
+	//	Preallocation
 	alloc := len(sql_select) + len(sql_from) + len(sql_join) + len(sql_where) + len(sql_group) + len(sql_order) + len(sql_limit)
 	if q.read_lock {
 		alloc += 11
 	}
-	
-	var sb strings.Builder
-	//	Preallocation
 	sb.Grow(alloc)
 	
 	sb.WriteString(sql_select)
@@ -201,13 +200,12 @@ func (q *Select_query) compile_select() string {
 }
 
 func (q *Select_query) compile_from() string {
+	var sb strings.Builder
+	//	Preallocation
 	alloc := 7 + len(q.table)
 	if q.joined {
 		alloc += 1 + len(q.t)
 	}
-	
-	var sb strings.Builder
-	//	Preallocation
 	sb.Grow(alloc)
 	
 	sb.WriteString("FROM .")

@@ -8,7 +8,7 @@ import (
 )
 
 type Inserts_query struct {
-	query
+	query_join
 	fields 					[]Map
 	update_duplicate		bool
 	update_dublicate_fields []string
@@ -19,9 +19,11 @@ type Inserts_query struct {
 
 func Inserts(table string) *Inserts_query {
 	return &Inserts_query{
-		query: query{
-			table:		table,
-			data: 		[]any{},
+		query_join: query_join{
+			query: query{
+				table:		table,
+				data: 		[]any{},
+			},
 		},
 		col_map:	Map{},
 	}
@@ -44,7 +46,16 @@ func (q *Inserts_query) Fields(fields map[string]any) *Inserts_query {
 	return q
 }
 
+func (q *Inserts_query) Left_join(table, t, field, field_foreign string, conditions Map) *Inserts_query {
+	q.left_join(table, t, field, field_foreign, conditions)
+	return q
+}
+
 func (q *Inserts_query) Compile() (string, error){
+	t := q.base_table_short()
+	if err := q.compile_tables(t); err != nil {
+		return "", err
+	}
 	sql_header, err := q.compile_inserts()
 	if err != nil {
 		return "", err
@@ -56,7 +67,16 @@ func (q *Inserts_query) Compile() (string, error){
 	
 	var sb strings.Builder
 	//	Preallocation
-	sb.Grow(8 + len(sql_header) + len(sql_fields))
+	alloc := 8 + len(sql_header) + len(sql_fields)
+	if q.update_duplicate {
+		alloc += 25
+		if q.update_dublicate_fields != nil {
+			alloc += len(q.update_dublicate_fields) * (9 + alloc_select_field)
+		} else {
+			alloc += q.col_count * (9 + alloc_select_field)
+		}
+	}
+	sb.Grow(alloc)
 	
 	sb.WriteString(sql_header)
 	sb.WriteString("VALUES ")
@@ -64,23 +84,29 @@ func (q *Inserts_query) Compile() (string, error){
 	sb.WriteByte('\n')
 	
 	if q.update_duplicate {
-		/*var list []string
+		sb.WriteString("ON DUPLICATE KEY UPDATE ")
+		
 		if q.update_dublicate_fields != nil {
 			var found bool
-			list = make([]string, len(q.update_dublicate_fields))
-			for i, key := range q.update_dublicate_fields {
-				if _, found = q.col_map[key]; !found {
-					return "", fmt.Errorf("Invalid update duplicate fields")
+			for i, field := range q.update_dublicate_fields {
+				if _, found = q.col_map[field]; !found {
+					return "", fmt.Errorf("Invalid update duplicate field: %s", field)
 				}
-				list[i] = key+"=VALUES("+key+")"
+				if i > 0 {
+					sb.WriteByte(',')
+				}
+				q.write_update_duplicate_field(&sb, field)
 			}
 		} else {
-			list = make([]string, len(q.col_keys))
-			for i, key := range q.col_keys {
-				list[i] = key+"=VALUES("+key+")"
+			for i, field := range q.col_keys {
+				if i > 0 {
+					sb.WriteByte(',')
+				}
+				q.write_update_duplicate_field(&sb, field)
 			}
 		}
-		s += "ON DUPLICATE KEY UPDATE "+strings.Join(list, ", ")+"\n"*/
+		
+		sb.WriteByte('\n')
 	}
 	return sb.String(), nil
 }
@@ -90,6 +116,8 @@ func (q *Inserts_query) compile_inserts() (string, error){
 		return "", fmt.Errorf("Insert rows inconsistency")
 	}
 	
+	q.col_keys = slices.Sorted(maps.Keys(q.col_map))
+	
 	var sb strings.Builder
 	//	Preallocation
 	sb.Grow(12 + (q.col_count * alloc_select_field))
@@ -97,15 +125,12 @@ func (q *Inserts_query) compile_inserts() (string, error){
 	sb.WriteString("INSERT .")
 	sb.WriteString(q.table)
 	sb.WriteString(" (")
-	
-	q.col_keys = slices.Sorted(maps.Keys(q.col_map))
 	for i, k := range q.col_keys {
 		if i > 0 {
 			sb.WriteString(", ")
 		}
-		sb.WriteString(k)
+		sb.WriteString(q.field(k))
 	}
-	
 	sb.WriteString(")\n")
 	
 	return sb.String(), nil
@@ -122,7 +147,7 @@ func (q *Inserts_query) compile_fields() (string, error){
 	j := 0
 	for i, fields := range q.fields {
 		if q.col_count != len(fields) {
-			return "", fmt.Errorf("Insert rows inconsistency")
+			return "", fmt.Errorf("Insert rows inconsistency in row %d", i+1)
 		}
 		if i > 0 {
 			sb.WriteByte(',')
@@ -138,4 +163,12 @@ func (q *Inserts_query) compile_fields() (string, error){
 		}
 	}
 	return sb.String(), nil
+}
+
+func (q *Inserts_query) write_update_duplicate_field(sb *strings.Builder, field string){
+	f := q.field(field)
+	sb.WriteString(f)
+	sb.WriteString("=VALUES(")
+	sb.WriteString(f)
+	sb.WriteByte(')')
 }

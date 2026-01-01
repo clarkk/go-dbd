@@ -50,6 +50,11 @@ func (q *Insert_query) Fields(fields map[string]any) *Insert_query {
 	return q
 }
 
+func (q *Insert_query) Left_join(table, t, field, field_foreign string, conditions Map) *Insert_query {
+	q.left_join(table, t, field, field_foreign, conditions)
+	return q
+}
+
 func (q *Insert_query) Compile() (string, error){
 	t := q.base_table_short()
 	if err := q.compile_tables(t); err != nil {
@@ -60,9 +65,24 @@ func (q *Insert_query) Compile() (string, error){
 		return "", err
 	}
 	
+	var (
+		sql_update	string
+		data_update	[]any
+	)
+	if q.update_duplicate {
+		sql_update, data_update, err = q.compile_update_duplicate_fields()
+		if err != nil {
+			return "", err
+		}
+	}
+	
 	var sb strings.Builder
 	//	Preallocation
-	sb.Grow(14 + len(q.table) + len(sql))
+	alloc := 14 + len(q.table) + len(sql)
+	if q.update_duplicate {
+		alloc += 25 + len(sql_update)
+	}
+	sb.Grow(alloc)
 	
 	sb.WriteString("INSERT .")
 	sb.WriteString(q.table)
@@ -72,18 +92,12 @@ func (q *Insert_query) Compile() (string, error){
 	sb.WriteByte('\n')
 	
 	if q.update_duplicate {
-		sql_update, data, err := q.compile_update_duplicate_fields()
-		if err != nil {
-			return "", err
-		}
-		//	Preallocation
-		sb.Grow(25 + len(sql_update))
-		
 		sb.WriteString("ON DUPLICATE KEY UPDATE ")
 		sb.WriteString(sql_update)
 		sb.WriteByte('\n')
 		
-		q.data = append(q.data, data...)
+		q.data = append(q.data, data_update...)
+		sb.WriteByte('\n')
 	}
 	return sb.String(), nil
 }
