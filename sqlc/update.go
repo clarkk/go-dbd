@@ -49,11 +49,6 @@ func (q *Update_query) Fields_operator(fields *Fields_clause) *Update_query {
 	return q
 }
 
-/*func (q *Update_query) Left_join(table, t, field, field_foreign string) *Update_query {
-	q.left_join(table, t, field, field_foreign)
-	return q
-}*/
-
 func (q *Update_query) Where(clauses *Where_clause) *Update_query {
 	clauses.apply(q)
 	return q
@@ -69,24 +64,24 @@ func (q *Update_query) Compile() (string, error){
 		return "", err
 	}
 	
-	s := q.compile_update()+"SET "+sql+"\n"
-	/*if len(q.joins) != 0 {
-		s += q.compile_joins()
-	}*/
 	sql_where, err := q.compile_where()
 	if err != nil {
 		return "", err
 	}
-	s += sql_where
-	return s, nil
-}
-
-func (q *Update_query) compile_update() string {
-	s := "UPDATE ."+q.table
-	/*if q.joined {
-		s += " "+q.t
-	}*/
-	return s+"\n"
+	
+	var sb strings.Builder
+	//	Preallocation
+	sb.Grow(14 + len(q.table) + len(sql) + len(sql_where))
+	
+	sb.WriteString("UPDATE .")
+	sb.WriteString(q.table)
+	sb.WriteByte('\n')
+	sb.WriteString("SET ")
+	sb.WriteString(sql)
+	sb.WriteByte('\n')
+	sb.WriteString(sql_where)
+	
+	return sb.String(), nil
 }
 
 func (q *Update_query) compile_fields() (string, error){
@@ -106,16 +101,7 @@ func (q *Update_query) compile_fields() (string, error){
 			sb.WriteString(", ")
 		}
 		
-		switch entry.operator {
-		case op_update_add:
-			sb.WriteString(q.field(entry.field))
-			sb.WriteByte('=')
-			sb.WriteString(q.field(entry.field))
-			sb.WriteString("+?")
-		default:
-			sb.WriteString(q.field(entry.field))
-			sb.WriteString("=?")
-		}
+		q.write_update_field(&sb, q.field(entry.field), entry.operator)
 		
 		q.data[i]			= entry.value
 		unique[entry.field]	= struct{}{}

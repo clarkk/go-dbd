@@ -1,5 +1,7 @@
 package sqlc
 
+import "strings"
+
 type Delete_query struct {
 	query_where
 }
@@ -27,11 +29,6 @@ func Delete(table string) *Delete_query {
 	}
 }
 
-/*func (q *Delete_query) Left_join(table, t, field, field_foreign string) *Delete_query {
-	q.left_join(table, t, field, field_foreign)
-	return q
-}*/
-
 func (q *Delete_query) Where(clauses *Where_clause) *Delete_query {
 	clauses.apply(q)
 	return q
@@ -42,22 +39,20 @@ func (q *Delete_query) Compile() (string, error){
 	if err := q.compile_tables(t); err != nil {
 		return "", err
 	}
-	s := q.compile_delete()
-	/*if len(q.joins) != 0 {
-		s += q.compile_joins()
-	}*/
+	
 	sql_where, err := q.compile_where()
 	if err != nil {
 		return "", err
 	}
-	s += sql_where
-	return s, nil
-}
-
-func (q *Delete_query) compile_delete() string {
-	s := "DELETE FROM ."+q.table
-	/*if q.joined {
-		s += " "+q.t
-	}*/
-	return s+"\n"
+	
+	var sb strings.Builder
+	//	Preallocation
+	sb.Grow(14 + len(q.table) + len(sql_where))
+	
+	sb.WriteString("DELETE FROM .")
+	sb.WriteString(q.table)
+	sb.WriteByte('\n')
+	sb.WriteString(sql_where)
+	
+	return sb.String(), nil
 }

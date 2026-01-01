@@ -50,11 +50,6 @@ func (q *Insert_query) Fields(fields map[string]any) *Insert_query {
 	return q
 }
 
-/*func (q *Insert_query) Left_join(table, t, field, field_foreign string) *Insert_query {
-	q.left_join(table, t, field, field_foreign)
-	return q
-}*/
-
 func (q *Insert_query) Compile() (string, error){
 	t := q.base_table_short()
 	if err := q.compile_tables(t); err != nil {
@@ -65,27 +60,32 @@ func (q *Insert_query) Compile() (string, error){
 		return "", err
 	}
 	
-	s := q.compile_insert()+"SET "+sql+"\n"
-	/*if len(q.joins) != 0 {
-		s += q.compile_joins()
-	}*/
+	var sb strings.Builder
+	//	Preallocation
+	sb.Grow(14 + len(q.table) + len(sql))
+	
+	sb.WriteString("INSERT .")
+	sb.WriteString(q.table)
+	sb.WriteByte('\n')
+	sb.WriteString("SET ")
+	sb.WriteString(sql)
+	sb.WriteByte('\n')
+	
 	if q.update_duplicate {
-		sql, data, err := q.compile_update_duplicate_fields()
+		sql_update, data, err := q.compile_update_duplicate_fields()
 		if err != nil {
 			return "", err
 		}
-		s += "ON DUPLICATE KEY UPDATE "+sql+"\n"
+		//	Preallocation
+		sb.Grow(25 + len(sql_update))
+		
+		sb.WriteString("ON DUPLICATE KEY UPDATE ")
+		sb.WriteString(sql_update)
+		sb.WriteByte('\n')
+		
 		q.data = slices.Concat(q.data, data)
 	}
-	return s, nil
-}
-
-func (q *Insert_query) compile_insert() string {
-	s := "INSERT ."+q.table
-	/*if q.joined {
-		s += " "+q.t
-	}*/
-	return s+"\n"
+	return sb.String(), nil
 }
 
 func (q *Insert_query) compile_fields() (string, error){
@@ -138,7 +138,7 @@ func (q *Insert_query) compile_update_duplicate_fields() (string, []any, error){
 				sb.WriteString(", ")
 			}
 			
-			q.write_duplicate_field(&sb, q.field(field), q.fields.entries[j].operator)
+			q.write_update_field(&sb, q.field(field), q.fields.entries[j].operator)
 			
 			data[i] = q.fields.entries[j].value
 		}
@@ -154,23 +154,10 @@ func (q *Insert_query) compile_update_duplicate_fields() (string, []any, error){
 				sb.WriteString(", ")
 			}
 			
-			q.write_duplicate_field(&sb, q.field(entry.field), entry.operator)
+			q.write_update_field(&sb, q.field(entry.field), entry.operator)
 			
 			data[i] = entry.value
 		}
 	}
 	return sb.String(), data, nil
-}
-
-func (q *Insert_query) write_duplicate_field(sb *strings.Builder, field, operator string){
-	switch operator {
-	case op_update_add:
-		sb.WriteString(field)
-		sb.WriteByte('=')
-		sb.WriteString(field)
-		sb.WriteString("+?")
-	default:
-		sb.WriteString(field)
-		sb.WriteString("=?")
-	}
 }

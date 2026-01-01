@@ -174,6 +174,19 @@ func (q *query_join) compile_joins() string {
 	return sb.String()
 }
 
+func (q *query_join) write_update_field(sb *strings.Builder, field, operator string){
+	switch operator {
+	case op_update_add:
+		sb.WriteString(field)
+		sb.WriteByte('=')
+		sb.WriteString(field)
+		sb.WriteString("+?")
+	default:
+		sb.WriteString(field)
+		sb.WriteString("=?")
+	}
+}
+
 func (q *query_join) field(s string) string {
 	if q.joined && !strings.Contains(s, ".") {
 		return q.t+"."+s
