@@ -41,12 +41,15 @@ func Select(table string) *Select_query {
 			query_join: query_join{
 				query: query{
 					table:		table,
-					data:		[]any{},
+					//	Preallocated 4 values
+					data:		make([]any, 0, 4),
 				},
-				joins: 		[]join{},
+				//	Preallocated 1 join
+				joins:	make([]join, 0, 1), 
 			},
-			where:		[]where_clause{},
-			where_data:	[]any{},
+			//	Preallocated 2 where conditions
+			where:		make([]where_clause, 0, 2),
+			where_data:	make([]any, 0, 2),
 		},
 	}
 }
@@ -108,75 +111,169 @@ func (q *Select_query) Compile() (string, error){
 	if err := q.compile_tables(t); err != nil {
 		return "", err
 	}
-	s := q.compile_select()+q.compile_from()
+	
+	sql_select	:= q.compile_select()
+	sql_from	:= q.compile_from()
+	var (
+		sql_join	string
+		sql_limit	string
+	)
 	if q.joined {
-		s += q.compile_joins()
+		sql_join = q.compile_joins()
 	}
 	sql_where, err := q.compile_where()
 	if err != nil {
 		return "", err
 	}
-	s += sql_where+q.compile_group()+q.compile_order()
+	sql_group	:= q.compile_group()
+	sql_order	:= q.compile_order()
 	if q.limit.limit != 0 {
-		s += q.compile_limit()
+		sql_limit = q.compile_limit()
+	}
+	
+	alloc := len(sql_select) + len(sql_from) + len(sql_join) + len(sql_where) + len(sql_group) + len(sql_order) + len(sql_limit)
+	if q.read_lock {
+		alloc += 11
+	}
+	
+	var sb strings.Builder
+	//	Preallocation
+	sb.Grow(alloc)
+	
+	sb.WriteString(sql_select)
+	sb.WriteString(sql_from)
+	if q.joined {
+		sb.WriteString(sql_join)
+	}
+	sb.WriteString(sql_where)
+	sb.WriteString(sql_group)
+	sb.WriteString(sql_order)
+	
+	if q.limit.limit != 0 {
+		sb.WriteString(sql_limit)
 	}
 	if q.read_lock {
-		s += "FOR UPDATE\n"
+		sb.WriteString("FOR UPDATE\n")
 	}
-	return s, nil
+	return sb.String(), nil
 }
 
 func (q *Select_query) compile_select() string {
-	list := make([]string, len(q.select_fields))
+	var sb strings.Builder
+	//	Preallocation
+	sb.Grow(7 + alloc_select_field * len(q.select_fields))
+	
+	if q.select_distinct {
+		sb.WriteString("SELECT DISTINCT ")
+	} else {
+		sb.WriteString("SELECT ")
+	}
+	
 	for i, s := range q.select_fields {
-		list[i] = q.field(s.field)
+		if i > 0 {
+			sb.WriteString(", ")
+		}
+		
+		field := q.field(s.field)
 		if s.function != "" {
 			switch s.function {
 			case "sum_zero":
-				list[i] = "IFNULL(SUM("+list[i]+"), 0)"
+				sb.WriteString("IFNULL(SUM(")
+				sb.WriteString(field)
+				sb.WriteString("), 0)")
 			default:
-				list[i] = strings.ToUpper(s.function)+"("+list[i]+")"
+				sb.WriteString(strings.ToUpper(s.function))
+				sb.WriteByte('(')
+				sb.WriteString(field)
+				sb.WriteByte(')')
 			}
+		} else {
+			sb.WriteString(field)
 		}
+		
 		if s.alias != "" {
-			list[i] += " "+s.alias
+			sb.WriteByte(' ')
+			sb.WriteString(s.alias)
 		}
 	}
-	if q.select_distinct {
-		return "SELECT DISTINCT "+strings.Join(list, ", ")+"\n"
-	} else {
-		return "SELECT "+strings.Join(list, ", ")+"\n"
-	}
+	sb.WriteByte('\n')
+	return sb.String()
 }
 
 func (q *Select_query) compile_from() string {
-	s := "FROM ."+q.table
+	alloc := 7 + len(q.table)
 	if q.joined {
-		s += " "+q.t
+		alloc += 1 + len(q.t)
 	}
-	return s+"\n"
+	
+	var sb strings.Builder
+	//	Preallocation
+	sb.Grow(alloc)
+	
+	sb.WriteString("FROM .")
+	sb.WriteString(q.table)
+	if q.joined {
+		sb.WriteByte(' ')
+		sb.WriteString(q.t)
+	}
+	sb.WriteByte('\n')
+	return sb.String()
 }
 
 func (q *Select_query) compile_group() string {
-	if len(q.group) == 0 {
+	length := len(q.group)
+	if length == 0 {
 		return ""
 	}
+	
+	var sb strings.Builder
+	//	Preallocation
+	sb.Grow(10 + alloc_select_field * length)
+	
+	sb.WriteString("GROUP BY ")
 	for i, v := range q.group {
-		q.group[i] = q.field(v)
+		if i > 0 {
+			sb.WriteString(", ")
+		}
+		sb.WriteString(q.field(v))
 	}
-	return "GROUP BY "+strings.Join(q.group, ", ")+"\n"
+	sb.WriteByte('\n')
+	return sb.String()
 }
 
 func (q *Select_query) compile_order() string {
-	if len(q.order) == 0 {
+	length := len(q.order)
+	if length == 0 {
 		return ""
 	}
+	
+	var sb strings.Builder
+	//	Preallocation
+	sb.Grow(10 + alloc_select_field * length)
+	
+	sb.WriteString("ORDER BY ")
 	for i, v := range q.order {
-		q.order[i] = q.field(v)
+		if i > 0 {
+			sb.WriteString(", ")
+		}
+		sb.WriteString(q.field(v))
 	}
-	return "ORDER BY "+strings.Join(q.order, ", ")+"\n"
+	sb.WriteByte('\n')
+	return sb.String()
 }
 
 func (q *Select_query) compile_limit() string {
-	return "LIMIT "+strconv.FormatUint(uint64(q.limit.offset), 10)+","+strconv.FormatUint(uint64(q.limit.limit), 10)+"\n"
+	offset	:= strconv.FormatUint(uint64(q.limit.offset), 10)
+	limit	:= strconv.FormatUint(uint64(q.limit.limit), 10)
+	
+	var sb strings.Builder
+	//	Preallocation
+	sb.Grow(8 + len(offset) + len(limit))
+	
+	sb.WriteString("LIMIT ")
+	sb.WriteString(offset)
+	sb.WriteByte(',')
+	sb.WriteString(limit)
+	sb.WriteByte('\n')
+	return sb.String()
 }

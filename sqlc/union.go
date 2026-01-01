@@ -91,22 +91,32 @@ func (q *Union_query) compile_from() (string, error){
 		return "", fmt.Errorf("Must have at least two queries to union")
 	}
 	
-	unions := make([]string, length)
+	sep := "UNION\n"
+	if q.all {
+		sep = "UNION ALL\n"
+	}
+	
+	var sb strings.Builder
+	//	Preallocation
+	sb.Grow(length * 200)
+	
+	sb.WriteString("FROM (\n")
+	
 	for i, query := range q.unions {
 		sql, err := query.Compile()
 		if err != nil {
 			return "", err
 		}
-		unions[i] = sql
+		
+		if i > 0 {
+			sb.WriteString(sep)
+		}
+		sb.WriteString(sql)
 		q.data = append(q.data, query.Data()...)
 	}
 	
-	var sep string
-	if q.all {
-		sep = "UNION ALL\n"
-	} else {
-		sep = "UNION\n"
-	}
-	
-	return "FROM (\n"+strings.Join(unions, sep)+") "+q.t+"\n", nil
+	sb.WriteString(") ")
+	sb.WriteString(q.t)
+	sb.WriteByte('\n')
+	return sb.String(), nil
 }

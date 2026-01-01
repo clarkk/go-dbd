@@ -11,7 +11,7 @@ type Insert_query struct {
 	query_join
 	fields 						*Fields_clause
 	update_duplicate			bool
-	update_dublicate_fields 	[]string
+	update_duplicate_fields 	[]string
 	map_fields					map[string]int
 }
 
@@ -30,14 +30,14 @@ func Insert(table string) *Insert_query {
 
 func (q *Insert_query) Update_duplicate(update_fields []string) *Insert_query {
 	q.update_duplicate			= true
-	q.update_dublicate_fields	= update_fields
+	q.update_duplicate_fields	= update_fields
 	return q
 }
 
 func (q *Insert_query) Update_duplicate_operator(fields *Fields_clause, update_fields []string) *Insert_query {
 	q.fields 					= fields
 	q.update_duplicate			= true
-	q.update_dublicate_fields	= update_fields
+	q.update_duplicate_fields	= update_fields
 	return q
 }
 
@@ -83,7 +83,7 @@ func (q *Insert_query) Compile() (string, error){
 		sb.WriteString(sql_update)
 		sb.WriteByte('\n')
 		
-		q.data = slices.Concat(q.data, data)
+		q.data = append(q.data, data...)
 	}
 	return sb.String(), nil
 }
@@ -95,7 +95,7 @@ func (q *Insert_query) compile_fields() (string, error){
 	
 	var sb strings.Builder
 	//	Preallocation
-	sb.Grow(length * alloc_field_clause)
+	sb.Grow(length * alloc_field_assignment)
 	
 	for i, entry := range q.fields.entries {
 		if _, found := unique[entry.field]; found {
@@ -121,14 +121,14 @@ func (q *Insert_query) compile_update_duplicate_fields() (string, []any, error){
 		data	[]any
 	)
 	
-	if q.update_dublicate_fields != nil {
-		length	:= len(q.update_dublicate_fields)
+	if q.update_duplicate_fields != nil {
+		length	:= len(q.update_duplicate_fields)
 		data	= make([]any, length)
 		
 		//	Preallocation
-		sb.Grow(length * alloc_field_clause)
+		sb.Grow(length * alloc_field_assignment)
 		
-		for i, field := range q.update_dublicate_fields {
+		for i, field := range q.update_duplicate_fields {
 			j, found := q.map_fields[field]
 			if !found {
 				return "", nil, fmt.Errorf("Invalid field: %s", field)
@@ -147,7 +147,7 @@ func (q *Insert_query) compile_update_duplicate_fields() (string, []any, error){
 		data	= make([]any, length)
 		
 		//	Preallocation
-		sb.Grow(length * alloc_field_clause)
+		sb.Grow(length * alloc_field_assignment)
 		
 		for i, entry := range q.fields.entries {
 			if i > 0 {

@@ -9,9 +9,10 @@ import (
 )
 
 const (
-	alloc_where_clause	= 15
-	alloc_join_clause	= 50
-	alloc_field_clause	= 10
+	alloc_select_field		= 10
+	alloc_field_assignment	= 10
+	alloc_where_condition	= 15
+	alloc_join_clause		= 40
 )
 
 type (
@@ -135,12 +136,12 @@ func (q *query_join) compile_joins() string {
 				second_priority = append(second_priority, j)
 			}
 		}
-		q.joins = slices.Concat(first_priority, second_priority)
+		q.joins = append(first_priority, second_priority...)
 	}
 	
 	var sb strings.Builder
 	//	Preallocation
-	sb.Grow(len(q.joins) * alloc_join_clause)
+	sb.Grow((20 + alloc_join_clause) * len(q.joins))
 	
 	for _, j := range q.joins {
 		sb.WriteString(j.mode)
@@ -225,7 +226,7 @@ func (q *query_where) compile_where() (string, error){
 	
 	var sb strings.Builder
 	//	Preallocation
-	sb.Grow((len(q.or_groups) + len(q.where)) * alloc_where_clause)
+	sb.Grow((len(q.or_groups) + len(q.where)) * alloc_where_condition)
 	
 	sb.WriteString("WHERE ")
 	first := true

@@ -91,7 +91,7 @@ func (q *Update_query) compile_fields() (string, error){
 	
 	var sb strings.Builder
 	//	Preallocation
-	sb.Grow(length * alloc_field_clause)
+	sb.Grow(length * alloc_field_assignment)
 	
 	for i, entry := range q.fields.entries {
 		if _, found := unique[entry.field]; found {
