@@ -118,7 +118,7 @@ func (q *Insert_query) compile_fields() (string, error){
 			sb.WriteString(", ")
 		}
 		
-		sb.WriteString(q.field(entry.field))
+		q.field(&sb, entry.field)
 		sb.WriteString("=?")
 		
 		q.data[i]					= entry.value
@@ -151,7 +151,7 @@ func (q *Insert_query) compile_update_duplicate_fields() (string, []any, error){
 				sb.WriteString(", ")
 			}
 			
-			q.write_update_field(&sb, q.field(field), q.fields.entries[j].operator)
+			q.write_update_field(&sb, field, q.fields.entries[j].operator)
 			
 			data[i] = q.fields.entries[j].value
 		}
@@ -167,7 +167,7 @@ func (q *Insert_query) compile_update_duplicate_fields() (string, []any, error){
 				sb.WriteString(", ")
 			}
 			
-			q.write_update_field(&sb, q.field(entry.field), entry.operator)
+			q.write_update_field(&sb, entry.field, entry.operator)
 			
 			data[i] = entry.value
 		}

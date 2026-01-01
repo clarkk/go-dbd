@@ -133,18 +133,17 @@ func (q *query_join) compile_joins() string {
 		return ""
 	}
 	
-	//	If joins rely on third-party tables, add them in the end (second priority)
 	if q.joined_t {
-		first_priority	:= []join{}
-		second_priority	:= []join{}
-		for _, j := range q.joins {
-			if j.join_t == "" {
-				first_priority = append(first_priority, j)
-			} else {
-				second_priority = append(second_priority, j)
+		//	Sort joins and put joins which doesn't join on the base table last
+		slices.SortFunc(q.joins, func(a, b join) int {
+			if a.join_t == "" && b.join_t != "" {
+				return -1
 			}
-		}
-		q.joins = append(first_priority, second_priority...)
+			if a.join_t != "" && b.join_t == "" {
+				return 1
+			}
+			return 0
+		})
 	}
 	
 	var sb strings.Builder
@@ -162,7 +161,7 @@ func (q *query_join) compile_joins() string {
 		sb.WriteByte('.')
 		sb.WriteString(j.field)
 		sb.WriteByte('=')
-		sb.WriteString(q.field(j.field_foreign))
+		q.field(&sb, j.field_foreign)
 		
 		if len(j.conditions) > 0 {
 			keys := slices.Sorted(maps.Keys(j.conditions))
@@ -186,21 +185,22 @@ func (q *query_join) compile_joins() string {
 func (q *query_join) write_update_field(sb *strings.Builder, field, operator string){
 	switch operator {
 	case op_update_add:
-		sb.WriteString(field)
+		q.field(sb, field)
 		sb.WriteByte('=')
-		sb.WriteString(field)
+		q.field(sb, field)
 		sb.WriteString("+?")
 	default:
-		sb.WriteString(field)
+		q.field(sb, field)
 		sb.WriteString("=?")
 	}
 }
 
-func (q *query_join) field(s string) string {
-	if q.joined && !strings.Contains(s, ".") {
-		return q.t+"."+s
+func (q *query_join) field(sb *strings.Builder, field string){
+	if q.joined && !strings.Contains(field, ".") {
+		sb.WriteString(q.t)
+		sb.WriteByte('.')
 	}
-	return s
+	sb.WriteString(field)
 }
 
 func (q *query_join) base_table_short() string {
@@ -240,7 +240,7 @@ func (q *query_where) compile_where() (string, error){
 	first := true
 	
 	if q.use_id {
-		sb.WriteString(q.field("id"))
+		q.field(&sb, "id")
 		sb.WriteByte('=')
 		sb.WriteString(strconv.FormatUint(q.id, 10))
 		first = false
@@ -260,7 +260,7 @@ func (q *query_where) compile_where() (string, error){
 				if i > 0 {
 					sb.WriteString(" || ")
 				}
-				sb.WriteString(q.field(clause.field))
+				q.field(&sb, clause.field)
 				sb.WriteString(clause.sql)
 				
 				q.append_data(group.where_data[i])
@@ -316,7 +316,7 @@ func (q *query_where) compile_where() (string, error){
 			clause.sql = strings.Replace(clause.sql, "?", sql, 1)
 		}
 		
-		sb.WriteString(q.field(clause.field))
+		q.field(&sb, clause.field)
 		sb.WriteString(clause.sql)
 		
 		if clause.operator == op_null || clause.operator == op_not_null {

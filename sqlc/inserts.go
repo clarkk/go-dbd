@@ -129,7 +129,7 @@ func (q *Inserts_query) compile_inserts() (string, error){
 		if i > 0 {
 			sb.WriteString(", ")
 		}
-		sb.WriteString(q.field(k))
+		q.field(&sb, k)
 	}
 	sb.WriteString(")\n")
 	
@@ -166,9 +166,8 @@ func (q *Inserts_query) compile_fields() (string, error){
 }
 
 func (q *Inserts_query) write_update_duplicate_field(sb *strings.Builder, field string){
-	f := q.field(field)
-	sb.WriteString(f)
+	q.field(sb, field)
 	sb.WriteString("=VALUES(")
-	sb.WriteString(f)
+	q.field(sb, field)
 	sb.WriteByte(')')
 }

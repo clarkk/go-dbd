@@ -153,21 +153,20 @@ func (q *Select_query) compile_select() string {
 			sb.WriteString(", ")
 		}
 		
-		field := q.field(s.field)
 		if s.function != "" {
 			switch s.function {
 			case "sum_zero":
 				sb.WriteString("IFNULL(SUM(")
-				sb.WriteString(field)
+				q.field(&sb, s.field)
 				sb.WriteString("), 0)")
 			default:
 				sb.WriteString(strings.ToUpper(s.function))
 				sb.WriteByte('(')
-				sb.WriteString(field)
+				q.field(&sb, s.field)
 				sb.WriteByte(')')
 			}
 		} else {
-			sb.WriteString(field)
+			q.field(&sb, s.field)
 		}
 		
 		if s.alias != "" {
@@ -188,7 +187,26 @@ func (q *Select_query) compile_from() string {
 }
 
 func (q *Select_query) compile_group() string {
-	if len(q.group) == 0 {
+	length := len(q.group)
+	if length == 0 {
+		return ""
+	}
+	
+	var sb strings.Builder
+	//	Preallocation
+	sb.Grow(10 + alloc_select_field * length)
+	
+	sb.WriteString("GROUP BY ")
+	for i, v := range q.group {
+		if i > 0 {
+			sb.WriteString(", ")
+		}
+		q.field(&sb, v)
+	}
+	sb.WriteByte('\n')
+	return sb.String()
+	
+	/*if len(q.group) == 0 {
 		return ""
 	}
 	s := "GROUP BY "
@@ -198,11 +216,30 @@ func (q *Select_query) compile_group() string {
 		}
 		s += q.field(v)
 	}
-	return s+"\n"
+	return s+"\n"*/
 }
 
 func (q *Select_query) compile_order() string {
-	if len(q.order) == 0 {
+	length := len(q.order)
+	if length == 0 {
+		return ""
+	}
+	
+	var sb strings.Builder
+	//	Preallocation
+	sb.Grow(10 + alloc_select_field * length)
+	
+	sb.WriteString("ORDER BY ")
+	for i, v := range q.order {
+		if i > 0 {
+			sb.WriteString(", ")
+		}
+		q.field(&sb, v)
+	}
+	sb.WriteByte('\n')
+	return sb.String()
+	
+	/*if len(q.order) == 0 {
 		return ""
 	}
 	s := "ORDER BY "
@@ -212,7 +249,7 @@ func (q *Select_query) compile_order() string {
 		}
 		s += q.field(v)
 	}
-	return s+"\n"
+	return s+"\n"*/
 }
 
 func (q *Select_query) compile_limit() string {

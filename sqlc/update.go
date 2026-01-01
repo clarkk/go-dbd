@@ -98,7 +98,7 @@ func (q *Update_query) compile_fields() (string, error){
 			sb.WriteString(", ")
 		}
 		
-		q.write_update_field(&sb, q.field(entry.field), entry.operator)
+		q.write_update_field(&sb, entry.field, entry.operator)
 		
 		q.data[i]			= entry.value
 		unique[entry.field]	= struct{}{}
