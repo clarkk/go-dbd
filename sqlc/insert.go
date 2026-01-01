@@ -19,10 +19,8 @@ func Insert(table string) *Insert_query {
 	return &Insert_query{
 		query_join: query_join{
 			query: query{
-				table:		table,
-				data:		[]any{},
+				table: table,
 			},
-			joins: 		[]join{},
 		},
 		map_fields: map[string]int{},
 	}
@@ -56,6 +54,7 @@ func (q *Insert_query) Left_join(table, t, field, field_foreign string, conditio
 }
 
 func (q *Insert_query) Compile() (string, error){
+	q.reset()
 	t := q.base_table_short()
 	if err := q.compile_tables(t); err != nil {
 		return "", err

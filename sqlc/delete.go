@@ -18,13 +18,9 @@ func Delete(table string) *Delete_query {
 		query_where: query_where{
 			query_join: query_join{
 				query: query{
-					table:		table,
-					data:		[]any{},
+					table: table,
 				},
-				joins: 		[]join{},
 			},
-			where:		[]where_clause{},
-			where_data:	[]any{},
 		},
 	}
 }
@@ -35,6 +31,7 @@ func (q *Delete_query) Where(clauses *Where_clause) *Delete_query {
 }
 
 func (q *Delete_query) Compile() (string, error){
+	q.reset()
 	t := q.base_table_short()
 	if err := q.compile_tables(t); err != nil {
 		return "", err

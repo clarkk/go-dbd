@@ -40,16 +40,9 @@ func Select(table string) *Select_query {
 		query_where: query_where{
 			query_join: query_join{
 				query: query{
-					table:		table,
-					//	Preallocated 4 values
-					data:		make([]any, 0, 4),
+					table: table,
 				},
-				//	Preallocated 1 join
-				joins:	make([]join, 0, 1), 
 			},
-			//	Preallocated 2 where conditions
-			where:		make([]where_clause, 0, 2),
-			where_data:	make([]any, 0, 2),
 		},
 	}
 }
@@ -104,6 +97,7 @@ func (q *Select_query) Limit(offset uint32, limit uint8) *Select_query {
 }
 
 func (q *Select_query) Compile() (string, error){
+	q.reset()
 	t := q.base_table_short()
 	if err := q.compile_tables(t); err != nil {
 		return "", err

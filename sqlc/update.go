@@ -24,13 +24,9 @@ func Update(table string) *Update_query {
 		query_where: query_where{
 			query_join: query_join{
 				query: query{
-					table:		table,
-					data:		[]any{},
+					table: table,
 				},
-				joins: 		[]join{},
 			},
-			where:		[]where_clause{},
-			where_data:	[]any{},
 		},
 	}
 }
@@ -55,6 +51,7 @@ func (q *Update_query) Where(clauses *Where_clause) *Update_query {
 }
 
 func (q *Update_query) Compile() (string, error){
+	q.reset()
 	t := q.base_table_short()
 	if err := q.compile_tables(t); err != nil {
 		return "", err

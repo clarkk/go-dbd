@@ -78,6 +78,10 @@ func (q *query) Data() []any {
 	return q.data
 }
 
+func (q *query) reset(){
+	q.data = q.data[:0]
+}
+
 func (q *query_join) left_join(table, t, field, field_foreign string, conditions Map){
 	var join_t string
 	if before, _, found := strings.Cut(field_foreign, "."); found {
