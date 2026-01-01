@@ -76,22 +76,14 @@ func (q *Union_query) Compile() (string, error){
 	if err != nil {
 		return "", err
 	}
-	var (
-		sql_join	string
-		sql_limit	string
-	)
-	if q.joined {
-		sql_join = q.compile_joins()
-	}
+	sql_join := q.compile_joins()
 	sql_where, err := q.compile_where()
 	if err != nil {
 		return "", err
 	}
-	sql_group := q.compile_group()
-	sql_order := q.compile_order()
-	if q.limit.limit != 0 {
-		sql_limit = q.compile_limit()
-	}
+	sql_group	:= q.compile_group()
+	sql_order	:= q.compile_order()
+	sql_limit	:= q.compile_limit()
 	
 	var sb strings.Builder
 	//	Preallocation
@@ -105,9 +97,7 @@ func (q *Union_query) Compile() (string, error){
 	sb.WriteString(sql_where)
 	sb.WriteString(sql_group)
 	sb.WriteString(sql_order)
-	if q.limit.limit != 0 {
-		sb.WriteString(sql_limit)
-	}
+	sb.WriteString(sql_limit)
 	
 	sb.WriteByte('\n')
 	return sb.String(), nil

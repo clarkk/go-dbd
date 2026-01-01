@@ -125,6 +125,10 @@ func (q *query_join) compile_tables(c string) error {
 }
 
 func (q *query_join) compile_joins() string {
+	if !q.joined {
+		return ""
+	}
+	
 	//	If joins rely on third-party tables, add them in the end (second priority)
 	if q.joined_t {
 		first_priority	:= []join{}
