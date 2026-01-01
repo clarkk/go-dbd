@@ -97,7 +97,6 @@ func (q *Select_query) Limit(offset uint32, limit uint8) *Select_query {
 }
 
 func (q *Select_query) Compile() (string, error){
-	q.reset()
 	t := q.base_table_short()
 	if err := q.compile_tables(t); err != nil {
 		return "", err
@@ -176,14 +175,6 @@ func (q *Select_query) compile_select() string {
 	}
 	sb.WriteByte('\n')
 	return sb.String()
-}
-
-func (q *Select_query) compile_from() string {
-	s := "FROM ."+q.table
-	if q.joined {
-		s += " "+q.t
-	}
-	return s+"\n"
 }
 
 func (q *Select_query) compile_group() string {

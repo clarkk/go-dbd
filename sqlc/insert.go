@@ -54,12 +54,11 @@ func (q *Insert_query) Left_join(table, t, field, field_foreign string, conditio
 }
 
 func (q *Insert_query) Compile() (string, error){
-	q.reset()
 	t := q.base_table_short()
 	if err := q.compile_tables(t); err != nil {
 		return "", err
 	}
-	sql, err := q.compile_fields()
+	sql_fields, err := q.compile_fields()
 	if err != nil {
 		return "", err
 	}
@@ -77,7 +76,7 @@ func (q *Insert_query) Compile() (string, error){
 	
 	var sb strings.Builder
 	//	Preallocation
-	alloc := 14 + len(q.table) + len(sql)
+	alloc := 14 + len(q.table) + len(sql_fields)
 	if q.update_duplicate {
 		alloc += 25 + len(sql_update)
 	}
@@ -87,7 +86,7 @@ func (q *Insert_query) Compile() (string, error){
 	sb.WriteString(q.table)
 	sb.WriteByte('\n')
 	sb.WriteString("SET ")
-	sb.WriteString(sql)
+	sb.WriteString(sql_fields)
 	sb.WriteByte('\n')
 	
 	if q.update_duplicate {

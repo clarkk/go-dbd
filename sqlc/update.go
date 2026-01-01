@@ -45,21 +45,27 @@ func (q *Update_query) Fields_operator(fields *Fields_clause) *Update_query {
 	return q
 }
 
+func (q *Update_query) Left_join(table, t, field, field_foreign string, conditions Map) *Update_query {
+	q.left_join(table, t, field, field_foreign, conditions)
+	return q
+}
+
 func (q *Update_query) Where(clauses *Where_clause) *Update_query {
 	clauses.apply(q)
 	return q
 }
 
 func (q *Update_query) Compile() (string, error){
-	q.reset()
 	t := q.base_table_short()
 	if err := q.compile_tables(t); err != nil {
 		return "", err
 	}
-	sql, err := q.compile_fields()
+	sql_fields, err := q.compile_fields()
 	if err != nil {
 		return "", err
 	}
+	
+	sql_join := q.compile_joins()
 	
 	sql_where, err := q.compile_where()
 	if err != nil {
@@ -68,13 +74,24 @@ func (q *Update_query) Compile() (string, error){
 	
 	var sb strings.Builder
 	//	Preallocation
-	sb.Grow(14 + len(q.table) + len(sql) + len(sql_where))
+	alloc := 13 + len(q.table) + len(sql_fields) + len(sql_where)
+	if q.joined {
+		alloc += 2 + len(q.t) + len(sql_join)
+	}
+	sb.Grow(alloc)
 	
 	sb.WriteString("UPDATE .")
 	sb.WriteString(q.table)
-	sb.WriteByte('\n')
+	if q.joined {
+		sb.WriteByte(' ')
+		sb.WriteString(q.t)
+		sb.WriteByte('\n')
+		sb.WriteString(sql_join)
+	} else {
+		sb.WriteByte('\n')
+	}
 	sb.WriteString("SET ")
-	sb.WriteString(sql)
+	sb.WriteString(sql_fields)
 	sb.WriteByte('\n')
 	sb.WriteString(sql_where)
 	

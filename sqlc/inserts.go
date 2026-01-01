@@ -36,7 +36,8 @@ func (q *Inserts_query) Update_duplicate(update_fields []string) *Inserts_query 
 
 func (q *Inserts_query) Fields(fields map[string]any) *Inserts_query {
 	if q.col_count == 0 {
-		q.col_count = len(fields)
+		q.col_count	= len(fields)
+		q.col_keys	= slices.Sorted(maps.Keys(fields))
 	}
 	for k := range fields {
 		q.col_map[k] = nil
@@ -51,7 +52,6 @@ func (q *Inserts_query) Left_join(table, t, field, field_foreign string, conditi
 }
 
 func (q *Inserts_query) Compile() (string, error){
-	q.reset()
 	t := q.base_table_short()
 	if err := q.compile_tables(t); err != nil {
 		return "", err
@@ -115,8 +115,6 @@ func (q *Inserts_query) compile_inserts() (string, error){
 	if q.col_count != len(q.col_map) {
 		return "", fmt.Errorf("Insert rows inconsistency")
 	}
-	
-	q.col_keys = slices.Sorted(maps.Keys(q.col_map))
 	
 	var sb strings.Builder
 	//	Preallocation

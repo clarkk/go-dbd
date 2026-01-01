@@ -25,17 +25,24 @@ func Delete(table string) *Delete_query {
 	}
 }
 
+func (q *Delete_query) Left_join(table, t, field, field_foreign string, conditions Map) *Delete_query {
+	q.left_join(table, t, field, field_foreign, conditions)
+	return q
+}
+
 func (q *Delete_query) Where(clauses *Where_clause) *Delete_query {
 	clauses.apply(q)
 	return q
 }
 
 func (q *Delete_query) Compile() (string, error){
-	q.reset()
 	t := q.base_table_short()
 	if err := q.compile_tables(t); err != nil {
 		return "", err
 	}
+	
+	sql_from	:= q.compile_from()
+	sql_join	:= q.compile_joins()
 	
 	sql_where, err := q.compile_where()
 	if err != nil {
@@ -44,11 +51,11 @@ func (q *Delete_query) Compile() (string, error){
 	
 	var sb strings.Builder
 	//	Preallocation
-	sb.Grow(14 + len(q.table) + len(sql_where))
+	sb.Grow(7 + len(sql_from) + len(sql_join) + len(sql_where))
 	
-	sb.WriteString("DELETE FROM .")
-	sb.WriteString(q.table)
-	sb.WriteByte('\n')
+	sb.WriteString("DELETE ")
+	sb.WriteString(sql_from)
+	sb.WriteString(sql_join)
 	sb.WriteString(sql_where)
 	
 	return sb.String(), nil
