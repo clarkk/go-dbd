@@ -92,16 +92,19 @@ func (g *or_group) where_clause(clause where_clause, value any){
 }
 
 func (q *query_where) compile_where(sb *strings.Builder) error {
-	length := len(q.where) + len(q.or_groups)
+	length		:= len(q.where) + len(q.or_groups)
+	data_cap	:= len(q.data) + len(q.where_data)
 	if q.use_id {
 		length++
+		data_cap++
 	}
 	if length == 0 {
 		return nil
 	}
 	
 	//	Pre-allocation
-	sb.Grow((len(q.or_groups) + len(q.where)) * alloc_where_condition)
+	sb.Grow(7 + length * alloc_where_condition)
+	q.alloc_data_capacity(data_cap)
 	
 	sb.WriteString("WHERE ")
 	first := true
@@ -119,60 +122,45 @@ func (q *query_where) compile_where(sb *strings.Builder) error {
 			if first {
 				first = false
 			} else {
-				sb.WriteString(" && ")
+				sb.WriteString(" AND ")
 			}
-			sb.WriteByte('(')
 			
+			sb.WriteByte('(')
 			for i, clause := range group.where {
 				if i > 0 {
-					sb.WriteString(" || ")
+					sb.WriteString(" OR ")
 				}
 				q.write_field(sb, clause.field)
 				sb.WriteString(clause.sql)
 				
 				q.append_data(group.where_data[i])
 			}
-			
 			sb.WriteByte(')')
 		}
 	}
 	
-	duplicates := map[string]string{}
+	var duplicates map[string]string
+	//	Only allocate if at least 2 conditions
+	if len(q.where) > 1 {
+		//	Pre-allocation
+		duplicates = make(map[string]string, 2)
+	}
+	
 	for i, clause := range q.where {
-		if operator, ok := duplicates[clause.field]; ok {
-			switch operator {
-			//	Operator not compatable with "oposite" operators
-			case op_null:
-				if clause.operator == op_not_null {
-					return where_operator_error(clause.field, operator, clause.operator)
+		if duplicates != nil {
+			if operator, ok := duplicates[clause.field]; ok {
+				if err := check_operator_compatibility(operator, clause.operator, clause.field); err != nil {
+					return err
 				}
-			case op_not_null:
-				if clause.operator == op_null {
-					return where_operator_error(clause.field, operator, clause.operator)
-				}
-			
-			//	Operator not compatable with other operators
-			case op_eq, op_not_eq, op_bt, op_not_bt, op_in, op_not_in:
-				return where_operator_error(clause.field, operator, clause.operator)
-			
-			//	Operator only compatable with "oposite" operators
-			case op_gt, op_gteq:
-				if clause.operator != op_lt && clause.operator != op_lteq {
-					return where_operator_error(clause.field, operator, clause.operator)
-				}
-			case op_lt, op_lteq:
-				if clause.operator != op_gt && clause.operator != op_gteq {
-					return where_operator_error(clause.field, operator, clause.operator)
-				}
+			} else {
+				duplicates[clause.field] = clause.operator
 			}
-		} else {
-			duplicates[clause.field] = clause.operator
 		}
 		
 		if first {
 			first = false
 		} else {
-			sb.WriteString(" && ")
+			sb.WriteString(" AND ")
 		}
 		
 		if clause.subquery != nil {
@@ -192,7 +180,7 @@ func (q *query_where) compile_where(sb *strings.Builder) error {
 		
 		//	Apply data
 		if clause.subquery != nil {
-			q.data = append(q.data, clause.subquery.Data()...)
+			q.append_data(clause.subquery.Data())
 		} else {
 			q.append_data(q.where_data[i])
 		}
@@ -201,12 +189,56 @@ func (q *query_where) compile_where(sb *strings.Builder) error {
 	return nil
 }
 
+func check_operator_compatibility(prev_operator, new_operator, field string) error {
+	switch prev_operator {
+	//	Operator not compatable with "oposite" operators
+	case op_null:
+		if new_operator == op_not_null {
+			return where_operator_error(field, prev_operator, new_operator)
+		}
+	case op_not_null:
+		if new_operator == op_null {
+			return where_operator_error(field, prev_operator, new_operator)
+		}
+	
+	//	Operator not compatable with other operators
+	case op_eq, op_not_eq, op_bt, op_not_bt, op_in, op_not_in:
+		return where_operator_error(field, prev_operator, new_operator)
+	
+	//	Operator only compatable with "oposite" operators
+	case op_gt, op_gteq:
+		if new_operator != op_lt && new_operator != op_lteq {
+			return where_operator_error(field, prev_operator, new_operator)
+		}
+	case op_lt, op_lteq:
+		if new_operator != op_gt && new_operator != op_gteq {
+			return where_operator_error(field, prev_operator, new_operator)
+		}
+	}
+	return nil
+}
+
 func (q *query) append_data(val any){
 	//	Flatten data slices
 	if v, ok := val.([]any); ok {
+		length := len(v)
+		if length == 0 {
+			return
+		}
+		
+		q.alloc_data_capacity(len(q.data) + length)
+		
 		q.data = append(q.data, v...)
 	} else {
 		q.data = append(q.data, val)
+	}
+}
+
+func (q *query) alloc_data_capacity(total int){
+	if cap(q.data) < total {
+		new_data := make([]any, len(q.data), total)
+		copy(new_data, q.data)
+		q.data = new_data
 	}
 }
 

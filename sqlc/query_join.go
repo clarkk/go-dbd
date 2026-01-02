@@ -46,7 +46,8 @@ func (q *query_join) compile_tables(c string) error {
 	
 	if q.joined {
 		//	Check for char collisions in joined tables
-		for _, j := range q.joins {
+		for i := range q.joins {
+			j := &q.joins[i]	//	Avoid copying struct
 			if _, ok := q.tables[j.t]; ok {
 				return fmt.Errorf("Join table short already used: %s (%s)", j.t, j.table)
 			}
@@ -99,7 +100,8 @@ func (q *query_join) compile_joins(sb *strings.Builder){
 	//	Pre-allocation
 	sb.Grow((20 + alloc_join_clause) * len(q.joins))
 	
-	for _, j := range q.joins {
+	for i := range q.joins {
+		j := &q.joins[i]	//	Avoid copying struct
 		sb.WriteString(j.mode)
 		sb.WriteString(" .")
 		sb.WriteString(j.table)
@@ -116,14 +118,13 @@ func (q *query_join) compile_joins(sb *strings.Builder){
 			keys := slices.Sorted(maps.Keys(j.conditions))
 			
 			for _, column := range keys {
-				value := j.conditions[column]
-				sb.WriteString(" && ")
+				sb.WriteString(" AND ")
 				sb.WriteString(j.t)
 				sb.WriteByte('.')
 				sb.WriteString(column)
-				sb.WriteString("='")
-				fmt.Fprint(sb, value) 
-				sb.WriteByte('\'')
+				sb.WriteString("=?")
+				
+				q.append_data(j.conditions[column])
 			}
 		}
 		sb.WriteByte('\n')
@@ -144,7 +145,11 @@ func (q *query_join) write_update_field(sb *strings.Builder, field, operator str
 }
 
 func (q *query_join) write_field(sb *strings.Builder, field string){
-	if q.joined && strings.IndexByte(field, '.') == -1 {
+	if !q.joined {
+		sb.WriteString(field)
+		return
+	}
+	if strings.IndexByte(field, '.') == -1 {
 		sb.WriteString(q.t)
 		sb.WriteByte('.')
 	}

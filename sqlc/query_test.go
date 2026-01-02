@@ -109,7 +109,7 @@ func run_where_wrap(tb testing.TB){
 `SELECT a.id, a.email, u.time
 FROM .user a
 LEFT JOIN .user_block u ON u.id=a.user_id
-WHERE u.inner=? && a.middle=? && a.outer=?`
+WHERE u.inner=? AND a.middle=? AND a.outer=?`
 	got := strings.TrimSpace(sql)
 	if got != want {
 		tb.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
@@ -119,7 +119,7 @@ WHERE u.inner=? && a.middle=? && a.outer=?`
 `SELECT a.id, a.email, u.time
 FROM .user a
 LEFT JOIN .user_block u ON u.id=a.user_id
-WHERE u.inner=test1 && a.middle=test2 && a.outer=test3`
+WHERE u.inner=test1 AND a.middle=test2 AND a.outer=test3`
 	got = SQL_debug(query)
 	if got != want {
 		tb.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
@@ -167,7 +167,7 @@ func run_select_where_or_group(tb testing.TB){
 `SELECT a.id, a.email, u.time
 FROM .user a
 LEFT JOIN .user_block u ON u.id=a.user_id
-WHERE (a.col1 BETWEEN ? AND ? || a.col2 BETWEEN ? AND ?) && (a.col3 BETWEEN ? AND ?) && a.outer=?`
+WHERE (a.col1 BETWEEN ? AND ? OR a.col2 BETWEEN ? AND ?) AND (a.col3 BETWEEN ? AND ?) AND a.outer=?`
 	got := strings.TrimSpace(sql)
 	if got != want {
 		tb.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
@@ -177,7 +177,7 @@ WHERE (a.col1 BETWEEN ? AND ? || a.col2 BETWEEN ? AND ?) && (a.col3 BETWEEN ? AN
 `SELECT a.id, a.email, u.time
 FROM .user a
 LEFT JOIN .user_block u ON u.id=a.user_id
-WHERE (a.col1 BETWEEN start1 AND end1 || a.col2 BETWEEN start2 AND end2) && (a.col3 BETWEEN start3 AND end3) && a.outer=test3`
+WHERE (a.col1 BETWEEN start1 AND end1 OR a.col2 BETWEEN start2 AND end2) AND (a.col3 BETWEEN start3 AND end3) AND a.outer=test3`
 	got = SQL_debug(query)
 	if got != want {
 		tb.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
@@ -314,7 +314,7 @@ func run_select_abbreviation_collisions(t testing.TB){
 `SELECT a.id, a.email, u.time
 FROM .user a
 LEFT JOIN .user_block u ON u.id=a.user_id
-WHERE a.email=? && u.time IN (?,?,?)
+WHERE a.email=? AND u.time IN (?,?,?)
 ORDER BY a.name, u.time DESC`
 	got := strings.TrimSpace(sql)
 	if got != want {
@@ -325,7 +325,7 @@ ORDER BY a.name, u.time DESC`
 `SELECT a.id, a.email, u.time
 FROM .user a
 LEFT JOIN .user_block u ON u.id=a.user_id
-WHERE a.email=test1 && u.time IN (1,2,3)
+WHERE a.email=test1 AND u.time IN (1,2,3)
 ORDER BY a.name, u.time DESC`
 	got = SQL_debug(query)
 	if got != want {
@@ -380,7 +380,7 @@ func run_select_id_empty(tb testing.TB){
 	want :=
 `SELECT id, email
 FROM .user
-WHERE id=? && email>? && email<?
+WHERE id=? AND email>? AND email<?
 LIMIT 0,10`
 	got := strings.TrimSpace(sql)
 	if got != want {
@@ -390,7 +390,7 @@ LIMIT 0,10`
 	want =
 `SELECT id, email
 FROM .user
-WHERE id=0 && email>test1 && email<test2
+WHERE id=0 AND email>test1 AND email<test2
 LIMIT 0,10`
 	got = SQL_debug(query)
 	if got != want {
@@ -415,7 +415,7 @@ func run_select_id_set(tb testing.TB){
 	want :=
 `SELECT id, email
 FROM .user
-WHERE id=? && email>? && email<?
+WHERE id=? AND email>? AND email<?
 LIMIT 0,10`
 	got := strings.TrimSpace(sql)
 	if got != want {
@@ -425,7 +425,7 @@ LIMIT 0,10`
 	want =
 `SELECT id, email
 FROM .user
-WHERE id=123 && email>test1 && email<test2
+WHERE id=123 AND email>test1 AND email<test2
 LIMIT 0,10`
 	got = SQL_debug(query)
 	if got != want {
@@ -450,7 +450,7 @@ func run_where_operator_compatability_opposite(tb testing.TB){
 	want :=
 `SELECT id, email
 FROM .user
-WHERE email>? && email<?
+WHERE email>? AND email<?
 LIMIT 0,10`
 	got := strings.TrimSpace(sql)
 	if got != want {
@@ -460,7 +460,7 @@ LIMIT 0,10`
 	want =
 `SELECT id, email
 FROM .user
-WHERE email>test1 && email<test2
+WHERE email>test1 AND email<test2
 LIMIT 0,10`
 	got = SQL_debug(query)
 	if got != want {
@@ -656,7 +656,7 @@ func run_select_null(tb testing.TB){
 	want :=
 `SELECT id, email
 FROM .user
-WHERE id=? && email IS NULL && name=?
+WHERE id=? AND email IS NULL AND name=?
 LIMIT 0,10`
 	got := strings.TrimSpace(sql)
 	if got != want {
@@ -666,7 +666,7 @@ LIMIT 0,10`
 	want =
 `SELECT id, email
 FROM .user
-WHERE id=123 && email IS NULL && name=test
+WHERE id=123 AND email IS NULL AND name=test
 LIMIT 0,10`
 	got = SQL_debug(query)
 	if got != want {
@@ -692,7 +692,7 @@ func run_select_not_null(tb	testing.TB){
 	want :=
 `SELECT id, email
 FROM .user
-WHERE id=? && email IS NOT NULL && name=?
+WHERE id=? AND email IS NOT NULL AND name=?
 LIMIT 0,10`
 	got := strings.TrimSpace(sql)
 	if got != want {
@@ -702,7 +702,7 @@ LIMIT 0,10`
 	want =
 `SELECT id, email
 FROM .user
-WHERE id=123 && email IS NOT NULL && name=test
+WHERE id=123 AND email IS NOT NULL AND name=test
 LIMIT 0,10`
 	got = SQL_debug(query)
 	if got != want {
@@ -840,7 +840,7 @@ FROM .user
 WHERE id IN (SELECT id
 FROM .user
 WHERE name=?
-) && name=?
+) AND name=?
 LIMIT 0,10`
 	got := strings.TrimSpace(sql)
 	if got != want {
@@ -853,7 +853,7 @@ FROM .user
 WHERE id IN (SELECT id
 FROM .user
 WHERE name=subquery_value
-) && name=9
+) AND name=9
 LIMIT 0,10`
 	got = SQL_debug(query)
 	if got != want {
@@ -911,7 +911,7 @@ func run_where_eqs(tb testing.TB){
 	want :=
 `SELECT id, email
 FROM .user
-WHERE id=? && email=? && name=?`
+WHERE id=? AND email=? AND name=?`
 	got := strings.TrimSpace(sql)
 	if got != want {
 		tb.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
@@ -920,7 +920,7 @@ WHERE id=? && email=? && name=?`
 	want =
 `SELECT id, email
 FROM .user
-WHERE id=123 && email=test1 && name=test2`
+WHERE id=123 AND email=test1 AND name=test2`
 	got = SQL_debug(query)
 	if got != want {
 		tb.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
@@ -945,7 +945,7 @@ func run_select_join(tb testing.TB){
 `SELECT u.id, c.timeout
 FROM .user u
 LEFT JOIN .client c ON c.id=u.client_id
-WHERE u.email=? && c.timeout>?`
+WHERE u.email=? AND c.timeout>?`
 	got := strings.TrimSpace(sql)
 	if got != want {
 		tb.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
@@ -955,7 +955,7 @@ WHERE u.email=? && c.timeout>?`
 `SELECT u.id, c.timeout
 FROM .user u
 LEFT JOIN .client c ON c.id=u.client_id
-WHERE u.email=test1 && c.timeout>test2`
+WHERE u.email=test1 AND c.timeout>test2`
 	got = SQL_debug(query)
 	if got != want {
 		tb.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
@@ -1044,7 +1044,7 @@ func run_select_union(tb testing.TB){
 FROM (
 SELECT id col_id, email col_email
 FROM .user
-WHERE col1=? && email>?
+WHERE col1=? AND email>?
 UNION ALL
 SELECT id col_id, email col_email
 FROM .group
@@ -1062,7 +1062,7 @@ LIMIT 0,1`
 FROM (
 SELECT id col_id, email col_email
 FROM .user
-WHERE col1=123 && email>test2
+WHERE col1=123 AND email>test2
 UNION ALL
 SELECT id col_id, email col_email
 FROM .group
