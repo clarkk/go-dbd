@@ -61,7 +61,11 @@ func (q *Update_query) Compile() (string, error){
 		return "", err
 	}
 	
-	var sb strings.Builder
+	sb := builder_pool.Get().(*strings.Builder)
+	defer func() {
+		sb.Reset()
+		builder_pool.Put(sb)
+	}()
 	
 	sb.WriteString("UPDATE .")
 	sb.WriteString(q.table)
@@ -69,16 +73,16 @@ func (q *Update_query) Compile() (string, error){
 		sb.WriteByte(' ')
 		sb.WriteString(q.t)
 		sb.WriteByte('\n')
-		q.compile_joins(&sb)
+		q.compile_joins(sb)
 	} else {
 		sb.WriteByte('\n')
 	}
 	sb.WriteString("SET ")
-	if err := q.compile_fields(&sb); err != nil {
+	if err := q.compile_fields(sb); err != nil {
 		return "", err
 	}
 	sb.WriteByte('\n')
-	if err := q.compile_where(&sb); err != nil {
+	if err := q.compile_where(sb); err != nil {
 		return "", err
 	}
 	

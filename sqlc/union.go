@@ -71,19 +71,23 @@ func (q *Union_query) Compile() (string, error){
 		return "", err
 	}
 	
-	var sb strings.Builder
+	sb := builder_pool.Get().(*strings.Builder)
+	defer func() {
+		sb.Reset()
+		builder_pool.Put(sb)
+	}()
 	
-	q.compile_select(&sb)
-	if err := q.compile_from(&sb); err != nil {
+	q.compile_select(sb)
+	if err := q.compile_from(sb); err != nil {
 		return "", err
 	}
-	q.compile_joins(&sb)
-	if err := q.compile_where(&sb); err != nil {
+	q.compile_joins(sb)
+	if err := q.compile_where(sb); err != nil {
 		return "", err
 	}
-	q.compile_group(&sb)
-	q.compile_order(&sb)
-	q.compile_limit(&sb)
+	q.compile_group(sb)
+	q.compile_order(sb)
+	q.compile_limit(sb)
 	sb.WriteByte('\n')
 	
 	return sb.String(), nil

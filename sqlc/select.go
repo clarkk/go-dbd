@@ -102,17 +102,21 @@ func (q *Select_query) Compile() (string, error){
 		return "", err
 	}
 	
-	var sb strings.Builder
+	sb := builder_pool.Get().(*strings.Builder)
+	defer func() {
+		sb.Reset()
+		builder_pool.Put(sb)
+	}()
 	
-	q.compile_select(&sb)
-	q.compile_from(&sb)
-	q.compile_joins(&sb)
-	if err := q.compile_where(&sb); err != nil {
+	q.compile_select(sb)
+	q.compile_from(sb)
+	q.compile_joins(sb)
+	if err := q.compile_where(sb); err != nil {
 		return "", err
 	}
-	q.compile_group(&sb)
-	q.compile_order(&sb)
-	q.compile_limit(&sb)
+	q.compile_group(sb)
+	q.compile_order(sb)
+	q.compile_limit(sb)
 	if q.read_lock {
 		sb.WriteString("FOR UPDATE\n")
 	}
@@ -205,9 +209,11 @@ func (q *Select_query) compile_limit(sb *strings.Builder){
 	//	Pre-allocation
 	sb.Grow(8 + 3 + 3)
 	
+	var buf [20]byte
+	
 	sb.WriteString("LIMIT ")
-	sb.WriteString(strconv.FormatUint(uint64(q.limit.offset), 10))
+	sb.Write(strconv.AppendUint(buf[:0], uint64(q.limit.offset), 10))
 	sb.WriteByte(',')
-	sb.WriteString(strconv.FormatUint(uint64(q.limit.limit), 10))
+	sb.Write(strconv.AppendUint(buf[:0], uint64(q.limit.limit), 10))
 	sb.WriteByte('\n')
 }

@@ -380,7 +380,7 @@ func run_select_id_empty(tb testing.TB){
 	want :=
 `SELECT id, email
 FROM .user
-WHERE id=0 && email>? && email<?
+WHERE id=? && email>? && email<?
 LIMIT 0,10`
 	got := strings.TrimSpace(sql)
 	if got != want {
@@ -415,7 +415,7 @@ func run_select_id_set(tb testing.TB){
 	want :=
 `SELECT id, email
 FROM .user
-WHERE id=123 && email>? && email<?
+WHERE id=? && email>? && email<?
 LIMIT 0,10`
 	got := strings.TrimSpace(sql)
 	if got != want {
@@ -911,7 +911,7 @@ func run_where_eqs(tb testing.TB){
 	want :=
 `SELECT id, email
 FROM .user
-WHERE id=123 && email=? && name=?`
+WHERE id=? && email=? && name=?`
 	got := strings.TrimSpace(sql)
 	if got != want {
 		tb.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
@@ -975,7 +975,7 @@ func run_select_for_update(tb testing.TB){
 	want :=
 `SELECT id, email
 FROM .user
-WHERE id=123
+WHERE id=?
 FOR UPDATE`
 	got := strings.TrimSpace(sql)
 	if got != want {
@@ -1417,7 +1417,7 @@ func run_update_id_empty(tb testing.TB){
 	want :=
 `UPDATE .user
 SET time_login=?
-WHERE id=0`
+WHERE id=?`
 	got := strings.TrimSpace(sql)
 	if got != want {
 		tb.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
@@ -1444,7 +1444,7 @@ func run_update_id_set(tb testing.TB){
 	want :=
 `UPDATE .user
 SET time_login=?
-WHERE id=100`
+WHERE id=?`
 	got := strings.TrimSpace(sql)
 	if got != want {
 		tb.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
@@ -1497,7 +1497,7 @@ func run_update_operator(tb testing.TB){
 	want :=
 `UPDATE .user
 SET balance=balance+?, draft=draft+?
-WHERE id=123`
+WHERE id=?`
 	got := strings.TrimSpace(sql)
 	if got != want {
 		tb.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
@@ -1542,7 +1542,7 @@ func run_delete_id_empty(tb testing.TB){
 	
 	want :=
 `DELETE FROM .user
-WHERE id=0`
+WHERE id=?`
 	got := strings.TrimSpace(sql)
 	if got != want {
 		tb.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
@@ -1564,7 +1564,7 @@ func run_delete_id_set(tb testing.TB){
 	
 	want :=
 `DELETE FROM .user
-WHERE id=100`
+WHERE id=?`
 	got := strings.TrimSpace(sql)
 	if got != want {
 		tb.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)

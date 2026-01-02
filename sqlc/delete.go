@@ -41,12 +41,16 @@ func (q *Delete_query) Compile() (string, error){
 		return "", err
 	}
 	
-	var sb strings.Builder
+	sb := builder_pool.Get().(*strings.Builder)
+	defer func() {
+		sb.Reset()
+		builder_pool.Put(sb)
+	}()
 	
 	sb.WriteString("DELETE ")
-	q.compile_from(&sb)
-	q.compile_joins(&sb)
-	if err := q.compile_where(&sb); err != nil {
+	q.compile_from(sb)
+	q.compile_joins(sb)
+	if err := q.compile_where(sb); err != nil {
 		return "", err
 	}
 	

@@ -2,7 +2,7 @@ package sqlc
 
 import (
 	"fmt"
-	"strconv"
+	"sync"
 	"strings"
 )
 
@@ -14,6 +14,12 @@ const (
 	
 	char_table = "abcdefghijklmnopqrstuvwxyz"
 )
+
+var builder_pool = sync.Pool{
+	New: func() any {
+		return &strings.Builder{}
+	},
+}
 
 type (
 	SQL interface {
@@ -102,8 +108,8 @@ func (q *query_where) compile_where(sb *strings.Builder) error {
 	
 	if q.use_id {
 		q.write_field(sb, "id")
-		sb.WriteByte('=')
-		sb.WriteString(strconv.FormatUint(q.id, 10))
+		sb.WriteString("=?")
+		q.data = append(q.data, q.id)
 		first = false
 	}
 	

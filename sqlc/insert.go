@@ -59,19 +59,23 @@ func (q *Insert_query) Compile() (string, error){
 		return "", err
 	}
 	
-	var sb strings.Builder
+	sb := builder_pool.Get().(*strings.Builder)
+	defer func() {
+		sb.Reset()
+		builder_pool.Put(sb)
+	}()
 	
 	sb.WriteString("INSERT .")
 	sb.WriteString(q.table)
 	sb.WriteByte('\n')
 	sb.WriteString("SET ")
-	if err := q.compile_fields(&sb); err != nil {
+	if err := q.compile_fields(sb); err != nil {
 		return "", err
 	}
 	sb.WriteByte('\n')
 	if q.update_duplicate {
 		sb.WriteString("ON DUPLICATE KEY UPDATE ")
-		data_update, err := q.compile_update_duplicate_fields(&sb)
+		data_update, err := q.compile_update_duplicate_fields(sb)
 		if err != nil {
 			return "", err
 		}

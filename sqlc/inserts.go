@@ -57,13 +57,17 @@ func (q *Inserts_query) Compile() (string, error){
 		return "", err
 	}
 	
-	var sb strings.Builder
+	sb := builder_pool.Get().(*strings.Builder)
+	defer func() {
+		sb.Reset()
+		builder_pool.Put(sb)
+	}()
 	
-	if err := q.compile_inserts(&sb); err != nil {
+	if err := q.compile_inserts(sb); err != nil {
 		return "", err
 	}
 	sb.WriteString("VALUES ")
-	if err := q.compile_fields(&sb); err != nil {
+	if err := q.compile_fields(sb); err != nil {
 		return "", err
 	}
 	sb.WriteByte('\n')
@@ -80,14 +84,14 @@ func (q *Inserts_query) Compile() (string, error){
 				if i > 0 {
 					sb.WriteByte(',')
 				}
-				q.write_update_duplicate_field(&sb, field)
+				q.write_update_duplicate_field(sb, field)
 			}
 		} else {
 			for i, field := range q.col_keys {
 				if i > 0 {
 					sb.WriteByte(',')
 				}
-				q.write_update_duplicate_field(&sb, field)
+				q.write_update_duplicate_field(sb, field)
 			}
 		}
 		
