@@ -34,20 +34,6 @@ type (
 		data 	[]any
 	}
 	
-	query_where struct {
-		query_join
-		where 		[]where_clause
-		where_data 	[]any
-		or_groups	[]*or_group
-		use_id		bool
-		id 			uint64
-	}
-	
-	or_group struct {
-		where 		[]where_clause
-		where_data 	[]any
-	}
-	
 	join struct {
 		mode 			string
 		table 			string
@@ -73,120 +59,6 @@ func SQL_error(msg string, q SQL, err error) string {
 
 func (q *query) Data() []any {
 	return q.data
-}
-
-func (q *query_where) where_clause(clause where_clause, value any){
-	q.where 		= append(q.where, clause)
-	q.where_data 	= append(q.where_data, value)
-}
-
-func (q *query_where) where_or_group() *or_group {
-	g := &or_group{}
-	q.or_groups = append(q.or_groups, g)
-	return g
-}
-
-func (g *or_group) where_clause(clause where_clause, value any){
-	g.where 		= append(g.where, clause)
-	g.where_data 	= append(g.where_data, value)
-}
-
-func (q *query_where) compile_where(sb *strings.Builder) error {
-	length		:= len(q.where) + len(q.or_groups)
-	data_cap	:= len(q.data) + len(q.where_data)
-	if q.use_id {
-		length++
-		data_cap++
-	}
-	if length == 0 {
-		return nil
-	}
-	
-	//	Pre-allocation
-	sb.Grow(7 + length * alloc_where_condition)
-	q.alloc_data_capacity(data_cap)
-	
-	sb.WriteString("WHERE ")
-	first := true
-	
-	if q.use_id {
-		q.write_field(sb, "id")
-		sb.WriteString("=?")
-		q.data = append(q.data, q.id)
-		first = false
-	}
-	
-	//	Apply "or groups"
-	if q.or_groups != nil {
-		for _, group := range q.or_groups {
-			if first {
-				first = false
-			} else {
-				sb.WriteString(" AND ")
-			}
-			
-			sb.WriteByte('(')
-			for i, clause := range group.where {
-				if i > 0 {
-					sb.WriteString(" OR ")
-				}
-				q.write_field(sb, clause.field)
-				sb.WriteString(clause.sql)
-				
-				q.append_data(group.where_data[i])
-			}
-			sb.WriteByte(')')
-		}
-	}
-	
-	var duplicates map[string]string
-	//	Only allocate if at least 2 conditions
-	if len(q.where) > 1 {
-		//	Pre-allocation
-		duplicates = make(map[string]string, 2)
-	}
-	
-	for i, clause := range q.where {
-		if duplicates != nil {
-			if operator, ok := duplicates[clause.field]; ok {
-				if err := check_operator_compatibility(operator, clause.operator, clause.field); err != nil {
-					return err
-				}
-			} else {
-				duplicates[clause.field] = clause.operator
-			}
-		}
-		
-		if first {
-			first = false
-		} else {
-			sb.WriteString(" AND ")
-		}
-		
-		if clause.subquery != nil {
-			sql_subquery, err := clause.subquery.Compile()
-			if err != nil {
-				return err
-			}
-			clause.sql = strings.Replace(clause.sql, "?", sql_subquery, 1)
-		}
-		
-		q.write_field(sb, clause.field)
-		sb.WriteString(clause.sql)
-		
-		if clause.operator == op_null || clause.operator == op_not_null {
-			continue
-		}
-		
-		//	Apply data
-		if clause.subquery != nil {
-			q.append_data(clause.subquery.Data())
-		} else {
-			q.append_data(q.where_data[i])
-		}
-	}
-	sb.WriteByte('\n')
-	return nil
 }
 
 func check_operator_compatibility(prev_operator, new_operator, field string) error {
@@ -219,6 +91,10 @@ func check_operator_compatibility(prev_operator, new_operator, field string) err
 }
 
 func (q *query) append_data(val any){
+	if val == nil {
+		return
+	}
+	
 	//	Flatten data slices
 	if v, ok := val.([]any); ok {
 		length := len(v)

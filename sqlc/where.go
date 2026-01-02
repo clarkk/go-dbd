@@ -39,7 +39,7 @@ type (
 	}
 	
 	where_clauser interface {
-		where_clause(clause where_clause, values any)
+		where_clause(clause where_clause, value any)
 		where_or_group() *or_group
 	}
 	
