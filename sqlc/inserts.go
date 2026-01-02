@@ -44,7 +44,7 @@ func (q *Inserts_query) Fields(fields map[string]any) error {
 		}
 	} else {
 		if length != q.col_count {
-			return fmt.Errorf("Invalid update consistency: row %d has %d fields, expected %d", len(q.fields)+1, length, q.col_count)
+			return fmt.Errorf("Invalid insert consistency: row %d has %d fields, expected %d", len(q.fields)+1, length, q.col_count)
 		}
 	}
 	
@@ -52,7 +52,7 @@ func (q *Inserts_query) Fields(fields map[string]any) error {
 	for key, value := range fields {
 		i, ok := q.col_map[key]
 		if !ok {
-			
+			return fmt.Errorf("Invalid insert field: %s", key)
 		}
 		row[i] = value
 	}
@@ -85,9 +85,7 @@ func (q *Inserts_query) Compile() (string, error){
 	}
 	sb.Grow(alloc)
 	
-	if err := q.compile_inserts(sb); err != nil {
-		return "", err
-	}
+	q.compile_inserts(sb)
 	sb.WriteString("VALUES ")
 	if err := q.compile_fields(sb); err != nil {
 		return "", err
@@ -122,13 +120,9 @@ func (q *Inserts_query) Compile() (string, error){
 	return sb.String(), nil
 }
 
-func (q *Inserts_query) compile_inserts(sb *strings.Builder) error {
-	if q.col_count != len(q.col_map) {
-		return fmt.Errorf("Insert rows inconsistency")
-	}
-	
+func (q *Inserts_query) compile_inserts(sb *strings.Builder){
 	//	Pre-allocation
-	sb.Grow(12 + (q.col_count * alloc_select_field))
+	sb.Grow(12 + len(q.table) + (q.col_count * alloc_select_field))
 	
 	sb.WriteString("INSERT .")
 	sb.WriteString(q.table)
@@ -140,8 +134,6 @@ func (q *Inserts_query) compile_inserts(sb *strings.Builder) error {
 		q.write_field(sb, k)
 	}
 	sb.WriteString(")\n")
-	
-	return nil
 }
 
 func (q *Inserts_query) compile_fields(sb *strings.Builder) error {
@@ -155,10 +147,7 @@ func (q *Inserts_query) compile_fields(sb *strings.Builder) error {
 	//	Pre-allocation
 	sb.Grow(length * (q.col_count * 2 + 3))
 	
-	for i, fields := range q.fields {
-		if q.col_count != len(fields) {
-			return fmt.Errorf("Insert rows inconsistency in row %d", i+1)
-		}
+	for i := range q.fields {
 		if i > 0 {
 			sb.WriteByte(',')
 		}
@@ -167,7 +156,7 @@ func (q *Inserts_query) compile_fields(sb *strings.Builder) error {
 		placeholder_value_array(q.col_count, sb)
 		sb.WriteByte(')')
 		
-		q.data = append(q.data, fields...)
+		q.data = append(q.data, q.fields[i]...)
 	}
 	return nil
 }
