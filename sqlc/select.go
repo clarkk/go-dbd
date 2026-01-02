@@ -156,16 +156,16 @@ func (q *Select_query) compile_select() string {
 			switch s.function {
 			case "sum_zero":
 				sb.WriteString("IFNULL(SUM(")
-				q.field(&sb, s.field)
+				q.write_field(&sb, s.field)
 				sb.WriteString("), 0)")
 			default:
 				sb.WriteString(strings.ToUpper(s.function))
 				sb.WriteByte('(')
-				q.field(&sb, s.field)
+				q.write_field(&sb, s.field)
 				sb.WriteByte(')')
 			}
 		} else {
-			q.field(&sb, s.field)
+			q.write_field(&sb, s.field)
 		}
 		
 		if s.alias != "" {
@@ -192,7 +192,7 @@ func (q *Select_query) compile_group() string {
 		if i > 0 {
 			sb.WriteString(", ")
 		}
-		q.field(&sb, v)
+		q.write_field(&sb, v)
 	}
 	sb.WriteByte('\n')
 	return sb.String()
@@ -213,7 +213,7 @@ func (q *Select_query) compile_order() string {
 		if i > 0 {
 			sb.WriteString(", ")
 		}
-		q.field(&sb, v)
+		q.write_field(&sb, v)
 	}
 	sb.WriteByte('\n')
 	return sb.String()

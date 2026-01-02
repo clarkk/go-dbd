@@ -117,7 +117,7 @@ func (q *Insert_query) compile_fields() (string, error){
 			sb.WriteString(", ")
 		}
 		
-		q.field(&sb, entry.field)
+		q.write_field(&sb, entry.field)
 		sb.WriteString("=?")
 		
 		q.data[i]					= entry.value

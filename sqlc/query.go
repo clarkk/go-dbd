@@ -102,7 +102,7 @@ func (q *query_where) compile_where() (string, error){
 	first := true
 	
 	if q.use_id {
-		q.field(&sb, "id")
+		q.write_field(&sb, "id")
 		sb.WriteByte('=')
 		sb.WriteString(strconv.FormatUint(q.id, 10))
 		first = false
@@ -122,7 +122,7 @@ func (q *query_where) compile_where() (string, error){
 				if i > 0 {
 					sb.WriteString(" || ")
 				}
-				q.field(&sb, clause.field)
+				q.write_field(&sb, clause.field)
 				sb.WriteString(clause.sql)
 				
 				q.append_data(group.where_data[i])
@@ -171,14 +171,14 @@ func (q *query_where) compile_where() (string, error){
 		}
 		
 		if clause.subquery != nil {
-			sql, err := clause.subquery.Compile()
+			sql_subquery, err := clause.subquery.Compile()
 			if err != nil {
 				return "", err
 			}
-			clause.sql = strings.Replace(clause.sql, "?", sql, 1)
+			clause.sql = strings.Replace(clause.sql, "?", sql_subquery, 1)
 		}
 		
-		q.field(&sb, clause.field)
+		q.write_field(&sb, clause.field)
 		sb.WriteString(clause.sql)
 		
 		if clause.operator == op_null || clause.operator == op_not_null {

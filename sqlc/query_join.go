@@ -109,7 +109,7 @@ func (q *query_join) compile_joins() string {
 		sb.WriteByte('.')
 		sb.WriteString(j.field)
 		sb.WriteByte('=')
-		q.field(&sb, j.field_foreign)
+		q.write_field(&sb, j.field_foreign)
 		
 		if len(j.conditions) > 0 {
 			keys := slices.Sorted(maps.Keys(j.conditions))
@@ -133,17 +133,17 @@ func (q *query_join) compile_joins() string {
 func (q *query_join) write_update_field(sb *strings.Builder, field, operator string){
 	switch operator {
 	case op_update_add:
-		q.field(sb, field)
+		q.write_field(sb, field)
 		sb.WriteByte('=')
-		q.field(sb, field)
+		q.write_field(sb, field)
 		sb.WriteString("+?")
 	default:
-		q.field(sb, field)
+		q.write_field(sb, field)
 		sb.WriteString("=?")
 	}
 }
 
-func (q *query_join) field(sb *strings.Builder, field string){
+func (q *query_join) write_field(sb *strings.Builder, field string){
 	if q.joined && strings.IndexByte(field, '.') == -1 {
 		sb.WriteString(q.t)
 		sb.WriteByte('.')
