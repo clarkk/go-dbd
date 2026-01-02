@@ -41,22 +41,14 @@ func (q *Delete_query) Compile() (string, error){
 		return "", err
 	}
 	
-	sql_from	:= q.compile_from()
-	sql_join	:= q.compile_joins()
-	
-	sql_where, err := q.compile_where()
-	if err != nil {
-		return "", err
-	}
-	
 	var sb strings.Builder
-	//	Pre-allocation
-	sb.Grow(7 + len(sql_from) + len(sql_join) + len(sql_where))
 	
 	sb.WriteString("DELETE ")
-	sb.WriteString(sql_from)
-	sb.WriteString(sql_join)
-	sb.WriteString(sql_where)
+	q.compile_from(&sb)
+	q.compile_joins(&sb)
+	if err := q.compile_where(&sb); err != nil {
+		return "", err
+	}
 	
 	return sb.String(), nil
 }

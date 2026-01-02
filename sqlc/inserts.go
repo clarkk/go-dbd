@@ -56,31 +56,16 @@ func (q *Inserts_query) Compile() (string, error){
 	if err := q.compile_tables(t); err != nil {
 		return "", err
 	}
-	sql_header, err := q.compile_inserts()
-	if err != nil {
-		return "", err
-	}
-	sql_fields, err := q.compile_fields()
-	if err != nil {
-		return "", err
-	}
 	
 	var sb strings.Builder
-	//	Pre-allocation
-	alloc := 8 + len(sql_header) + len(sql_fields)
-	if q.update_duplicate {
-		alloc += 25
-		if q.update_dublicate_fields != nil {
-			alloc += len(q.update_dublicate_fields) * (9 + alloc_select_field)
-		} else {
-			alloc += q.col_count * (9 + alloc_select_field)
-		}
-	}
-	sb.Grow(alloc)
 	
-	sb.WriteString(sql_header)
+	if err := q.compile_inserts(&sb); err != nil {
+		return "", err
+	}
 	sb.WriteString("VALUES ")
-	sb.WriteString(sql_fields)
+	if err := q.compile_fields(&sb); err != nil {
+		return "", err
+	}
 	sb.WriteByte('\n')
 	
 	if q.update_duplicate {
@@ -111,12 +96,11 @@ func (q *Inserts_query) Compile() (string, error){
 	return sb.String(), nil
 }
 
-func (q *Inserts_query) compile_inserts() (string, error){
+func (q *Inserts_query) compile_inserts(sb *strings.Builder) error {
 	if q.col_count != len(q.col_map) {
-		return "", fmt.Errorf("Insert rows inconsistency")
+		return fmt.Errorf("Insert rows inconsistency")
 	}
 	
-	var sb strings.Builder
 	//	Pre-allocation
 	sb.Grow(12 + (q.col_count * alloc_select_field))
 	
@@ -127,32 +111,31 @@ func (q *Inserts_query) compile_inserts() (string, error){
 		if i > 0 {
 			sb.WriteString(", ")
 		}
-		q.write_field(&sb, k)
+		q.write_field(sb, k)
 	}
 	sb.WriteString(")\n")
 	
-	return sb.String(), nil
+	return nil
 }
 
-func (q *Inserts_query) compile_fields() (string, error){
+func (q *Inserts_query) compile_fields(sb *strings.Builder) error {
 	length	:= len(q.fields)
 	q.data	= make([]any, q.col_count * length)
 	
-	var sb strings.Builder
 	//	Pre-allocation
 	sb.Grow(length * alloc_field_assignment)
 	
 	j := 0
 	for i, fields := range q.fields {
 		if q.col_count != len(fields) {
-			return "", fmt.Errorf("Insert rows inconsistency in row %d", i+1)
+			return fmt.Errorf("Insert rows inconsistency in row %d", i+1)
 		}
 		if i > 0 {
 			sb.WriteByte(',')
 		}
 		
 		sb.WriteByte('(')
-		placeholder_value_array(q.col_count, &sb)
+		placeholder_value_array(q.col_count, sb)
 		sb.WriteByte(')')
 		
 		for _, key := range q.col_keys {
@@ -160,7 +143,7 @@ func (q *Inserts_query) compile_fields() (string, error){
 			j++
 		}
 	}
-	return sb.String(), nil
+	return nil
 }
 
 func (q *Inserts_query) write_update_duplicate_field(sb *strings.Builder, field string){

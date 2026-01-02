@@ -71,42 +71,28 @@ func (q *Union_query) Compile() (string, error){
 		return "", err
 	}
 	
-	sql_select := q.compile_select()
-	sql_from, err := q.compile_from()
-	if err != nil {
-		return "", err
-	}
-	sql_join := q.compile_joins()
-	sql_where, err := q.compile_where()
-	if err != nil {
-		return "", err
-	}
-	sql_group	:= q.compile_group()
-	sql_order	:= q.compile_order()
-	sql_limit	:= q.compile_limit()
-	
 	var sb strings.Builder
-	//	Pre-allocation
-	sb.Grow(1 + len(sql_select) + len(sql_from) + len(sql_join) + len(sql_where) + len(sql_group) + len(sql_order) + len(sql_limit))
 	
-	sb.WriteString(sql_select)
-	sb.WriteString(sql_from)
-	if q.joined {
-		sb.WriteString(sql_join)
+	q.compile_select(&sb)
+	if err := q.compile_from(&sb); err != nil {
+		return "", err
 	}
-	sb.WriteString(sql_where)
-	sb.WriteString(sql_group)
-	sb.WriteString(sql_order)
-	sb.WriteString(sql_limit)
-	
+	q.compile_joins(&sb)
+	if err := q.compile_where(&sb); err != nil {
+		return "", err
+	}
+	q.compile_group(&sb)
+	q.compile_order(&sb)
+	q.compile_limit(&sb)
 	sb.WriteByte('\n')
+	
 	return sb.String(), nil
 }
 
-func (q *Union_query) compile_from() (string, error){
+func (q *Union_query) compile_from(sb *strings.Builder) error {
 	length := len(q.unions)
 	if length < 1 {
-		return "", fmt.Errorf("Must have at least two queries to union")
+		return fmt.Errorf("Must have at least two queries to union")
 	}
 	
 	sep := "UNION\n"
@@ -114,7 +100,6 @@ func (q *Union_query) compile_from() (string, error){
 		sep = "UNION ALL\n"
 	}
 	
-	var sb strings.Builder
 	//	Pre-allocation
 	sb.Grow(length * 200)
 	
@@ -123,7 +108,7 @@ func (q *Union_query) compile_from() (string, error){
 	for i, query := range q.unions {
 		sql, err := query.Compile()
 		if err != nil {
-			return "", err
+			return err
 		}
 		
 		if i > 0 {
@@ -136,5 +121,5 @@ func (q *Union_query) compile_from() (string, error){
 	sb.WriteString(") ")
 	sb.WriteString(q.t)
 	sb.WriteByte('\n')
-	return sb.String(), nil
+	return nil
 }

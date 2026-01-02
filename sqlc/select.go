@@ -102,42 +102,25 @@ func (q *Select_query) Compile() (string, error){
 		return "", err
 	}
 	
-	sql_select	:= q.compile_select()
-	sql_from	:= q.compile_from()
-	sql_join := q.compile_joins()
-	sql_where, err := q.compile_where()
-	if err != nil {
+	var sb strings.Builder
+	
+	q.compile_select(&sb)
+	q.compile_from(&sb)
+	q.compile_joins(&sb)
+	if err := q.compile_where(&sb); err != nil {
 		return "", err
 	}
-	sql_group	:= q.compile_group()
-	sql_order	:= q.compile_order()
-	sql_limit	:= q.compile_limit()
-	
-	var sb strings.Builder
-	//	Pre-allocation
-	alloc := len(sql_select) + len(sql_from) + len(sql_join) + len(sql_where) + len(sql_group) + len(sql_order) + len(sql_limit)
-	if q.read_lock {
-		alloc += 11
-	}
-	sb.Grow(alloc)
-	
-	sb.WriteString(sql_select)
-	sb.WriteString(sql_from)
-	if q.joined {
-		sb.WriteString(sql_join)
-	}
-	sb.WriteString(sql_where)
-	sb.WriteString(sql_group)
-	sb.WriteString(sql_order)
-	sb.WriteString(sql_limit)
+	q.compile_group(&sb)
+	q.compile_order(&sb)
+	q.compile_limit(&sb)
 	if q.read_lock {
 		sb.WriteString("FOR UPDATE\n")
 	}
+	
 	return sb.String(), nil
 }
 
-func (q *Select_query) compile_select() string {
-	var sb strings.Builder
+func (q *Select_query) compile_select(sb *strings.Builder){
 	//	Pre-allocation
 	sb.Grow(7 + alloc_select_field * len(q.select_fields))
 	
@@ -156,16 +139,16 @@ func (q *Select_query) compile_select() string {
 			switch s.function {
 			case "sum_zero":
 				sb.WriteString("IFNULL(SUM(")
-				q.write_field(&sb, s.field)
+				q.write_field(sb, s.field)
 				sb.WriteString("), 0)")
 			default:
 				sb.WriteString(strings.ToUpper(s.function))
 				sb.WriteByte('(')
-				q.write_field(&sb, s.field)
+				q.write_field(sb, s.field)
 				sb.WriteByte(')')
 			}
 		} else {
-			q.write_field(&sb, s.field)
+			q.write_field(sb, s.field)
 		}
 		
 		if s.alias != "" {
@@ -174,16 +157,14 @@ func (q *Select_query) compile_select() string {
 		}
 	}
 	sb.WriteByte('\n')
-	return sb.String()
 }
 
-func (q *Select_query) compile_group() string {
+func (q *Select_query) compile_group(sb *strings.Builder){
 	length := len(q.group)
 	if length == 0 {
-		return ""
+		return
 	}
 	
-	var sb strings.Builder
 	//	Pre-allocation
 	sb.Grow(10 + alloc_select_field * length)
 	
@@ -192,19 +173,17 @@ func (q *Select_query) compile_group() string {
 		if i > 0 {
 			sb.WriteString(", ")
 		}
-		q.write_field(&sb, v)
+		q.write_field(sb, v)
 	}
 	sb.WriteByte('\n')
-	return sb.String()
 }
 
-func (q *Select_query) compile_order() string {
+func (q *Select_query) compile_order(sb *strings.Builder){
 	length := len(q.order)
 	if length == 0 {
-		return ""
+		return
 	}
 	
-	var sb strings.Builder
 	//	Pre-allocation
 	sb.Grow(10 + alloc_select_field * length)
 	
@@ -213,15 +192,22 @@ func (q *Select_query) compile_order() string {
 		if i > 0 {
 			sb.WriteString(", ")
 		}
-		q.write_field(&sb, v)
+		q.write_field(sb, v)
 	}
 	sb.WriteByte('\n')
-	return sb.String()
 }
 
-func (q *Select_query) compile_limit() string {
+func (q *Select_query) compile_limit(sb *strings.Builder){
 	if q.limit.limit == 0 {
-		return ""
+		return
 	}
-	return "LIMIT "+strconv.FormatUint(uint64(q.limit.offset), 10)+","+strconv.FormatUint(uint64(q.limit.limit), 10)+"\n"
+	
+	//	Pre-allocation
+	sb.Grow(8 + 3 + 3)
+	
+	sb.WriteString("LIMIT ")
+	sb.WriteString(strconv.FormatUint(uint64(q.limit.offset), 10))
+	sb.WriteByte(',')
+	sb.WriteString(strconv.FormatUint(uint64(q.limit.limit), 10))
+	sb.WriteByte('\n')
 }

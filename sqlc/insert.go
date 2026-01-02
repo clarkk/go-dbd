@@ -58,80 +58,59 @@ func (q *Insert_query) Compile() (string, error){
 	if err := q.compile_tables(t); err != nil {
 		return "", err
 	}
-	sql_fields, err := q.compile_fields()
-	if err != nil {
-		return "", err
-	}
-	
-	var (
-		sql_update	string
-		data_update	[]any
-	)
-	if q.update_duplicate {
-		sql_update, data_update, err = q.compile_update_duplicate_fields()
-		if err != nil {
-			return "", err
-		}
-	}
 	
 	var sb strings.Builder
-	//	Pre-allocation
-	alloc := 14 + len(q.table) + len(sql_fields)
-	if q.update_duplicate {
-		alloc += 25 + len(sql_update)
-	}
-	sb.Grow(alloc)
 	
 	sb.WriteString("INSERT .")
 	sb.WriteString(q.table)
 	sb.WriteByte('\n')
 	sb.WriteString("SET ")
-	sb.WriteString(sql_fields)
+	if err := q.compile_fields(&sb); err != nil {
+		return "", err
+	}
 	sb.WriteByte('\n')
-	
 	if q.update_duplicate {
 		sb.WriteString("ON DUPLICATE KEY UPDATE ")
-		sb.WriteString(sql_update)
+		data_update, err := q.compile_update_duplicate_fields(&sb)
+		if err != nil {
+			return "", err
+		}
 		sb.WriteByte('\n')
 		
 		q.data = append(q.data, data_update...)
-		sb.WriteByte('\n')
 	}
+	
 	return sb.String(), nil
 }
 
-func (q *Insert_query) compile_fields() (string, error){
+func (q *Insert_query) compile_fields(sb *strings.Builder) error {
 	length	:= len(q.fields.entries)
 	q.data	= make([]any, length)
 	unique	:= make(map[string]struct{}, length)
 	
-	var sb strings.Builder
 	//	Pre-allocation
 	sb.Grow(length * alloc_field_assignment)
 	
 	for i, entry := range q.fields.entries {
 		if _, found := unique[entry.field]; found {
-			return "", fmt.Errorf("Duplicate field: %s", entry.field)
+			return fmt.Errorf("Duplicate field: %s", entry.field)
 		}
 		if i > 0 {
 			sb.WriteString(", ")
 		}
 		
-		q.write_field(&sb, entry.field)
+		q.write_field(sb, entry.field)
 		sb.WriteString("=?")
 		
 		q.data[i]					= entry.value
 		unique[entry.field]			= struct{}{}
 		q.map_fields[entry.field]	= i
 	}
-	return sb.String(), nil
+	return nil
 }
 
-func (q *Insert_query) compile_update_duplicate_fields() (string, []any, error){
-	var (
-		sb		strings.Builder
-		data	[]any
-	)
+func (q *Insert_query) compile_update_duplicate_fields(sb *strings.Builder) ([]any, error){
+	var data []any
 	
 	if q.update_duplicate_fields != nil {
 		length	:= len(q.update_duplicate_fields)
@@ -143,14 +122,14 @@ func (q *Insert_query) compile_update_duplicate_fields() (string, []any, error){
 		for i, field := range q.update_duplicate_fields {
 			j, found := q.map_fields[field]
 			if !found {
-				return "", nil, fmt.Errorf("Invalid field: %s", field)
+				return nil, fmt.Errorf("Invalid field: %s", field)
 			}
 			
 			if i > 0 {
 				sb.WriteString(", ")
 			}
 			
-			q.write_update_field(&sb, field, q.fields.entries[j].operator)
+			q.write_update_field(sb, field, q.fields.entries[j].operator)
 			
 			data[i] = q.fields.entries[j].value
 		}
@@ -166,10 +145,10 @@ func (q *Insert_query) compile_update_duplicate_fields() (string, []any, error){
 				sb.WriteString(", ")
 			}
 			
-			q.write_update_field(&sb, entry.field, entry.operator)
+			q.write_update_field(sb, entry.field, entry.operator)
 			
 			data[i] = entry.value
 		}
 	}
-	return sb.String(), data, nil
+	return data, nil
 }

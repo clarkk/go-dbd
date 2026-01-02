@@ -60,25 +60,8 @@ func (q *Update_query) Compile() (string, error){
 	if err := q.compile_tables(t); err != nil {
 		return "", err
 	}
-	sql_fields, err := q.compile_fields()
-	if err != nil {
-		return "", err
-	}
-	
-	sql_join := q.compile_joins()
-	
-	sql_where, err := q.compile_where()
-	if err != nil {
-		return "", err
-	}
 	
 	var sb strings.Builder
-	//	Pre-allocation
-	alloc := 13 + len(q.table) + len(sql_fields) + len(sql_where)
-	if q.joined {
-		alloc += 2 + len(q.t) + len(sql_join)
-	}
-	sb.Grow(alloc)
 	
 	sb.WriteString("UPDATE .")
 	sb.WriteString(q.table)
@@ -86,39 +69,42 @@ func (q *Update_query) Compile() (string, error){
 		sb.WriteByte(' ')
 		sb.WriteString(q.t)
 		sb.WriteByte('\n')
-		sb.WriteString(sql_join)
+		q.compile_joins(&sb)
 	} else {
 		sb.WriteByte('\n')
 	}
 	sb.WriteString("SET ")
-	sb.WriteString(sql_fields)
+	if err := q.compile_fields(&sb); err != nil {
+		return "", err
+	}
 	sb.WriteByte('\n')
-	sb.WriteString(sql_where)
+	if err := q.compile_where(&sb); err != nil {
+		return "", err
+	}
 	
 	return sb.String(), nil
 }
 
-func (q *Update_query) compile_fields() (string, error){
+func (q *Update_query) compile_fields(sb *strings.Builder) error {
 	length := len(q.fields.entries)
 	q.data = make([]any, length)
 	unique := make(map[string]struct{}, length)
 	
-	var sb strings.Builder
 	//	Pre-allocation
 	sb.Grow(length * alloc_field_assignment)
 	
 	for i, entry := range q.fields.entries {
 		if _, found := unique[entry.field]; found {
-			return "", fmt.Errorf("Duplicate field: %s", entry.field)
+			return fmt.Errorf("Duplicate field: %s", entry.field)
 		}
 		if i > 0 {
 			sb.WriteString(", ")
 		}
 		
-		q.write_update_field(&sb, entry.field, entry.operator)
+		q.write_update_field(sb, entry.field, entry.operator)
 		
 		q.data[i]			= entry.value
 		unique[entry.field]	= struct{}{}
 	}
-	return sb.String(), nil
+	return nil
 }

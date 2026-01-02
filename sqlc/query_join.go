@@ -68,17 +68,19 @@ func (q *query_join) compile_tables(c string) error {
 	return nil
 }
 
-func (q *query_join) compile_from() string {
-	s := "FROM ."+q.table
+func (q *query_join) compile_from(sb *strings.Builder){
+	sb.WriteString("FROM .")
+	sb.WriteString(q.table)
 	if q.joined {
-		s += " "+q.t
+		sb.WriteByte(' ')
+		sb.WriteString(q.t)
 	}
-	return s+"\n"
+	sb.WriteByte('\n')
 }
 
-func (q *query_join) compile_joins() string {
+func (q *query_join) compile_joins(sb *strings.Builder){
 	if !q.joined {
-		return ""
+		return
 	}
 	
 	if q.joined_t {
@@ -94,7 +96,6 @@ func (q *query_join) compile_joins() string {
 		})
 	}
 	
-	var sb strings.Builder
 	//	Pre-allocation
 	sb.Grow((20 + alloc_join_clause) * len(q.joins))
 	
@@ -109,7 +110,7 @@ func (q *query_join) compile_joins() string {
 		sb.WriteByte('.')
 		sb.WriteString(j.field)
 		sb.WriteByte('=')
-		q.write_field(&sb, j.field_foreign)
+		q.write_field(sb, j.field_foreign)
 		
 		if len(j.conditions) > 0 {
 			keys := slices.Sorted(maps.Keys(j.conditions))
@@ -121,13 +122,12 @@ func (q *query_join) compile_joins() string {
 				sb.WriteByte('.')
 				sb.WriteString(column)
 				sb.WriteString("='")
-				fmt.Fprint(&sb, value) 
+				fmt.Fprint(sb, value) 
 				sb.WriteByte('\'')
 			}
 		}
 		sb.WriteByte('\n')
 	}
-	return sb.String()
 }
 
 func (q *query_join) write_update_field(sb *strings.Builder, field, operator string){
