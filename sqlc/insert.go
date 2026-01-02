@@ -65,6 +65,13 @@ func (q *Insert_query) Compile() (string, error){
 		builder_pool.Put(sb)
 	}()
 	
+	//	Pre-allocation
+	alloc := 14 + len(q.table)
+	if q.update_duplicate {
+		alloc += 25
+	}
+	sb.Grow(alloc)
+	
 	sb.WriteString("INSERT .")
 	sb.WriteString(q.table)
 	sb.WriteByte('\n')
@@ -75,13 +82,11 @@ func (q *Insert_query) Compile() (string, error){
 	sb.WriteByte('\n')
 	if q.update_duplicate {
 		sb.WriteString("ON DUPLICATE KEY UPDATE ")
-		data_update, err := q.compile_update_duplicate_fields(sb)
+		err := q.compile_update_duplicate_fields(sb)
 		if err != nil {
 			return "", err
 		}
 		sb.WriteByte('\n')
-		
-		q.data = append(q.data, data_update...)
 	}
 	
 	return sb.String(), nil
@@ -113,12 +118,11 @@ func (q *Insert_query) compile_fields(sb *strings.Builder) error {
 	return nil
 }
 
-func (q *Insert_query) compile_update_duplicate_fields(sb *strings.Builder) ([]any, error){
-	var data []any
-	
+func (q *Insert_query) compile_update_duplicate_fields(sb *strings.Builder) error {
 	if q.update_duplicate_fields != nil {
-		length	:= len(q.update_duplicate_fields)
-		data	= make([]any, length)
+		length := len(q.update_duplicate_fields)
+		
+		q.alloc_data_capacity(len(q.data) + length)
 		
 		//	Pre-allocation
 		sb.Grow(length * alloc_field_assignment)
@@ -126,7 +130,7 @@ func (q *Insert_query) compile_update_duplicate_fields(sb *strings.Builder) ([]a
 		for i, field := range q.update_duplicate_fields {
 			j, found := q.map_fields[field]
 			if !found {
-				return nil, fmt.Errorf("Invalid field: %s", field)
+				return fmt.Errorf("Invalid field: %s", field)
 			}
 			
 			if i > 0 {
@@ -135,11 +139,12 @@ func (q *Insert_query) compile_update_duplicate_fields(sb *strings.Builder) ([]a
 			
 			q.write_update_field(sb, field, q.fields.entries[j].operator)
 			
-			data[i] = q.fields.entries[j].value
+			q.data = append(q.data, q.fields.entries[j].value)
 		}
 	} else {
-		length	:= len(q.fields.entries)
-		data	= make([]any, length)
+		length := len(q.fields.entries)
+		
+		q.alloc_data_capacity(len(q.data) + length)
 		
 		//	Pre-allocation
 		sb.Grow(length * alloc_field_assignment)
@@ -151,8 +156,8 @@ func (q *Insert_query) compile_update_duplicate_fields(sb *strings.Builder) ([]a
 			
 			q.write_update_field(sb, entry.field, entry.operator)
 			
-			data[i] = entry.value
+			q.data = append(q.data, entry.value)
 		}
 	}
-	return data, nil
+	return nil
 }

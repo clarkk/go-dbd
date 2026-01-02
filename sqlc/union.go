@@ -119,7 +119,8 @@ func (q *Union_query) compile_from(sb *strings.Builder) error {
 			sb.WriteString(sep)
 		}
 		sb.WriteString(sql)
-		q.data = append(q.data, query.Data()...)
+		
+		q.append_data(query.Data())
 	}
 	
 	sb.WriteString(") ")

@@ -47,7 +47,18 @@ func (q *Delete_query) Compile() (string, error){
 		builder_pool.Put(sb)
 	}()
 	
+	//	Pre-allocation
+	alloc := 7
+	if q.joined {
+		alloc += 1 + len(q.t)
+	}
+	sb.Grow(alloc)
+	
 	sb.WriteString("DELETE ")
+	if q.joined {
+		sb.WriteString(q.t)
+		sb.WriteByte(' ')
+	}
 	q.compile_from(sb)
 	q.compile_joins(sb)
 	if err := q.compile_where(sb); err != nil {

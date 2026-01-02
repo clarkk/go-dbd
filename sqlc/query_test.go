@@ -1274,23 +1274,23 @@ func Test_inserts(t *testing.T){
 }
 
 func run_inserts(tb testing.TB){
-	query := Inserts("account").
-		Fields(Map{
-			"account_number":	123,
-			"name":				"test1",
-		}).
-		Fields(Map{
-			"account_number":	456,
-			"name":				"test2",
-		}).
-		Fields(Map{
-			"account_number":	789,
-			"name":				"test3",
-		}).
-		Fields(Map{
-			"account_number":	101112,
-			"name":				"test4",
-		})
+	query := Inserts("account")
+	query.Fields(Map{
+		"account_number":	123,
+		"name":				"test1",
+	})
+	query.Fields(Map{
+		"account_number":	456,
+		"name":				"test2",
+	})
+	query.Fields(Map{
+		"account_number":	789,
+		"name":				"test3",
+	})
+	query.Fields(Map{
+		"account_number":	101112,
+		"name":				"test4",
+	})
 	
 	sql, _ := query.Compile()
 	
@@ -1313,15 +1313,15 @@ VALUES (123,test1),(456,test2),(789,test3),(101112,test4)`
 
 func run_inserts_update_duplicate(tb testing.TB){
 	query := Inserts("account").
-		Update_duplicate(nil).
-		Fields(Map{
-			"account_number":	123,
-			"name":				"test1",
-		}).
-		Fields(Map{
-			"account_number":	456,
-			"name":				"test2",
-		})
+		Update_duplicate(nil)
+	query.Fields(Map{
+		"account_number":	123,
+		"name":				"test1",
+	})
+	query.Fields(Map{
+		"account_number":	456,
+		"name":				"test2",
+	})
 	
 	sql, _ := query.Compile()
 	
@@ -1348,15 +1348,15 @@ func run_inserts_update_duplicate_fields(tb testing.TB){
 	query := Inserts("account").
 		Update_duplicate([]string{
 			"name",
-		}).
-		Fields(Map{
-			"account_number":	123,
-			"name":				"test1",
-		}).
-		Fields(Map{
-			"account_number":	456,
-			"name":				"test2",
 		})
+	query.Fields(Map{
+		"account_number":	123,
+		"name":				"test1",
+	})
+	query.Fields(Map{
+		"account_number":	456,
+		"name":				"test2",
+	})
 	
 	sql, _ := query.Compile()
 	

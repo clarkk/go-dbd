@@ -9,11 +9,11 @@ import (
 
 type Inserts_query struct {
 	query_join
-	fields 					[]Map
+	fields 					[][]any
 	update_duplicate		bool
 	update_dublicate_fields []string
 	col_count				int
-	col_map					Map
+	col_map					map[string]int
 	col_keys				[]string
 }
 
@@ -24,7 +24,6 @@ func Inserts(table string) *Inserts_query {
 				table: table,
 			},
 		},
-		col_map: Map{},
 	}
 }
 
@@ -34,16 +33,32 @@ func (q *Inserts_query) Update_duplicate(update_fields []string) *Inserts_query 
 	return q
 }
 
-func (q *Inserts_query) Fields(fields map[string]any) *Inserts_query {
+func (q *Inserts_query) Fields(fields map[string]any) error {
+	length := len(fields)
 	if q.col_count == 0 {
-		q.col_count	= len(fields)
+		q.col_count	= length
+		q.col_map	= make(map[string]int, q.col_count)
 		q.col_keys	= slices.Sorted(maps.Keys(fields))
+		for i, key := range q.col_keys {
+			q.col_map[key] = i
+		}
+	} else {
+		if length != q.col_count {
+			return fmt.Errorf("Invalid update consistency: row %d has %d fields, expected %d", len(q.fields)+1, length, q.col_count)
+		}
 	}
-	for k := range fields {
-		q.col_map[k] = nil
+	
+	row := make([]any, q.col_count)
+	for key, value := range fields {
+		i, ok := q.col_map[key]
+		if !ok {
+			
+		}
+		row[i] = value
 	}
-	q.fields = append(q.fields, fields)
-	return q
+	
+	q.fields = append(q.fields, row)
+	return nil
 }
 
 func (q *Inserts_query) Left_join(table, t, field, field_foreign string, conditions Map) *Inserts_query {
@@ -62,6 +77,13 @@ func (q *Inserts_query) Compile() (string, error){
 		sb.Reset()
 		builder_pool.Put(sb)
 	}()
+	
+	//	Pre-allocation
+	alloc := 8
+	if q.update_duplicate {
+		alloc += 25
+	}
+	sb.Grow(alloc)
 	
 	if err := q.compile_inserts(sb); err != nil {
 		return "", err
@@ -123,13 +145,16 @@ func (q *Inserts_query) compile_inserts(sb *strings.Builder) error {
 }
 
 func (q *Inserts_query) compile_fields(sb *strings.Builder) error {
-	length	:= len(q.fields)
-	q.data	= make([]any, q.col_count * length)
+	length := len(q.fields)
+	if length == 0 {
+		return fmt.Errorf("No rows to insert")
+	}
+	
+	q.alloc_data_capacity(q.col_count * length)
 	
 	//	Pre-allocation
-	sb.Grow(length * alloc_field_assignment)
+	sb.Grow(length * (q.col_count * 2 + 3))
 	
-	j := 0
 	for i, fields := range q.fields {
 		if q.col_count != len(fields) {
 			return fmt.Errorf("Insert rows inconsistency in row %d", i+1)
@@ -142,10 +167,7 @@ func (q *Inserts_query) compile_fields(sb *strings.Builder) error {
 		placeholder_value_array(q.col_count, sb)
 		sb.WriteByte(')')
 		
-		for _, key := range q.col_keys {
-			q.data[j] = fields[key]
-			j++
-		}
+		q.data = append(q.data, fields...)
 	}
 	return nil
 }

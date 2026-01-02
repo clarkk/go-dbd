@@ -67,6 +67,13 @@ func (q *Update_query) Compile() (string, error){
 		builder_pool.Put(sb)
 	}()
 	
+	//	Pre-allocation
+	alloc := 14 + len(q.table)
+	if q.joined {
+		alloc += 2 + len(q.t)
+	}
+	sb.Grow(alloc)
+	
 	sb.WriteString("UPDATE .")
 	sb.WriteString(q.table)
 	if q.joined {
