@@ -5,7 +5,7 @@ package sqlc
 	# go test . -v
 	
 	Benchark
-	# go test -bench=. -run=^$
+	# go test -benchmem -bench=. -run=^$
 */
 
 import (

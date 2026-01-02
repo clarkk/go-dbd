@@ -66,7 +66,7 @@ func (q *Inserts_query) Compile() (string, error){
 	}
 	
 	var sb strings.Builder
-	//	Preallocation
+	//	Pre-allocation
 	alloc := 8 + len(sql_header) + len(sql_fields)
 	if q.update_duplicate {
 		alloc += 25
@@ -117,7 +117,7 @@ func (q *Inserts_query) compile_inserts() (string, error){
 	}
 	
 	var sb strings.Builder
-	//	Preallocation
+	//	Pre-allocation
 	sb.Grow(12 + (q.col_count * alloc_select_field))
 	
 	sb.WriteString("INSERT .")
@@ -139,7 +139,7 @@ func (q *Inserts_query) compile_fields() (string, error){
 	q.data	= make([]any, q.col_count * length)
 	
 	var sb strings.Builder
-	//	Preallocation
+	//	Pre-allocation
 	sb.Grow(length * alloc_field_assignment)
 	
 	j := 0

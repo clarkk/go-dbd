@@ -114,7 +114,7 @@ func (q *Select_query) Compile() (string, error){
 	sql_limit	:= q.compile_limit()
 	
 	var sb strings.Builder
-	//	Preallocation
+	//	Pre-allocation
 	alloc := len(sql_select) + len(sql_from) + len(sql_join) + len(sql_where) + len(sql_group) + len(sql_order) + len(sql_limit)
 	if q.read_lock {
 		alloc += 11
@@ -138,7 +138,7 @@ func (q *Select_query) Compile() (string, error){
 
 func (q *Select_query) compile_select() string {
 	var sb strings.Builder
-	//	Preallocation
+	//	Pre-allocation
 	sb.Grow(7 + alloc_select_field * len(q.select_fields))
 	
 	if q.select_distinct {
@@ -184,7 +184,7 @@ func (q *Select_query) compile_group() string {
 	}
 	
 	var sb strings.Builder
-	//	Preallocation
+	//	Pre-allocation
 	sb.Grow(10 + alloc_select_field * length)
 	
 	sb.WriteString("GROUP BY ")
@@ -196,18 +196,6 @@ func (q *Select_query) compile_group() string {
 	}
 	sb.WriteByte('\n')
 	return sb.String()
-	
-	/*if len(q.group) == 0 {
-		return ""
-	}
-	s := "GROUP BY "
-	for i, v := range q.group {
-		if i > 0 {
-			s += ", "
-		}
-		s += q.field(v)
-	}
-	return s+"\n"*/
 }
 
 func (q *Select_query) compile_order() string {
@@ -217,7 +205,7 @@ func (q *Select_query) compile_order() string {
 	}
 	
 	var sb strings.Builder
-	//	Preallocation
+	//	Pre-allocation
 	sb.Grow(10 + alloc_select_field * length)
 	
 	sb.WriteString("ORDER BY ")
@@ -229,18 +217,6 @@ func (q *Select_query) compile_order() string {
 	}
 	sb.WriteByte('\n')
 	return sb.String()
-	
-	/*if len(q.order) == 0 {
-		return ""
-	}
-	s := "ORDER BY "
-	for i, v := range q.order {
-		if i > 0 {
-			s += ", "
-		}
-		s += q.field(v)
-	}
-	return s+"\n"*/
 }
 
 func (q *Select_query) compile_limit() string {

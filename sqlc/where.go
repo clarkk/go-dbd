@@ -53,7 +53,7 @@ type (
 
 func Where() *Where_clause {
 	return &Where_clause{
-		//	Preallocation with 2 conditions
+		//	Pre-allocation with 2 conditions
 		conditions: make([]where_condition, 0, 2),
 	}
 }
@@ -153,7 +153,7 @@ func (w *Where_clause) apply(query where_clauser){
 	}
 	
 	var sb strings.Builder
-	//	Preallocation
+	//	Pre-allocation
 	sb.Grow(len(w.conditions) * alloc_where_condition)
 	
 	for _, field := range w.conditions {
@@ -213,7 +213,7 @@ func (w *Where_clause) apply(query where_clauser){
 
 func (w *Where_clause) apply_or_group(query where_clauser){
 	var sb strings.Builder
-	//	Preallocation
+	//	Pre-allocation
 	sb.Grow(len(w.conditions) * alloc_where_condition)
 	
 	group := query.where_or_group()

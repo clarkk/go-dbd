@@ -75,7 +75,7 @@ func (q *Insert_query) Compile() (string, error){
 	}
 	
 	var sb strings.Builder
-	//	Preallocation
+	//	Pre-allocation
 	alloc := 14 + len(q.table) + len(sql_fields)
 	if q.update_duplicate {
 		alloc += 25 + len(sql_update)
@@ -106,7 +106,7 @@ func (q *Insert_query) compile_fields() (string, error){
 	unique	:= make(map[string]struct{}, length)
 	
 	var sb strings.Builder
-	//	Preallocation
+	//	Pre-allocation
 	sb.Grow(length * alloc_field_assignment)
 	
 	for i, entry := range q.fields.entries {
@@ -137,7 +137,7 @@ func (q *Insert_query) compile_update_duplicate_fields() (string, []any, error){
 		length	:= len(q.update_duplicate_fields)
 		data	= make([]any, length)
 		
-		//	Preallocation
+		//	Pre-allocation
 		sb.Grow(length * alloc_field_assignment)
 		
 		for i, field := range q.update_duplicate_fields {
@@ -158,7 +158,7 @@ func (q *Insert_query) compile_update_duplicate_fields() (string, []any, error){
 		length	:= len(q.fields.entries)
 		data	= make([]any, length)
 		
-		//	Preallocation
+		//	Pre-allocation
 		sb.Grow(length * alloc_field_assignment)
 		
 		for i, entry := range q.fields.entries {

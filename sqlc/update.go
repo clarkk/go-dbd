@@ -73,7 +73,7 @@ func (q *Update_query) Compile() (string, error){
 	}
 	
 	var sb strings.Builder
-	//	Preallocation
+	//	Pre-allocation
 	alloc := 13 + len(q.table) + len(sql_fields) + len(sql_where)
 	if q.joined {
 		alloc += 2 + len(q.t) + len(sql_join)
@@ -104,7 +104,7 @@ func (q *Update_query) compile_fields() (string, error){
 	unique := make(map[string]struct{}, length)
 	
 	var sb strings.Builder
-	//	Preallocation
+	//	Pre-allocation
 	sb.Grow(length * alloc_field_assignment)
 	
 	for i, entry := range q.fields.entries {

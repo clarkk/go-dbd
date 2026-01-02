@@ -55,7 +55,7 @@ func (q *query_join) compile_tables(c string) error {
 		//	Get available char for base table (a-z)
 		if _, ok := q.tables[c]; ok {
 			for i := range 26 {
-				char := ascii_table[i : i+1]
+				char := char_table[i : i+1]
 				if _, ok := q.tables[char]; !ok {
 					c = char
 					break
@@ -95,7 +95,7 @@ func (q *query_join) compile_joins() string {
 	}
 	
 	var sb strings.Builder
-	//	Preallocation
+	//	Pre-allocation
 	sb.Grow((20 + alloc_join_clause) * len(q.joins))
 	
 	for _, j := range q.joins {
@@ -144,7 +144,7 @@ func (q *query_join) write_update_field(sb *strings.Builder, field, operator str
 }
 
 func (q *query_join) field(sb *strings.Builder, field string){
-	if q.joined && !strings.Contains(field, ".") {
+	if q.joined && strings.IndexByte(field, '.') == -1 {
 		sb.WriteString(q.t)
 		sb.WriteByte('.')
 	}

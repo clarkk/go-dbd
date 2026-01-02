@@ -16,7 +16,7 @@ type (
 
 func Fields() *Fields_clause {
 	return &Fields_clause{
-		//	Preallocate 4 fields
+		//	Pre-allocate 4 fields
 		entries: make([]field_entry, 0, 4),
 	}
 }

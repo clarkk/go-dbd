@@ -12,7 +12,7 @@ const (
 	alloc_where_condition	= 15
 	alloc_join_clause		= 40
 	
-	ascii_table = "abcdefghijklmnopqrstuvwxyz"
+	char_table = "abcdefghijklmnopqrstuvwxyz"
 )
 
 type (
@@ -95,7 +95,7 @@ func (q *query_where) compile_where() (string, error){
 	}
 	
 	var sb strings.Builder
-	//	Preallocation
+	//	Pre-allocation
 	sb.Grow((len(q.or_groups) + len(q.where)) * alloc_where_condition)
 	
 	sb.WriteString("WHERE ")

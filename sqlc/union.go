@@ -13,14 +13,14 @@ type Union_query struct {
 
 func Union() *Union_query {
 	return &Union_query{
-		//	Preallocation with 2 queries
+		//	Pre-allocation with 2 queries
 		unions:	make([]*Select_query, 0, 2),
 	}
 }
 
 func Union_all() *Union_query {
 	return &Union_query{
-		//	Preallocation with 2 queries
+		//	Pre-allocation with 2 queries
 		unions:	make([]*Select_query, 0, 2),
 		all:	true,
 	}
@@ -86,7 +86,7 @@ func (q *Union_query) Compile() (string, error){
 	sql_limit	:= q.compile_limit()
 	
 	var sb strings.Builder
-	//	Preallocation
+	//	Pre-allocation
 	sb.Grow(1 + len(sql_select) + len(sql_from) + len(sql_join) + len(sql_where) + len(sql_group) + len(sql_order) + len(sql_limit))
 	
 	sb.WriteString(sql_select)
@@ -115,7 +115,7 @@ func (q *Union_query) compile_from() (string, error){
 	}
 	
 	var sb strings.Builder
-	//	Preallocation
+	//	Pre-allocation
 	sb.Grow(length * 200)
 	
 	sb.WriteString("FROM (\n")

@@ -50,7 +50,7 @@ func (q *Delete_query) Compile() (string, error){
 	}
 	
 	var sb strings.Builder
-	//	Preallocation
+	//	Pre-allocation
 	sb.Grow(7 + len(sql_from) + len(sql_join) + len(sql_where))
 	
 	sb.WriteString("DELETE ")
