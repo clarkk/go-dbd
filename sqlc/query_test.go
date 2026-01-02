@@ -1295,7 +1295,7 @@ func run_inserts(tb testing.TB){
 	sql, _ := query.Compile()
 	
 	want :=
-`INSERT .account (account_number, name)
+`INSERT .account (account_number,name)
 VALUES (?,?),(?,?),(?,?),(?,?)`
 	got := strings.TrimSpace(sql)
 	if got != want {
@@ -1303,7 +1303,7 @@ VALUES (?,?),(?,?),(?,?),(?,?)`
 	}
 	
 	want =
-`INSERT .account (account_number, name)
+`INSERT .account (account_number,name)
 VALUES (123,test1),(456,test2),(789,test3),(101112,test4)`
 	got = SQL_debug(query)
 	if got != want {
@@ -1326,7 +1326,7 @@ func run_inserts_update_duplicate(tb testing.TB){
 	sql, _ := query.Compile()
 	
 	want :=
-`INSERT .account (account_number, name)
+`INSERT .account (account_number,name)
 VALUES (?,?),(?,?)
 ON DUPLICATE KEY UPDATE account_number=VALUES(account_number),name=VALUES(name)`
 	got := strings.TrimSpace(sql)
@@ -1335,7 +1335,7 @@ ON DUPLICATE KEY UPDATE account_number=VALUES(account_number),name=VALUES(name)`
 	}
 	
 	want =
-`INSERT .account (account_number, name)
+`INSERT .account (account_number,name)
 VALUES (123,test1),(456,test2)
 ON DUPLICATE KEY UPDATE account_number=VALUES(account_number),name=VALUES(name)`
 	got = SQL_debug(query)
@@ -1361,7 +1361,7 @@ func run_inserts_update_duplicate_fields(tb testing.TB){
 	sql, _ := query.Compile()
 	
 	want :=
-`INSERT .account (account_number, name)
+`INSERT .account (account_number,name)
 VALUES (?,?),(?,?)
 ON DUPLICATE KEY UPDATE name=VALUES(name)`
 	got := strings.TrimSpace(sql)
@@ -1370,7 +1370,7 @@ ON DUPLICATE KEY UPDATE name=VALUES(name)`
 	}
 	
 	want =
-`INSERT .account (account_number, name)
+`INSERT .account (account_number,name)
 VALUES (123,test1),(456,test2)
 ON DUPLICATE KEY UPDATE name=VALUES(name)`
 	got = SQL_debug(query)

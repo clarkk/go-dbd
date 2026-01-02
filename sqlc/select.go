@@ -56,11 +56,16 @@ func (q *Select_query) Select(list []string) *Select_query {
 	q.select_fields = make([]select_field, len(list))
 	for i, v := range list {
 		q.select_fields[i].field = v
-		if function, field, found := strings.Cut(q.select_fields[i].field, "|"); found {
-			q.select_fields[i].field	= field
-			q.select_fields[i].function	= function
+		
+		if strings.IndexByte(v, '|') != -1 {
+			if function, field, found := strings.Cut(q.select_fields[i].field, "|"); found {
+				q.select_fields[i].field	= field
+				q.select_fields[i].function	= function
+			}
 		}
-		q.select_fields[i].field, q.select_fields[i].alias, _ = strings.Cut(q.select_fields[i].field, " ")
+		if strings.IndexByte(q.select_fields[i].field, ' ') != -1 {
+			q.select_fields[i].field, q.select_fields[i].alias, _ = strings.Cut(q.select_fields[i].field, " ")
+		}
 	}
 	return q
 }
@@ -134,7 +139,8 @@ func (q *Select_query) compile_select(sb *strings.Builder){
 		sb.WriteString("SELECT ")
 	}
 	
-	for i, s := range q.select_fields {
+	for i := range q.select_fields {
+		s := &q.select_fields[i]	//	Avoid copying data
 		if i > 0 {
 			sb.WriteString(", ")
 		}

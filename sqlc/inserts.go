@@ -129,7 +129,7 @@ func (q *Inserts_query) compile_inserts(sb *strings.Builder){
 	sb.WriteString(" (")
 	for i, k := range q.col_keys {
 		if i > 0 {
-			sb.WriteString(", ")
+			sb.WriteString(",")
 		}
 		q.write_field(sb, k)
 	}
