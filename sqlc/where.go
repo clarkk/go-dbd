@@ -38,7 +38,7 @@ type (
 		value		any
 	}
 	
-	where_clauser interface {
+	/*where_clauser interface {
 		where_clause(clause where_clause, value any)
 		where_or_group() *or_group
 	}
@@ -48,7 +48,7 @@ type (
 		operator 	string
 		sql 		string
 		subquery	*Select_query
-	}
+	}*/
 )
 
 func Where() *Where_clause {
@@ -141,7 +141,11 @@ func (w *Where_clause) Not_in(field string, values []any) *Where_clause {
 	return w
 }
 
-func (w *Where_clause) write_field(sb *strings.Builder, field where_condition) *Select_query {
+func (w *Where_clause) walk(sb *strings.Builder, first *bool){
+	
+}
+
+/*func (w *Where_clause) write_field(sb *strings.Builder, field where_condition) *Select_query {
 	var subquery *Select_query
 	
 	switch field.operator {
@@ -271,7 +275,7 @@ func (w *Where_clause) apply_or_group(query where_clauser){
 			field.value,
 		)
 	}
-}
+}*/
 
 func (w *Where_clause) clause(field, operator string, value any){
 	w.conditions = append(w.conditions, where_condition{

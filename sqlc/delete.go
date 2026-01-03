@@ -30,8 +30,8 @@ func (q *Delete_query) Left_join(table, t, field, field_foreign string, conditio
 	return q
 }
 
-func (q *Delete_query) Where(clauses *Where_clause) *Delete_query {
-	clauses.apply(q)
+func (q *Delete_query) Where(clause *Where_clause) *Delete_query {
+	q.where_clause = clause
 	return q
 }
 

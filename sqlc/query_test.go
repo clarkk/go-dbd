@@ -44,6 +44,11 @@ func run_operator_compatibility(tb testing.TB){
 	_, err := query.Compile()
 	
 	want := "Where clause operator incompatable on same field (email): = >"
+	
+	if err == nil {
+		tb.Fatalf("SQL expected error: %v", want)
+	}
+	
 	if err.Error() != want {
 		tb.Fatalf("SQL want:\n%s\nSQL got:\n%v", want, err)
 	}
@@ -63,6 +68,11 @@ func run_operator_compatibility_oposite(tb testing.TB){
 	_, err := query.Compile()
 	
 	want := "Where clause operator incompatable on same field (email): > ="
+	
+	if err == nil {
+		tb.Fatalf("SQL expected error: %v", want)
+	}
+	
 	if err.Error() != want {
 		tb.Fatalf("SQL want:\n%s\nSQL got:\n%v", want, err)
 	}

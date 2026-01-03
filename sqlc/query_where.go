@@ -5,13 +5,14 @@ import "strings"
 type (
 	query_where struct {
 		query_join
-		conditions
-		or_groups	[]*or_group
-		use_id		bool
-		id 			uint64
+		where_clause	*Where_clause
+		//conditions
+		//or_groups	[]*or_group
+		use_id			bool
+		id 				uint64
 	}
 	
-	or_group struct {
+	/*or_group struct {
 		conditions
 	}
 	
@@ -19,10 +20,10 @@ type (
 	query_where_condition struct {
 		clause		where_clause
 		value		any
-	}
+	}*/
 )
 
-func (q *conditions) where_clause(clause where_clause, value any) {
+/*func (q *conditions) where_clause(clause where_clause, value any) {
 	*q = append(*q, query_where_condition{clause, value})
 }
 
@@ -30,7 +31,7 @@ func (q *query_where) where_or_group() *or_group {
 	g := &or_group{}
 	q.or_groups = append(q.or_groups, g)
 	return g
-}
+}*/
 
 func (q *query_where) compile_where(sb *strings.Builder) error {
 	length := q.count_conditions()
@@ -56,30 +57,9 @@ func (q *query_where) compile_where(sb *strings.Builder) error {
 		first = false
 	}
 	
-	//	Apply "or groups"
-	if q.or_groups != nil {
-		for _, group := range q.or_groups {
-			if first {
-				first = false
-			} else {
-				sb.WriteString(" AND ")
-			}
-			
-			sb.WriteByte('(')
-			for i, condition := range group.conditions {
-				if i > 0 {
-					sb.WriteString(" OR ")
-				}
-				q.write_field(sb, condition.clause.field)
-				sb.WriteString(condition.clause.sql)
-				
-				q.append_data(condition.value)
-			}
-			sb.WriteByte(')')
-		}
-	}
+	q.where_clause.walk(sb, &first)
 	
-	var duplicates map[string]string
+	/*var duplicates map[string]string
 	//	Only allocate if at least 2 conditions
 	if len(q.conditions) > 1 {
 		//	Pre-allocation
@@ -125,16 +105,45 @@ func (q *query_where) compile_where(sb *strings.Builder) error {
 			q.append_data(condition.value)
 		}
 	}
+	
+	//	Apply "or groups"
+	if q.or_groups != nil {
+		for _, group := range q.or_groups {
+			if first {
+				first = false
+			} else {
+				sb.WriteString(" AND ")
+			}
+			
+			sb.WriteByte('(')
+			for i, condition := range group.conditions {
+				if i > 0 {
+					sb.WriteString(" OR ")
+				}
+				q.write_field(sb, condition.clause.field)
+				sb.WriteString(condition.clause.sql)
+				
+				q.append_data(condition.value)
+			}
+			sb.WriteByte(')')
+		}
+	}*/
+	
 	sb.WriteByte('\n')
 	return nil
 }
 
 func (q *query_where) count_conditions() int {
-	n := len(q.conditions)
-	for _, group := range q.or_groups {
-		if group != nil {
-			n += len(group.conditions)
-		}
+	if q.where_clause == nil {
+		return 0
+	}
+	
+	n := len(q.where_clause.conditions)
+	if q.where_clause.wrapped != nil {
+		n += len(q.where_clause.wrapped.conditions)
+	}
+	for _, group := range q.where_clause.or_groups {
+		n += len(group.conditions)
 	}
 	return n
 }

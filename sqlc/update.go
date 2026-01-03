@@ -50,8 +50,8 @@ func (q *Update_query) Left_join(table, t, field, field_foreign string, conditio
 	return q
 }
 
-func (q *Update_query) Where(clauses *Where_clause) *Update_query {
-	clauses.apply(q)
+func (q *Update_query) Where(clause *Where_clause) *Update_query {
+	q.where_clause = clause
 	return q
 }
 

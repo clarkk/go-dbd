@@ -81,8 +81,8 @@ func (q *Select_query) Left_join(table, t, field, field_foreign string, conditio
 	return q
 }
 
-func (q *Select_query) Where(clauses *Where_clause) *Select_query {
-	clauses.apply(q)
+func (q *Select_query) Where(clause *Where_clause) *Select_query {
+	q.where_clause = clause
 	return q
 }
 
