@@ -177,7 +177,7 @@ func run_select_where_or_group(tb testing.TB){
 `SELECT a.id, a.email, u.time
 FROM .user a
 LEFT JOIN .user_block u ON u.id=a.user_id
-WHERE (a.col1 BETWEEN ? AND ? OR a.col2 BETWEEN ? AND ?) AND (a.col3 BETWEEN ? AND ?) AND a.outer=?`
+WHERE a.outer=? AND (a.col1 BETWEEN ? AND ? OR a.col2 BETWEEN ? AND ?) AND (a.col3 BETWEEN ? AND ?)`
 	got := strings.TrimSpace(sql)
 	if got != want {
 		tb.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
@@ -187,7 +187,7 @@ WHERE (a.col1 BETWEEN ? AND ? OR a.col2 BETWEEN ? AND ?) AND (a.col3 BETWEEN ? A
 `SELECT a.id, a.email, u.time
 FROM .user a
 LEFT JOIN .user_block u ON u.id=a.user_id
-WHERE (a.col1 BETWEEN start1 AND end1 OR a.col2 BETWEEN start2 AND end2) AND (a.col3 BETWEEN start3 AND end3) AND a.outer=test3`
+WHERE a.outer=test3 AND (a.col1 BETWEEN start1 AND end1 OR a.col2 BETWEEN start2 AND end2) AND (a.col3 BETWEEN start3 AND end3)`
 	got = SQL_debug(query)
 	if got != want {
 		tb.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
@@ -847,7 +847,8 @@ func run_select_in_subquery(tb testing.TB){
 	want :=
 `SELECT id, email
 FROM .user
-WHERE id IN (SELECT id
+WHERE id IN (
+SELECT id
 FROM .user
 WHERE name=?
 ) AND name=?
@@ -860,7 +861,8 @@ LIMIT 0,10`
 	want =
 `SELECT id, email
 FROM .user
-WHERE id IN (SELECT id
+WHERE id IN (
+SELECT id
 FROM .user
 WHERE name=subquery_value
 ) AND name=9

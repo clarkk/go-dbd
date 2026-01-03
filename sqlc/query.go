@@ -61,35 +61,6 @@ func (q *query) Data() []any {
 	return q.data
 }
 
-func check_operator_compatibility(prev_operator, new_operator, field string) error {
-	switch prev_operator {
-	//	Operator not compatable with "oposite" operators
-	case op_null:
-		if new_operator == op_not_null {
-			return where_operator_error(field, prev_operator, new_operator)
-		}
-	case op_not_null:
-		if new_operator == op_null {
-			return where_operator_error(field, prev_operator, new_operator)
-		}
-	
-	//	Operator not compatable with other operators
-	case op_eq, op_not_eq, op_bt, op_not_bt, op_in, op_not_in:
-		return where_operator_error(field, prev_operator, new_operator)
-	
-	//	Operator only compatable with "oposite" operators
-	case op_gt, op_gteq:
-		if new_operator != op_lt && new_operator != op_lteq {
-			return where_operator_error(field, prev_operator, new_operator)
-		}
-	case op_lt, op_lteq:
-		if new_operator != op_gt && new_operator != op_gteq {
-			return where_operator_error(field, prev_operator, new_operator)
-		}
-	}
-	return nil
-}
-
 func (q *query) append_data(val any){
 	if val == nil {
 		return
@@ -133,8 +104,4 @@ func placeholder_value_array_length(count int) int {
 		return 0
 	}
 	return (count * 2) - 1
-}
-
-func where_operator_error(field, operator1, operator2 string) error {
-	return fmt.Errorf("Where clause operator incompatable on same field (%s): %s %s", field, operator1, operator2)
 }

@@ -37,18 +37,6 @@ type (
 		operator	string
 		value		any
 	}
-	
-	/*where_clauser interface {
-		where_clause(clause where_clause, value any)
-		where_or_group() *or_group
-	}
-	
-	where_clause struct {
-		field 		string
-		operator 	string
-		sql 		string
-		subquery	*Select_query
-	}*/
 )
 
 func Where() *Where_clause {
@@ -141,11 +129,7 @@ func (w *Where_clause) Not_in(field string, values []any) *Where_clause {
 	return w
 }
 
-func (w *Where_clause) walk(sb *strings.Builder, first *bool){
-	
-}
-
-/*func (w *Where_clause) write_field(sb *strings.Builder, field where_condition) *Select_query {
+func (w *Where_clause) write_condition(sb *strings.Builder, field where_condition) (*Select_query, error){
 	var subquery *Select_query
 	
 	switch field.operator {
@@ -171,18 +155,24 @@ func (w *Where_clause) walk(sb *strings.Builder, first *bool){
 		sb.WriteByte(')')
 		
 	case op_in_subquery:
-		sb.WriteString(" IN (?)")
 		subquery = field.value.(*Select_query)
+		sql_subquery, err := subquery.Compile()
+		if err != nil {
+			return nil, err
+		}
+		sb.WriteString(" IN (\n")
+		sb.WriteString(sql_subquery)
+		sb.WriteByte(')')
 	
 	default:
 		sb.WriteString(field.operator)
 		sb.WriteByte('?')
 	}
 	
-	return subquery
+	return subquery, nil
 }
 
-func where_condition_length(field where_condition) int {
+/*func where_condition_length(field where_condition) int {
 	switch field.operator {
 	case op_null:
 		return 8
@@ -209,71 +199,6 @@ func where_condition_length(field where_condition) int {
 	
 	default:
 		return 1 + len(field.operator)
-	}
-}
-
-func (w *Where_clause) apply(query where_clauser){
-	if w.wrapped != nil {
-		w.wrapped.apply(query)
-	}
-	
-	if w.or_groups != nil {
-		for _, group := range w.or_groups {
-			group.apply_or_group(query)
-		}
-	}
-	
-	sb := builder_pool.Get().(*strings.Builder)
-	defer func() {
-		sb.Reset()
-		builder_pool.Put(sb)
-	}()
-	
-	for _, field := range w.conditions {
-		sb.Reset()
-		
-		//	Pre-allocation
-		sb.Grow(where_condition_length(field))
-		
-		subquery := w.write_field(sb, field)
-		
-		query.where_clause(
-			where_clause{
-				field:		field.field,
-				operator:	field.operator,
-				sql:		sb.String(),
-				subquery:	subquery,
-			},
-			field.value,
-		)
-	}
-}
-
-func (w *Where_clause) apply_or_group(query where_clauser){
-	sb := builder_pool.Get().(*strings.Builder)
-	defer func() {
-		sb.Reset()
-		builder_pool.Put(sb)
-	}()
-	
-	group := query.where_or_group()
-	for _, field := range w.conditions {
-		sb.Reset()
-		
-		//	Pre-allocation
-		sb.Grow(where_condition_length(field))
-		
-		subquery := w.write_field(sb, field)
-		
-		group.where_clause(
-			where_clause{
-				field:		field.field,
-				operator:	field.operator,
-				sql:		sb.String(),
-				subquery:	subquery,
-			},
-			field.value,
-		)
 	}
 }*/
 
