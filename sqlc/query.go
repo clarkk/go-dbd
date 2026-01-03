@@ -11,8 +11,6 @@ const (
 	alloc_field_assignment	= 10
 	alloc_join_clause		= 40
 	alloc_query				= 200
-	
-	char_table = "abcdefghijklmnopqrstuvwxyz"
 )
 
 var builder_pool = sync.Pool{
@@ -100,8 +98,5 @@ func placeholder_value_array(count int, sb *strings.Builder){
 }
 
 func placeholder_value_array_length(count int) int {
-	if count == 0 {
-		return 0
-	}
-	return (count * 2) - 1
+	return max(0, (count * 2) - 1)
 }

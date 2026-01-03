@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+var char_table = [26]string{"a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"}
+
 type query_join struct {
 	query
 	t 			string
@@ -56,7 +58,7 @@ func (q *query_join) compile_tables(c string) error {
 		//	Get available char for base table (a-z)
 		if _, ok := q.tables[c]; ok {
 			for i := range 26 {
-				char := char_table[i : i+1]
+				char := char_table[i]
 				if _, ok := q.tables[char]; !ok {
 					c = char
 					break

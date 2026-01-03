@@ -27,16 +27,19 @@ const (
 
 type (
 	Where_clause struct {
-		wrapped		*Where_clause
-		or_groups	[]*Where_clause
-		conditions	[]where_condition
-		alloc		int
+		wrapped			*Where_clause
+		or_groups		[]*Where_clause
+		conditions		[]where_condition
+		
+		num				int
+		alloc			int
+		alloc_data		int
 	}
 	
 	where_condition struct {
-		field		string
-		operator	string
-		value		any
+		field			string
+		operator		string
+		value			any
 	}
 )
 
@@ -120,13 +123,13 @@ func (w *Where_clause) In(field string, values []any) *Where_clause {
 	return w
 }
 
-func (w *Where_clause) In_subquery(field string, query SQL) *Where_clause {
-	w.clause(field, op_in_subquery, query)
+func (w *Where_clause) Not_in(field string, values []any) *Where_clause {
+	w.clause(field, op_not_in, values)
 	return w
 }
 
-func (w *Where_clause) Not_in(field string, values []any) *Where_clause {
-	w.clause(field, op_not_in, values)
+func (w *Where_clause) In_subquery(field string, query SQL) *Where_clause {
+	w.clause(field, op_in_subquery, query)
 	return w
 }
 
@@ -164,7 +167,7 @@ func (w *Where_clause) write_condition(sb *strings.Builder, field where_conditio
 		sb.WriteString(" IN (\n")
 		sb.WriteString(sql_subquery)
 		sb.WriteByte(')')
-	
+		
 	default:
 		sb.WriteString(field.operator)
 		sb.WriteByte('?')
@@ -174,33 +177,37 @@ func (w *Where_clause) write_condition(sb *strings.Builder, field where_conditio
 }
 
 func (w *Where_clause) clause(field, operator string, value any){
-	var alloc int
+	var (
+		alloc		int
+		alloc_data	int
+	)
 	switch operator {
 	case op_null:
-		alloc += 8
+		alloc			= 8
 		
 	case op_not_null:
-		alloc += 12
+		alloc			= 12
 		
 	case op_bt, op_not_bt:
-		alloc := 1 + len(sql_op_bt)
+		alloc_data		= 2
+		alloc			= 1 + len(sql_op_bt)
 		if operator == op_not_bt {
-			alloc += 4
+			alloc		+= 4
 		}
-		alloc += alloc
 		
 	case op_in, op_not_in:
-		alloc := 6 + placeholder_value_array_length(len(value.([]any)))
+		alloc_data		= len(value.([]any))
+		alloc			= 6 + placeholder_value_array_length(alloc_data)
 		if operator == op_not_in {
-			alloc += 4
+			alloc		+= 4
 		}
-		alloc += alloc
 		
 	case op_in_subquery:
-		alloc += 7 + alloc_query
+		alloc			= 7 + alloc_query
 		
 	default:
-		alloc += 1 + len(operator)
+		alloc_data		= 1
+		alloc			= 1 + len(operator)
 	}
 	
 	w.conditions = append(w.conditions, where_condition{
@@ -208,5 +215,7 @@ func (w *Where_clause) clause(field, operator string, value any){
 		operator:	operator,
 		value:		value,
 	})
-	w.alloc += alloc + len(field)
+	w.num++
+	w.alloc			+= alloc + len(field)
+	w.alloc_data	+= alloc_data
 }

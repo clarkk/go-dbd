@@ -48,7 +48,7 @@ func (q *Delete_query) Compile() (string, error){
 	}()
 	
 	//	Pre-allocation
-	alloc := 7
+	alloc := 8	//	"DELETE \n"
 	if q.joined {
 		alloc += 1 + len(q.t)
 	}

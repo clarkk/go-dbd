@@ -13,23 +13,25 @@ type query_where struct {
 }
 
 func (q *query_where) compile_where(sb *strings.Builder) error {
-	length, alloc := q.count_conditions()
+	num, alloc, alloc_data := q.get_alloc()
 	
 	if q.use_id {
-		length++
-		alloc += 4
+		num++
+		alloc += 4	//	"id=?"
+		alloc_data++
 	}
-	if length == 0 {
+	
+	if num == 0 {
 		return nil
 	}
 	
 	//	Pre-allocation
-	alloc = 7 + length * alloc
+	alloc += 7 + num * 5	//	"WHERE \n" + " AND "
 	if q.joined {
-		alloc += length * 3
+		alloc += alloc_data * 3
 	}
 	sb.Grow(alloc)
-	q.alloc_data_capacity(length + len(q.data))
+	q.alloc_data_capacity(alloc_data + len(q.data))
 	
 	sb.WriteString("WHERE ")
 	first := true
@@ -132,22 +134,25 @@ func (q *query_where) walk_where_clause(sb *strings.Builder, clause *Where_claus
 	return nil
 }
 
-func (q *query_where) count_conditions() (int, int){
+func (q *query_where) get_alloc() (int, int, int){
 	if q.where_clause == nil {
-		return 0, 0
+		return 0, 0, 0
 	}
 	
-	n 		:= len(q.where_clause.conditions)
-	alloc	:= q.where_clause.alloc
+	num				:= q.where_clause.num
+	alloc			:= q.where_clause.alloc
+	alloc_data	:= q.where_clause.alloc_data
 	if q.where_clause.wrapped != nil {
-		n 		+= len(q.where_clause.wrapped.conditions)
-		alloc	+= q.where_clause.wrapped.alloc
+		num				+= q.where_clause.wrapped.num
+		alloc			+= q.where_clause.wrapped.alloc
+		alloc_data	+= q.where_clause.wrapped.alloc_data
 	}
 	for _, group := range q.where_clause.or_groups {
-		n 		+= len(group.conditions)
-		alloc	+= group.alloc
+		num				+= group.num
+		alloc			+= group.alloc
+		alloc_data	+= group.alloc_data
 	}
-	return n, alloc
+	return num, alloc, alloc_data
 }
 
 func check_operator_compatibility(prev_operator, new_operator, field string) error {

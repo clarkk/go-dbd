@@ -105,7 +105,7 @@ func (q *Union_query) compile_from(sb *strings.Builder) error {
 	}
 	
 	//	Pre-allocation
-	sb.Grow(length * alloc_query)
+	sb.Grow(10 + len(q.t) + length * (alloc_query + len(sep)))	//	"FROM (\n" + ") \n"
 	
 	sb.WriteString("FROM (\n")
 	

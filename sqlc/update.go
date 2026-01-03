@@ -68,7 +68,7 @@ func (q *Update_query) Compile() (string, error){
 	}()
 	
 	//	Pre-allocation
-	alloc := 14 + len(q.table)
+	alloc := 14 + len(q.table) + len(q.fields.entries) * alloc_field_assignment	//	"UPDATE .\n" + "SET \n"
 	if q.joined {
 		alloc += 2 + len(q.t)
 	}
@@ -100,9 +100,6 @@ func (q *Update_query) compile_fields(sb *strings.Builder) error {
 	length := len(q.fields.entries)
 	q.data = make([]any, length)
 	unique := make(map[string]struct{}, length)
-	
-	//	Pre-allocation
-	sb.Grow(length * alloc_field_assignment)
 	
 	for i, entry := range q.fields.entries {
 		if _, found := unique[entry.field]; found {

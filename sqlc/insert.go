@@ -66,9 +66,14 @@ func (q *Insert_query) Compile() (string, error){
 	}()
 	
 	//	Pre-allocation
-	alloc := 14 + len(q.table)
+	alloc := 14 + len(q.table) + len(q.fields.entries) * alloc_field_assignment	//	"INSERT .\n" + "SET \n"
 	if q.update_duplicate {
-		alloc += 25
+		alloc += 25	//	"ON DUPLICATE KEY UPDATE \n"
+		if q.update_duplicate_fields != nil {
+			alloc += len(q.update_duplicate_fields) * alloc_field_assignment
+		} else {
+			alloc += len(q.fields.entries) * alloc_field_assignment
+		}
 	}
 	sb.Grow(alloc)
 	
@@ -97,9 +102,6 @@ func (q *Insert_query) compile_fields(sb *strings.Builder) error {
 	q.data	= make([]any, length)
 	unique	:= make(map[string]struct{}, length)
 	
-	//	Pre-allocation
-	sb.Grow(length * alloc_field_assignment)
-	
 	for i, entry := range q.fields.entries {
 		if _, found := unique[entry.field]; found {
 			return fmt.Errorf("Duplicate field: %s", entry.field)
@@ -124,9 +126,6 @@ func (q *Insert_query) compile_update_duplicate_fields(sb *strings.Builder) erro
 		
 		q.alloc_data_capacity(len(q.data) + length)
 		
-		//	Pre-allocation
-		sb.Grow(length * alloc_field_assignment)
-		
 		for i, field := range q.update_duplicate_fields {
 			j, found := q.map_fields[field]
 			if !found {
@@ -145,9 +144,6 @@ func (q *Insert_query) compile_update_duplicate_fields(sb *strings.Builder) erro
 		length := len(q.fields.entries)
 		
 		q.alloc_data_capacity(len(q.data) + length)
-		
-		//	Pre-allocation
-		sb.Grow(length * alloc_field_assignment)
 		
 		for i, entry := range q.fields.entries {
 			if i > 0 {
