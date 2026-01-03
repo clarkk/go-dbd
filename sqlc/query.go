@@ -122,11 +122,17 @@ func placeholder_value_array(count int, sb *strings.Builder){
 	if count == 0 {
 		return
 	}
-	sb.Grow((count * 2) - 1)
 	sb.WriteByte('?')
 	for i := 1; i < count; i++ {
 		sb.WriteString(",?")
 	}
+}
+
+func placeholder_value_array_length(count int) int {
+	if count == 0 {
+		return 0
+	}
+	return (count * 2) - 1
 }
 
 func where_operator_error(field, operator1, operator2 string) error {

@@ -141,6 +141,73 @@ func (w *Where_clause) Not_in(field string, values []any) *Where_clause {
 	return w
 }
 
+func (w *Where_clause) write_field(sb *strings.Builder, field where_condition) *Select_query {
+	var subquery *Select_query
+	
+	switch field.operator {
+	case op_null:
+		sb.WriteString(" IS NULL")
+		
+	case op_not_null:
+		sb.WriteString(" IS NOT NULL")
+		
+	case op_bt, op_not_bt:
+		if field.operator == op_not_bt {
+			sb.WriteString(" NOT")
+		}
+		sb.WriteByte(' ')
+		sb.WriteString(sql_op_bt)
+		
+	case op_in, op_not_in:
+		if field.operator == op_not_in {
+			sb.WriteString(" NOT")
+		}
+		sb.WriteString(" IN (")
+		placeholder_value_array(len(field.value.([]any)), sb)
+		sb.WriteByte(')')
+		
+	case op_in_subquery:
+		sb.WriteString(" IN (?)")
+		subquery = field.value.(*Select_query)
+	
+	default:
+		sb.WriteString(field.operator)
+		sb.WriteByte('?')
+	}
+	
+	return subquery
+}
+
+func where_condition_length(field where_condition) int {
+	switch field.operator {
+	case op_null:
+		return 8
+		
+	case op_not_null:
+		return 12
+		
+	case op_bt, op_not_bt:
+		alloc := 1 + len(sql_op_bt)
+		if field.operator == op_not_bt {
+			alloc += 4
+		}
+		return alloc
+		
+	case op_in, op_not_in:
+		alloc := 6 + placeholder_value_array_length(len(field.value.([]any)))
+		if field.operator == op_not_in {
+			alloc += 4
+		}
+		return alloc
+		
+	case op_in_subquery:
+		return 7
+	
+	default:
+		return 1 + len(field.operator)
+	}
+}
+
 func (w *Where_clause) apply(query where_clauser){
 	if w.wrapped != nil {
 		w.wrapped.apply(query)
@@ -152,59 +219,26 @@ func (w *Where_clause) apply(query where_clauser){
 		}
 	}
 	
-	var sb strings.Builder
-	//	Pre-allocation
-	sb.Grow(len(w.conditions) * alloc_where_condition)
+	sb := builder_pool.Get().(*strings.Builder)
+	defer func() {
+		sb.Reset()
+		builder_pool.Put(sb)
+	}()
 	
 	for _, field := range w.conditions {
 		sb.Reset()
 		
-		switch field.operator {
-		case op_null, op_not_null:
-			if field.operator == op_null {
-				sb.WriteString(" IS NULL")
-			} else {
-				sb.WriteString(" IS NOT NULL")
-			}
-			
-		case op_bt, op_not_bt:
-			if field.operator == op_not_bt {
-				sb.WriteString(" NOT")
-			}
-			sb.WriteByte(' ')
-			sb.WriteString(sql_op_bt)
-			
-		case op_in, op_not_in:
-			if field.operator == op_not_in {
-				sb.WriteString(" NOT")
-			}
-			sb.WriteString(" IN (")
-			placeholder_value_array(len(field.value.([]any)), &sb)
-			sb.WriteByte(')')
-			
-		case op_in_subquery:
-			sb.WriteString(" IN (?)")
-			query.where_clause(
-				where_clause{
-					field:		field.field,
-					operator:	field.operator,
-					sql:		sb.String(),
-					subquery:	field.value.(*Select_query),
-				},
-				nil,
-			)
-			continue
+		//	Pre-allocation
+		sb.Grow(where_condition_length(field))
 		
-		default:
-			sb.WriteString(field.operator)
-			sb.WriteByte('?')
-		}
+		subquery := w.write_field(sb, field)
 		
 		query.where_clause(
 			where_clause{
 				field:		field.field,
 				operator:	field.operator,
 				sql:		sb.String(),
+				subquery:	subquery,
 			},
 			field.value,
 		)
@@ -212,60 +246,27 @@ func (w *Where_clause) apply(query where_clauser){
 }
 
 func (w *Where_clause) apply_or_group(query where_clauser){
-	var sb strings.Builder
-	//	Pre-allocation
-	sb.Grow(len(w.conditions) * alloc_where_condition)
+	sb := builder_pool.Get().(*strings.Builder)
+	defer func() {
+		sb.Reset()
+		builder_pool.Put(sb)
+	}()
 	
 	group := query.where_or_group()
 	for _, field := range w.conditions {
 		sb.Reset()
 		
-		switch field.operator {
-		case op_null, op_not_null:
-			if field.operator == op_null {
-				sb.WriteString(" IS NULL")
-			} else {
-				sb.WriteString(" IS NOT NULL")
-			}
+		//	Pre-allocation
+		sb.Grow(where_condition_length(field))
 		
-		case op_bt, op_not_bt:
-			if field.operator == op_not_bt {
-				sb.WriteString(" NOT")
-			}
-			sb.WriteByte(' ')
-			sb.WriteString(sql_op_bt)
-			
-		case op_in, op_not_in:
-			if field.operator == op_not_in {
-				sb.WriteString(" NOT")
-			}
-			sb.WriteString(" IN (")
-			placeholder_value_array(len(field.value.([]any)), &sb)
-			sb.WriteByte(')')
-		
-		case op_in_subquery:
-			sb.WriteString(" IN (?)")
-			query.where_clause(
-				where_clause{
-					field:		field.field,
-					operator:	field.operator,
-					sql:		sb.String(),
-					subquery:	field.value.(*Select_query),
-				},
-				nil,
-			)
-			continue
-		
-		default:
-			sb.WriteString(field.operator)
-			sb.WriteByte('?')
-		}
+		subquery := w.write_field(sb, field)
 		
 		group.where_clause(
 			where_clause{
 				field:		field.field,
 				operator:	field.operator,
 				sql:		sb.String(),
+				subquery:	subquery,
 			},
 			field.value,
 		)

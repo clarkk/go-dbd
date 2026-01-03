@@ -145,7 +145,7 @@ func (q *Inserts_query) compile_fields(sb *strings.Builder) error {
 	q.alloc_data_capacity(q.col_count * length)
 	
 	//	Pre-allocation
-	sb.Grow(length * (q.col_count * 2 + 3))
+	sb.Grow(length * (3 + placeholder_value_array_length(q.col_count)))
 	
 	for i := range q.fields {
 		if i > 0 {
