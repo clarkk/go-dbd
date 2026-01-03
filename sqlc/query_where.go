@@ -13,17 +13,22 @@ type query_where struct {
 }
 
 func (q *query_where) compile_where(sb *strings.Builder) error {
-	length := q.count_conditions()
+	length, alloc := q.count_conditions()
 	
 	if q.use_id {
 		length++
+		alloc += 4
 	}
 	if length == 0 {
 		return nil
 	}
 	
 	//	Pre-allocation
-	sb.Grow(7 + length * alloc_where_condition)
+	alloc = 7 + length * alloc
+	if q.joined {
+		alloc += length * 3
+	}
+	sb.Grow(alloc)
 	q.alloc_data_capacity(length + len(q.data))
 	
 	sb.WriteString("WHERE ")
@@ -127,18 +132,22 @@ func (q *query_where) walk_where_clause(sb *strings.Builder, clause *Where_claus
 	return nil
 }
 
-func (q *query_where) count_conditions() int {
+func (q *query_where) count_conditions() (int, int){
 	if q.where_clause == nil {
-		return 0
+		return 0, 0
 	}
-	n := len(q.where_clause.conditions)
+	
+	n 		:= len(q.where_clause.conditions)
+	alloc	:= q.where_clause.alloc
 	if q.where_clause.wrapped != nil {
-		n += len(q.where_clause.wrapped.conditions)
+		n 		+= len(q.where_clause.wrapped.conditions)
+		alloc	+= q.where_clause.wrapped.alloc
 	}
 	for _, group := range q.where_clause.or_groups {
-		n += len(group.conditions)
+		n 		+= len(group.conditions)
+		alloc	+= group.alloc
 	}
-	return n
+	return n, alloc
 }
 
 func check_operator_compatibility(prev_operator, new_operator, field string) error {

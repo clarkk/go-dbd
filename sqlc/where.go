@@ -30,6 +30,7 @@ type (
 		wrapped		*Where_clause
 		or_groups	[]*Where_clause
 		conditions	[]where_condition
+		alloc		int
 	}
 	
 	where_condition struct {
@@ -172,40 +173,40 @@ func (w *Where_clause) write_condition(sb *strings.Builder, field where_conditio
 	return subquery, nil
 }
 
-/*func where_condition_length(field where_condition) int {
-	switch field.operator {
+func (w *Where_clause) clause(field, operator string, value any){
+	var alloc int
+	switch operator {
 	case op_null:
-		return 8
+		alloc += 8
 		
 	case op_not_null:
-		return 12
+		alloc += 12
 		
 	case op_bt, op_not_bt:
 		alloc := 1 + len(sql_op_bt)
-		if field.operator == op_not_bt {
+		if operator == op_not_bt {
 			alloc += 4
 		}
-		return alloc
+		alloc += alloc
 		
 	case op_in, op_not_in:
-		alloc := 6 + placeholder_value_array_length(len(field.value.([]any)))
-		if field.operator == op_not_in {
+		alloc := 6 + placeholder_value_array_length(len(value.([]any)))
+		if operator == op_not_in {
 			alloc += 4
 		}
-		return alloc
+		alloc += alloc
 		
 	case op_in_subquery:
-		return 7
-	
+		alloc += 7 + alloc_query
+		
 	default:
-		return 1 + len(field.operator)
+		alloc += 1 + len(operator)
 	}
-}*/
-
-func (w *Where_clause) clause(field, operator string, value any){
+	
 	w.conditions = append(w.conditions, where_condition{
 		field:		field,
 		operator:	operator,
 		value:		value,
 	})
+	w.alloc += alloc + len(field)
 }

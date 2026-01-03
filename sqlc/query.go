@@ -9,8 +9,8 @@ import (
 const (
 	alloc_select_field		= 10
 	alloc_field_assignment	= 10
-	alloc_where_condition	= 15
 	alloc_join_clause		= 40
+	alloc_query				= 200
 	
 	char_table = "abcdefghijklmnopqrstuvwxyz"
 )
