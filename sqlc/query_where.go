@@ -16,8 +16,6 @@ type query_where struct {
 func (q *query_where) compile_where(sb *sbuilder) error {
 	num, alloc, alloc_data := q.get_alloc()
 	
-	//audit := sb_audit.Base(sb, "where")
-	
 	if q.use_id {
 		num++
 		alloc += 4	//	"id=?"
@@ -28,11 +26,14 @@ func (q *query_where) compile_where(sb *sbuilder) error {
 		return nil
 	}
 	
+	//audit := sb_audit.Base(sb, "where")
+	
 	//	Pre-allocation
 	alloc += 7 + num * 5	//	"WHERE \n" + " AND "
 	if q.joined {
-		alloc += alloc_data * 3
+		alloc += num * 3
 	}
+	
 	sb.Alloc(alloc)
 	//audit.Grow(alloc)
 	q.alloc_data_capacity(alloc_data + len(q.data))
@@ -144,21 +145,7 @@ func (q *query_where) get_alloc() (int, int, int){
 	if q.where_clause == nil {
 		return 0, 0, 0
 	}
-	
-	num				:= q.where_clause.num
-	alloc			:= q.where_clause.alloc
-	alloc_data	:= q.where_clause.alloc_data
-	if q.where_clause.wrapped != nil {
-		num				+= q.where_clause.wrapped.num
-		alloc			+= q.where_clause.wrapped.alloc
-		alloc_data	+= q.where_clause.wrapped.alloc_data
-	}
-	for _, group := range q.where_clause.or_groups {
-		num				+= group.num
-		alloc			+= group.alloc
-		alloc_data	+= group.alloc_data
-	}
-	return num, alloc, alloc_data
+	return q.where_clause.get_alloc()
 }
 
 func check_operator_compatibility(prev_operator, new_operator, field string) error {

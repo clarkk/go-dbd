@@ -46,9 +46,9 @@ func (q *Delete_query) Compile() (string, error){
 	}()
 	
 	//	Pre-allocation
-	alloc := 8	//	"DELETE \n"
+	alloc := 15 + len(q.table)	//	"DELETE \n" + "FROM .\n"
 	if q.joined {
-		alloc += 1 + len(q.t)
+		alloc += (1 + len(q.t)) * 2
 	}
 	sb.Alloc(alloc)
 	

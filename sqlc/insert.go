@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	
+	"github.com/clarkk/go-dbd/sqlc/sb_audit"
 )
 
 type Insert_query struct {
@@ -64,6 +66,8 @@ func (q *Insert_query) Compile() (string, error){
 		builder_pool.Put(sb)
 	}()
 	
+	audit := sb_audit.Base(sb, "insert")
+	
 	//	Pre-allocation
 	alloc := 14 + len(q.table) + len(q.fields.entries) * alloc_field_assignment	//	"INSERT .\n" + "SET \n"
 	if q.update_duplicate {
@@ -75,7 +79,7 @@ func (q *Insert_query) Compile() (string, error){
 		}
 	}
 	sb.Alloc(alloc)
-	
+	audit.Grow(alloc)
 	sb.WriteString("INSERT .")
 	sb.WriteString(q.table)
 	sb.WriteByte('\n')
@@ -92,7 +96,7 @@ func (q *Insert_query) Compile() (string, error){
 		}
 		sb.WriteByte('\n')
 	}
-	
+	audit.Audit()
 	return sb.String(), nil
 }
 

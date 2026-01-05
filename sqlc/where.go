@@ -218,3 +218,24 @@ func (w *Where_clause) clause(field, operator string, value any){
 	w.alloc			+= alloc + len(field)
 	w.alloc_data	+= alloc_data
 }
+
+func (w *Where_clause) get_alloc() (int, int, int){
+	num			:= w.num
+	alloc		:= w.alloc
+	alloc_data	:= w.alloc_data
+	if w.wrapped != nil {
+		n, a, ad := w.wrapped.get_alloc()
+		num			+= n
+		alloc		+= a
+		alloc_data	+= ad
+	}
+	for _, group := range w.or_groups {
+		if group != nil {
+			n, a, ad := group.get_alloc()
+			num			+= n
+			alloc		+= a
+			alloc_data	+= ad
+		}
+	}
+	return num, alloc, alloc_data
+}

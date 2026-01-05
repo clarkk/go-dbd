@@ -48,8 +48,10 @@ func (a *audit) Audit(){
 	cap_increase	:= audit_cap - a.cap
 	
 	fmt.Printf("### Audit: %s\n\tLen: %d\n\tCap: %d\n\tFree: %d\n", a.name, audit_len, audit_cap, free)
-	fmt.Printf("Grow: %d/%d (Cap increase: %d)\n%s\n\n", grow, a.grow, cap_increase, a.sb.String()[a.len:])
+	fmt.Printf("Added/Grow: %d/%d (Cap increase: %d)\n%s\n", grow, a.grow, cap_increase, a.sb.String()[a.len:])
 	
 	grow_diff := grow - a.grow
-	fmt.Printf("\t\t\t\t\t\t\t\t\tGrow diff: %d\n", grow_diff)
+	if grow_diff > 0 {
+		fmt.Printf("\t\t\t\t\t\t\t\t\tGrow diff: %d\n", grow_diff)
+	}
 }
