@@ -66,12 +66,15 @@ func (q *Update_query) Compile() (string, error){
 		builder_pool.Put(sb)
 	}()
 	
+	//audit := Audit(sb, "update")
+	
 	//	Pre-allocation
 	alloc := 14 + len(q.table) + alloc_field_assign(len(q.fields.entries))	//	"UPDATE .\n" + "SET \n"
 	if q.joined {
 		alloc += 2 + len(q.t)
 	}
 	sb.Alloc(alloc)
+	//audit.Grow(alloc)
 	
 	sb.WriteString("UPDATE .")
 	sb.WriteString(q.table)
@@ -88,10 +91,10 @@ func (q *Update_query) Compile() (string, error){
 		return "", err
 	}
 	sb.WriteByte('\n')
+	//audit.Audit()
 	if err := q.compile_where(sb); err != nil {
 		return "", err
 	}
-	
 	return sb.String(), nil
 }
 

@@ -103,8 +103,12 @@ func (q *Union_query) compile_from(sb *sbuilder) error {
 		sep = "UNION ALL\n"
 	}
 	
+	//audit := Audit(sb, "union")
+	
 	//	Pre-allocation
-	sb.Alloc(10 + len(q.t) + length * (alloc_query + len(sep)))	//	"FROM (\n" + ") \n"
+	alloc := 10 + len(q.t) + length * (alloc_query + len(sep))	//	"FROM (\n" + ") \n"
+	sb.Alloc(alloc)
+	//audit.Grow(alloc)
 	
 	sb.WriteString("FROM (\n")
 	
@@ -125,5 +129,6 @@ func (q *Union_query) compile_from(sb *sbuilder) error {
 	sb.WriteString(") ")
 	sb.WriteString(q.t)
 	sb.WriteByte('\n')
+	//audit.Audit()
 	return nil
 }

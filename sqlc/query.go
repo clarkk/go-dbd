@@ -8,7 +8,7 @@ import (
 
 const (
 	alloc_field			= 15
-	alloc_join_clause	= 40
+	alloc_join_clause	= 50
 	alloc_query			= 200
 )
 
@@ -96,12 +96,16 @@ func (q *query) alloc_data_capacity(total int){
 	}
 }
 
-func alloc_field_assign(count int) int {
-	return count * (alloc_field + 4)	//	"=?, "
+func (q *query_join) alloc_field_list(count int) int {
+	alloc := alloc_field + 2	//	", "
+	if q.joined {
+		alloc += 1 + len(q.t)
+	}
+	return alloc * count
 }
 
-func alloc_field_list(count int) int {
-	return count * (alloc_field + 2)	//	", "
+func alloc_field_assign(count int) int {
+	return count * (alloc_field + 4)	//	"=?, "
 }
 
 func alloc_field_placeholder_list(count int) int {

@@ -80,7 +80,7 @@ func (q *Inserts_query) Compile() (string, error){
 	//audit := Audit(sb, "inserts")
 	
 	//	Pre-allocation
-	alloc := 20 + len(q.table) + alloc_field_list(q.col_count)					//	"INSERT ." + " ()\nVALUES \n"
+	alloc := 20 + len(q.table) + q.alloc_field_list(q.col_count)				//	"INSERT ." + " ()\nVALUES \n"
 	alloc += len(q.fields) * (3 + alloc_field_placeholder_list(q.col_count))	//	"(),"
 	if q.update_duplicate {
 		alloc += 25										//	"ON DUPLICATE KEY UPDATE \n"
