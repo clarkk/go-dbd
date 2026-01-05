@@ -15,7 +15,7 @@ const (
 
 var builder_pool = sync.Pool{
 	New: func() any {
-		return &strings.Builder{}
+		return &sbuilder{}
 	},
 }
 
@@ -87,7 +87,7 @@ func (q *query) alloc_data_capacity(total int){
 	}
 }
 
-func placeholder_value_array(count int, sb *strings.Builder){
+func placeholder_value_array(count int, sb *sbuilder){
 	if count == 0 {
 		return
 	}

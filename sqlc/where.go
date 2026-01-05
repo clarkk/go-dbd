@@ -3,7 +3,6 @@ package sqlc
 import (
 	"maps"
 	"slices"
-	"strings"
 )
 
 const (
@@ -133,7 +132,7 @@ func (w *Where_clause) In_subquery(field string, query SQL) *Where_clause {
 	return w
 }
 
-func (w *Where_clause) write_condition(sb *strings.Builder, field where_condition) (*Select_query, error){
+func (w *Where_clause) write_condition(sb *sbuilder, field where_condition) (*Select_query, error){
 	var subquery *Select_query
 	
 	switch field.operator {

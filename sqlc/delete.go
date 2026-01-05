@@ -1,7 +1,5 @@
 package sqlc
 
-import "strings"
-
 type Delete_query struct {
 	query_where
 }
@@ -41,7 +39,7 @@ func (q *Delete_query) Compile() (string, error){
 		return "", err
 	}
 	
-	sb := builder_pool.Get().(*strings.Builder)
+	sb := builder_pool.Get().(*sbuilder)
 	defer func() {
 		sb.Reset()
 		builder_pool.Put(sb)
@@ -52,7 +50,7 @@ func (q *Delete_query) Compile() (string, error){
 	if q.joined {
 		alloc += 1 + len(q.t)
 	}
-	sb.Grow(alloc)
+	sb.Alloc(alloc)
 	
 	sb.WriteString("DELETE ")
 	if q.joined {

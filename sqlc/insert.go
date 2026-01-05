@@ -3,7 +3,6 @@ package sqlc
 import (
 	"fmt"
 	"maps"
-	"strings"
 	"slices"
 )
 
@@ -59,7 +58,7 @@ func (q *Insert_query) Compile() (string, error){
 		return "", err
 	}
 	
-	sb := builder_pool.Get().(*strings.Builder)
+	sb := builder_pool.Get().(*sbuilder)
 	defer func() {
 		sb.Reset()
 		builder_pool.Put(sb)
@@ -75,7 +74,7 @@ func (q *Insert_query) Compile() (string, error){
 			alloc += len(q.fields.entries) * alloc_field_assignment
 		}
 	}
-	sb.Grow(alloc)
+	sb.Alloc(alloc)
 	
 	sb.WriteString("INSERT .")
 	sb.WriteString(q.table)
@@ -97,7 +96,7 @@ func (q *Insert_query) Compile() (string, error){
 	return sb.String(), nil
 }
 
-func (q *Insert_query) compile_fields(sb *strings.Builder) error {
+func (q *Insert_query) compile_fields(sb *sbuilder) error {
 	length	:= len(q.fields.entries)
 	q.data	= make([]any, length)
 	unique	:= make(map[string]struct{}, length)
@@ -120,7 +119,7 @@ func (q *Insert_query) compile_fields(sb *strings.Builder) error {
 	return nil
 }
 
-func (q *Insert_query) compile_update_duplicate_fields(sb *strings.Builder) error {
+func (q *Insert_query) compile_update_duplicate_fields(sb *sbuilder) error {
 	if q.update_duplicate_fields != nil {
 		length := len(q.update_duplicate_fields)
 		

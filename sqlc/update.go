@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"maps"
 	"slices"
-	"strings"
 )
 
 type Update_query struct {
@@ -61,7 +60,7 @@ func (q *Update_query) Compile() (string, error){
 		return "", err
 	}
 	
-	sb := builder_pool.Get().(*strings.Builder)
+	sb := builder_pool.Get().(*sbuilder)
 	defer func() {
 		sb.Reset()
 		builder_pool.Put(sb)
@@ -72,7 +71,7 @@ func (q *Update_query) Compile() (string, error){
 	if q.joined {
 		alloc += 2 + len(q.t)
 	}
-	sb.Grow(alloc)
+	sb.Alloc(alloc)
 	
 	sb.WriteString("UPDATE .")
 	sb.WriteString(q.table)
@@ -96,7 +95,7 @@ func (q *Update_query) Compile() (string, error){
 	return sb.String(), nil
 }
 
-func (q *Update_query) compile_fields(sb *strings.Builder) error {
+func (q *Update_query) compile_fields(sb *sbuilder) error {
 	length := len(q.fields.entries)
 	q.data = make([]any, length)
 	unique := make(map[string]struct{}, length)

@@ -2,7 +2,6 @@ package sqlc
 
 import (
 	"fmt"
-	"strings"
 )
 
 type Union_query struct {
@@ -71,7 +70,7 @@ func (q *Union_query) Compile() (string, error){
 		return "", err
 	}
 	
-	sb := builder_pool.Get().(*strings.Builder)
+	sb := builder_pool.Get().(*sbuilder)
 	defer func() {
 		sb.Reset()
 		builder_pool.Put(sb)
@@ -93,7 +92,7 @@ func (q *Union_query) Compile() (string, error){
 	return sb.String(), nil
 }
 
-func (q *Union_query) compile_from(sb *strings.Builder) error {
+func (q *Union_query) compile_from(sb *sbuilder) error {
 	length := len(q.unions)
 	if length < 1 {
 		return fmt.Errorf("Must have at least two queries to union")
@@ -105,7 +104,7 @@ func (q *Union_query) compile_from(sb *strings.Builder) error {
 	}
 	
 	//	Pre-allocation
-	sb.Grow(10 + len(q.t) + length * (alloc_query + len(sep)))	//	"FROM (\n" + ") \n"
+	sb.Alloc(10 + len(q.t) + length * (alloc_query + len(sep)))	//	"FROM (\n" + ") \n"
 	
 	sb.WriteString("FROM (\n")
 	

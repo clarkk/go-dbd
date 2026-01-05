@@ -2,7 +2,8 @@ package sqlc
 
 import (
 	"fmt"
-	"strings"
+	
+	//"github.com/clarkk/go-dbd/sqlc/sb_audit"
 )
 
 type query_where struct {
@@ -12,8 +13,10 @@ type query_where struct {
 	id 				uint64
 }
 
-func (q *query_where) compile_where(sb *strings.Builder) error {
+func (q *query_where) compile_where(sb *sbuilder) error {
 	num, alloc, alloc_data := q.get_alloc()
+	
+	//audit := sb_audit.Base(sb, "where")
 	
 	if q.use_id {
 		num++
@@ -30,7 +33,8 @@ func (q *query_where) compile_where(sb *strings.Builder) error {
 	if q.joined {
 		alloc += alloc_data * 3
 	}
-	sb.Grow(alloc)
+	sb.Alloc(alloc)
+	//audit.Grow(alloc)
 	q.alloc_data_capacity(alloc_data + len(q.data))
 	
 	sb.WriteString("WHERE ")
@@ -56,11 +60,13 @@ func (q *query_where) compile_where(sb *strings.Builder) error {
 		}
 	}
 	
+	//audit.Audit()
+	
 	sb.WriteByte('\n')
 	return nil
 }
 
-func (q *query_where) walk_where_clause(sb *strings.Builder, clause *Where_clause, duplicates *map[string]string, first *bool) error {
+func (q *query_where) walk_where_clause(sb *sbuilder, clause *Where_clause, duplicates *map[string]string, first *bool) error {
 	//	Apply wrapped conditions
 	if clause.wrapped != nil {
 		if err := q.walk_where_clause(sb, clause.wrapped, duplicates, first); err != nil {

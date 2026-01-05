@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"maps"
 	"slices"
-	"strings"
 )
 
 type Inserts_query struct {
@@ -72,7 +71,7 @@ func (q *Inserts_query) Compile() (string, error){
 		return "", err
 	}
 	
-	sb := builder_pool.Get().(*strings.Builder)
+	sb := builder_pool.Get().(*sbuilder)
 	defer func() {
 		sb.Reset()
 		builder_pool.Put(sb)
@@ -83,7 +82,7 @@ func (q *Inserts_query) Compile() (string, error){
 	if q.update_duplicate {
 		alloc += 25
 	}
-	sb.Grow(alloc)
+	sb.Alloc(alloc)
 	
 	q.compile_inserts(sb)
 	sb.WriteString("VALUES ")
@@ -120,9 +119,9 @@ func (q *Inserts_query) Compile() (string, error){
 	return sb.String(), nil
 }
 
-func (q *Inserts_query) compile_inserts(sb *strings.Builder){
+func (q *Inserts_query) compile_inserts(sb *sbuilder){
 	//	Pre-allocation
-	sb.Grow(12 + len(q.table) + (q.col_count * alloc_select_field))
+	sb.Alloc(12 + len(q.table) + (q.col_count * alloc_select_field))
 	
 	sb.WriteString("INSERT .")
 	sb.WriteString(q.table)
@@ -136,7 +135,7 @@ func (q *Inserts_query) compile_inserts(sb *strings.Builder){
 	sb.WriteString(")\n")
 }
 
-func (q *Inserts_query) compile_fields(sb *strings.Builder) error {
+func (q *Inserts_query) compile_fields(sb *sbuilder) error {
 	length := len(q.fields)
 	if length == 0 {
 		return fmt.Errorf("No rows to insert")
@@ -145,7 +144,7 @@ func (q *Inserts_query) compile_fields(sb *strings.Builder) error {
 	q.alloc_data_capacity(q.col_count * length)
 	
 	//	Pre-allocation
-	sb.Grow(length * (3 + placeholder_value_array_length(q.col_count)))
+	sb.Alloc(length * (3 + placeholder_value_array_length(q.col_count)))
 	
 	for i := range q.fields {
 		if i > 0 {
@@ -161,7 +160,7 @@ func (q *Inserts_query) compile_fields(sb *strings.Builder) error {
 	return nil
 }
 
-func (q *Inserts_query) write_update_duplicate_field(sb *strings.Builder, field string){
+func (q *Inserts_query) write_update_duplicate_field(sb *sbuilder, field string){
 	q.write_field(sb, field)
 	sb.WriteString("=VALUES(")
 	q.write_field(sb, field)

@@ -107,7 +107,7 @@ func (q *Select_query) Compile() (string, error){
 		return "", err
 	}
 	
-	sb := builder_pool.Get().(*strings.Builder)
+	sb := builder_pool.Get().(*sbuilder)
 	defer func() {
 		sb.Reset()
 		builder_pool.Put(sb)
@@ -129,9 +129,9 @@ func (q *Select_query) Compile() (string, error){
 	return sb.String(), nil
 }
 
-func (q *Select_query) compile_select(sb *strings.Builder){
+func (q *Select_query) compile_select(sb *sbuilder){
 	//	Pre-allocation
-	sb.Grow(7 + alloc_select_field * len(q.select_fields))
+	sb.Alloc(7 + alloc_select_field * len(q.select_fields))
 	
 	if q.select_distinct {
 		sb.WriteString("SELECT DISTINCT ")
@@ -169,14 +169,14 @@ func (q *Select_query) compile_select(sb *strings.Builder){
 	sb.WriteByte('\n')
 }
 
-func (q *Select_query) compile_group(sb *strings.Builder){
+func (q *Select_query) compile_group(sb *sbuilder){
 	length := len(q.group)
 	if length == 0 {
 		return
 	}
 	
 	//	Pre-allocation
-	sb.Grow(10 + alloc_select_field * length)
+	sb.Alloc(10 + alloc_select_field * length)
 	
 	sb.WriteString("GROUP BY ")
 	for i, v := range q.group {
@@ -188,14 +188,14 @@ func (q *Select_query) compile_group(sb *strings.Builder){
 	sb.WriteByte('\n')
 }
 
-func (q *Select_query) compile_order(sb *strings.Builder){
+func (q *Select_query) compile_order(sb *sbuilder){
 	length := len(q.order)
 	if length == 0 {
 		return
 	}
 	
 	//	Pre-allocation
-	sb.Grow(10 + alloc_select_field * length)
+	sb.Alloc(10 + alloc_select_field * length)
 	
 	sb.WriteString("ORDER BY ")
 	for i, v := range q.order {
@@ -207,13 +207,13 @@ func (q *Select_query) compile_order(sb *strings.Builder){
 	sb.WriteByte('\n')
 }
 
-func (q *Select_query) compile_limit(sb *strings.Builder){
+func (q *Select_query) compile_limit(sb *sbuilder){
 	if q.limit.limit == 0 {
 		return
 	}
 	
 	//	Pre-allocation
-	sb.Grow(8 + 3 + 3)
+	sb.Alloc(8 + 3 + 3)
 	
 	var buf [20]byte
 	

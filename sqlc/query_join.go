@@ -71,7 +71,7 @@ func (q *query_join) compile_tables(c string) error {
 	return nil
 }
 
-func (q *query_join) compile_from(sb *strings.Builder){
+func (q *query_join) compile_from(sb *sbuilder){
 	sb.WriteString("FROM .")
 	sb.WriteString(q.table)
 	if q.joined {
@@ -81,7 +81,7 @@ func (q *query_join) compile_from(sb *strings.Builder){
 	sb.WriteByte('\n')
 }
 
-func (q *query_join) compile_joins(sb *strings.Builder){
+func (q *query_join) compile_joins(sb *sbuilder){
 	if !q.joined {
 		return
 	}
@@ -100,7 +100,7 @@ func (q *query_join) compile_joins(sb *strings.Builder){
 	}
 	
 	//	Pre-allocation
-	sb.Grow((20 + alloc_join_clause) * len(q.joins))
+	sb.Alloc((20 + alloc_join_clause) * len(q.joins))
 	
 	for i := range q.joins {
 		j := &q.joins[i]	//	Avoid copying struct
@@ -133,7 +133,7 @@ func (q *query_join) compile_joins(sb *strings.Builder){
 	}
 }
 
-func (q *query_join) write_update_field(sb *strings.Builder, field, operator string){
+func (q *query_join) write_update_field(sb *sbuilder, field, operator string){
 	switch operator {
 	case op_update_add:
 		q.write_field(sb, field)
@@ -146,7 +146,7 @@ func (q *query_join) write_update_field(sb *strings.Builder, field, operator str
 	}
 }
 
-func (q *query_join) write_field(sb *strings.Builder, field string){
+func (q *query_join) write_field(sb *sbuilder, field string){
 	if !q.joined {
 		sb.WriteString(field)
 		return
