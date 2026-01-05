@@ -1,10 +1,6 @@
 package sqlc
 
-import (
-	"fmt"
-	
-	//"github.com/clarkk/go-dbd/sqlc/sb_audit"
-)
+import "fmt"
 
 type query_where struct {
 	query_join
@@ -26,7 +22,7 @@ func (q *query_where) compile_where(sb *sbuilder) error {
 		return nil
 	}
 	
-	//audit := sb_audit.Base(sb, "where")
+	//audit := Audit(sb, "where")
 	
 	//	Pre-allocation
 	alloc += 7 + num * 5	//	"WHERE \n" + " AND "
@@ -60,10 +56,8 @@ func (q *query_where) compile_where(sb *sbuilder) error {
 			return err
 		}
 	}
-	
-	//audit.Audit()
-	
 	sb.WriteByte('\n')
+	//audit.Audit()
 	return nil
 }
 

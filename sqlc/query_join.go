@@ -87,7 +87,7 @@ func (q *query_join) compile_joins(sb *sbuilder){
 	}
 	
 	if q.joined_t {
-		//	Sort joins and put joins which doesn't join on the base table last
+		//	Sort joins and put joins which does not join on the base table last
 		slices.SortFunc(q.joins, func(a, b join) int {
 			if a.join_t == "" && b.join_t != "" {
 				return -1

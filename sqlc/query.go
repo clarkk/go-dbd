@@ -7,10 +7,9 @@ import (
 )
 
 const (
-	alloc_select_field		= 10
-	alloc_field_assignment	= 10
-	alloc_join_clause		= 40
-	alloc_query				= 200
+	alloc_field			= 15
+	alloc_join_clause	= 40
+	alloc_query			= 200
 )
 
 var builder_pool = sync.Pool{
@@ -79,15 +78,7 @@ func (q *query) append_data(val any){
 	}
 }
 
-func (q *query) alloc_data_capacity(total int){
-	if cap(q.data) < total {
-		new_data := make([]any, len(q.data), total)
-		copy(new_data, q.data)
-		q.data = new_data
-	}
-}
-
-func placeholder_value_array(count int, sb *sbuilder){
+func field_placeholder_list(count int, sb *sbuilder){
 	if count == 0 {
 		return
 	}
@@ -97,6 +88,22 @@ func placeholder_value_array(count int, sb *sbuilder){
 	}
 }
 
-func placeholder_value_array_length(count int) int {
-	return max(0, (count * 2) - 1)
+func (q *query) alloc_data_capacity(total int){
+	if cap(q.data) < total {
+		new_data := make([]any, len(q.data), total)
+		copy(new_data, q.data)
+		q.data = new_data
+	}
+}
+
+func alloc_field_assign(count int) int {
+	return count * (alloc_field + 4)	//	"=?, "
+}
+
+func alloc_field_list(count int) int {
+	return count * (alloc_field + 2)	//	", "
+}
+
+func alloc_field_placeholder_list(count int) int {
+	return max(0, (count * 2) - 1)		//	?,?,?
 }

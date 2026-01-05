@@ -131,7 +131,7 @@ func (q *Select_query) Compile() (string, error){
 
 func (q *Select_query) compile_select(sb *sbuilder){
 	//	Pre-allocation
-	sb.Alloc(7 + alloc_select_field * len(q.select_fields))
+	sb.Alloc(7 + alloc_field_list(len(q.select_fields)))
 	
 	if q.select_distinct {
 		sb.WriteString("SELECT DISTINCT ")
@@ -176,7 +176,7 @@ func (q *Select_query) compile_group(sb *sbuilder){
 	}
 	
 	//	Pre-allocation
-	sb.Alloc(10 + alloc_select_field * length)
+	sb.Alloc(10 + alloc_field_list(length))
 	
 	sb.WriteString("GROUP BY ")
 	for i, v := range q.group {
@@ -195,7 +195,7 @@ func (q *Select_query) compile_order(sb *sbuilder){
 	}
 	
 	//	Pre-allocation
-	sb.Alloc(10 + alloc_select_field * length)
+	sb.Alloc(10 + alloc_field_list(length))
 	
 	sb.WriteString("ORDER BY ")
 	for i, v := range q.order {

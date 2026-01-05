@@ -154,7 +154,7 @@ func (w *Where_clause) write_condition(sb *sbuilder, field where_condition) (*Se
 			sb.WriteString(" NOT")
 		}
 		sb.WriteString(" IN (")
-		placeholder_value_array(len(field.value.([]any)), sb)
+		field_placeholder_list(len(field.value.([]any)), sb)
 		sb.WriteByte(')')
 		
 	case op_in_subquery:
@@ -196,7 +196,7 @@ func (w *Where_clause) clause(field, operator string, value any){
 		
 	case op_in, op_not_in:
 		alloc_data		= len(value.([]any))
-		alloc			= 6 + placeholder_value_array_length(alloc_data)
+		alloc			= 6 + alloc_field_placeholder_list(alloc_data)
 		if operator == op_not_in {
 			alloc		+= 4
 		}

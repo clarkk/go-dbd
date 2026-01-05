@@ -77,13 +77,17 @@ func (q *Inserts_query) Compile() (string, error){
 		builder_pool.Put(sb)
 	}()
 	
+	//audit := Audit(sb, "inserts")
+	
 	//	Pre-allocation
-	alloc := 8
+	alloc := 20 + len(q.table) + alloc_field_list(q.col_count)					//	"INSERT ." + " ()\nVALUES \n"
+	alloc += len(q.fields) * (3 + alloc_field_placeholder_list(q.col_count))	//	"(),"
 	if q.update_duplicate {
-		alloc += 25
+		alloc += 25										//	"ON DUPLICATE KEY UPDATE \n"
+		alloc += q.col_count * (9 + 2 * alloc_field)	//	"=VALUES()"
 	}
 	sb.Alloc(alloc)
-	
+	//audit.Grow(alloc)
 	q.compile_inserts(sb)
 	sb.WriteString("VALUES ")
 	if err := q.compile_fields(sb); err != nil {
@@ -116,13 +120,11 @@ func (q *Inserts_query) Compile() (string, error){
 		
 		sb.WriteByte('\n')
 	}
+	//audit.Audit()
 	return sb.String(), nil
 }
 
 func (q *Inserts_query) compile_inserts(sb *sbuilder){
-	//	Pre-allocation
-	sb.Alloc(12 + len(q.table) + (q.col_count * alloc_select_field))
-	
 	sb.WriteString("INSERT .")
 	sb.WriteString(q.table)
 	sb.WriteString(" (")
@@ -143,16 +145,13 @@ func (q *Inserts_query) compile_fields(sb *sbuilder) error {
 	
 	q.alloc_data_capacity(q.col_count * length)
 	
-	//	Pre-allocation
-	sb.Alloc(length * (3 + placeholder_value_array_length(q.col_count)))
-	
 	for i := range q.fields {
 		if i > 0 {
 			sb.WriteByte(',')
 		}
 		
 		sb.WriteByte('(')
-		placeholder_value_array(q.col_count, sb)
+		field_placeholder_list(q.col_count, sb)
 		sb.WriteByte(')')
 		
 		q.data = append(q.data, q.fields[i]...)

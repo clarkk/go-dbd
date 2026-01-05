@@ -67,7 +67,7 @@ func (q *Update_query) Compile() (string, error){
 	}()
 	
 	//	Pre-allocation
-	alloc := 14 + len(q.table) + len(q.fields.entries) * alloc_field_assignment	//	"UPDATE .\n" + "SET \n"
+	alloc := 14 + len(q.table) + alloc_field_assign(len(q.fields.entries))	//	"UPDATE .\n" + "SET \n"
 	if q.joined {
 		alloc += 2 + len(q.t)
 	}
