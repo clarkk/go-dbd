@@ -35,7 +35,7 @@ func (q *Delete_query) Where(clause *Where_clause) *Delete_query {
 
 func (q *Delete_query) Compile() (string, error){
 	t := q.base_table_short()
-	if err := q.compile_tables(t); err != nil {
+	if err := q.compile_tables(t, nil); err != nil {
 		return "", err
 	}
 	

@@ -37,10 +37,12 @@ func (q *query_join) left_join(table, t, field, field_foreign string, conditions
 	})
 }
 
-func (q *query_join) compile_tables(c string) error {
+func (q *query_join) compile_tables(c string, tables map[string]string) error {
 	//	Reset
 	q.data = q.data[:0]
-	if q.tables == nil {
+	if tables != nil {
+		q.tables = tables
+	} else if q.tables == nil {
 		q.tables = make(map[string]string, len(q.joins)+1)
 	} else {
 		clear(q.tables)
@@ -55,17 +57,19 @@ func (q *query_join) compile_tables(c string) error {
 			}
 			q.tables[j.t] = j.table
 		}
-		//	Get available char for base table (a-z)
-		if _, ok := q.tables[c]; ok {
-			for i := range 26 {
-				char := char_table[i]
-				if _, ok := q.tables[char]; !ok {
-					c = char
-					break
-				}
+	}
+	
+	//	Get available char for base table (a-z)
+	if _, ok := q.tables[c]; ok {
+		for i := range 26 {
+			char := char_table[i]
+			if _, ok := q.tables[char]; !ok {
+				c = char
+				break
 			}
 		}
 	}
+	
 	q.t 		= c
 	q.tables[c]	= q.table
 	return nil

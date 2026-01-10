@@ -67,7 +67,7 @@ func (q *Inserts_query) Left_join(table, t, field, field_foreign string, conditi
 
 func (q *Inserts_query) Compile() (string, error){
 	t := q.base_table_short()
-	if err := q.compile_tables(t); err != nil {
+	if err := q.compile_tables(t, nil); err != nil {
 		return "", err
 	}
 	

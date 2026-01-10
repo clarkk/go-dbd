@@ -123,7 +123,7 @@ func (q *Select_query) Limit(offset uint32, limit uint8) *Select_query {
 
 func (q *Select_query) Compile() (string, error){
 	t := q.base_table_short()
-	if err := q.compile_tables(t); err != nil {
+	if err := q.compile_tables(t, nil); err != nil {
 		return "", err
 	}
 	
@@ -219,7 +219,7 @@ func (q *Select_query) compile_select_joins(sb *sbuilder) error {
 		}
 		
 		t := sj.query.base_table_short()
-		if err := sj.query.compile_tables(t); err != nil {
+		if err := sj.query.compile_tables(t, q.tables); err != nil {
 			return err
 		}
 		

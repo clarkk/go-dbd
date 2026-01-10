@@ -66,7 +66,7 @@ func (q *Union_query) Limit(offset uint32, limit uint8) *Union_query {
 }
 
 func (q *Union_query) Compile() (string, error){
-	if err := q.compile_tables("t"); err != nil {
+	if err := q.compile_tables("t", nil); err != nil {
 		return "", err
 	}
 	
