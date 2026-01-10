@@ -64,16 +64,17 @@ func (q *Select_query) Read_lock() *Select_query {
 func (q *Select_query) Select(list []string) *Select_query {
 	q.select_fields = make([]select_field, len(list))
 	for i, v := range list {
-		q.select_fields[i].field = v
+		f := &q.select_fields[i]
 		
-		if strings.IndexByte(v, '|') != -1 {
-			if function, field, found := strings.Cut(q.select_fields[i].field, "|"); found {
-				q.select_fields[i].field	= field
-				q.select_fields[i].function	= function
-			}
+		if pos := strings.IndexByte(v, '|'); pos != -1 {
+			f.function = v[:pos]
+			v = v[pos+1:]
 		}
-		if strings.IndexByte(q.select_fields[i].field, ' ') != -1 {
-			q.select_fields[i].field, q.select_fields[i].alias, _ = strings.Cut(q.select_fields[i].field, " ")
+		if pos := strings.IndexByte(v, ' '); pos != -1 {
+			f.field = v[:pos]
+			f.alias = v[pos+1:]
+		} else {
+			f.field = v
 		}
 	}
 	return q
@@ -231,8 +232,7 @@ func (q *Select_query) compile_select_joins(sb *sbuilder) error {
 			}
 			sb.WriteByte('\'')
 			sb.WriteString(field.alias)
-			sb.WriteByte('\'')
-			sb.WriteString(", ")
+			sb.WriteString("', ")
 			sj.query.write_field(sb, field.field)
 		}
 		sb.WriteString("))\n")
@@ -240,18 +240,17 @@ func (q *Select_query) compile_select_joins(sb *sbuilder) error {
 		sj.query.compile_from(sb)
 		sj.query.compile_joins(sb)
 		
-		inner_condition := func(sb *sbuilder, first *bool){
+		if err := sj.query.compile_where(sb, func(sb_inner *sbuilder, first *bool){
 			if *first {
 				*first = false
 			} else {
-				sb.WriteString(" AND ")
+				sb_inner.WriteString(" AND ")
 			}
 			
-			sj.query.write_field(sb, sj.inner_field)
-			sb.WriteByte('=')
-			q.write_field(sb, sj.outer_field)
-		}
-		if err := sj.query.compile_where(sb, inner_condition); err != nil {
+			sj.query.write_field(sb_inner, sj.inner_field)
+			sb_inner.WriteByte('=')
+			q.write_field(sb_inner, sj.outer_field)
+		}); err != nil {
 			return err
 		}
 		
