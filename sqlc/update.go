@@ -92,7 +92,7 @@ func (q *Update_query) Compile() (string, error){
 	}
 	sb.WriteByte('\n')
 	//audit.Audit()
-	if err := q.compile_where(sb); err != nil {
+	if err := q.compile_where(sb, nil); err != nil {
 		return "", err
 	}
 	return sb.String(), nil

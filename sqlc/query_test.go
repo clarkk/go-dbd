@@ -212,6 +212,7 @@ func Benchmark_select(b *testing.B) {
 		run_select_not_bt(b)
 		run_select_in(b)
 		run_select_in_subquery(b)
+		run_select_json(b)
 		run_select_not_in(b)
 		run_where_eqs(b)
 		run_select_join(b)
@@ -282,6 +283,10 @@ func Test_select(t *testing.T){
 	
 	t.Run("select in subquery", func(t *testing.T){
 		run_select_in_subquery(t)
+	})
+	
+	t.Run("select json", func(t *testing.T){
+		run_select_json(t)
 	})
 	
 	t.Run("select not in", func(t *testing.T){
@@ -827,6 +832,7 @@ func run_select_in_subquery(tb testing.TB){
 		Select([]string{
 			"id",
 		}).
+		Left_join("language", "l", "id", "language_id", nil).
 		Where(Where().
 			Eq("name", "subquery_value"),
 		)
@@ -848,9 +854,10 @@ func run_select_in_subquery(tb testing.TB){
 `SELECT id, email
 FROM .user
 WHERE id IN (
-SELECT id
-FROM .user
-WHERE name=?
+SELECT u.id
+FROM .user u
+LEFT JOIN .language l ON l.id=u.language_id
+WHERE u.name=?
 ) AND name=?
 LIMIT 0,10`
 	got := strings.TrimSpace(sql)
@@ -862,10 +869,72 @@ LIMIT 0,10`
 `SELECT id, email
 FROM .user
 WHERE id IN (
-SELECT id
-FROM .user
-WHERE name=subquery_value
+SELECT u.id
+FROM .user u
+LEFT JOIN .language l ON l.id=u.language_id
+WHERE u.name=subquery_value
 ) AND name=9
+LIMIT 0,10`
+	got = SQL_debug(query)
+	if got != want {
+		tb.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
+	}
+}
+
+func run_select_json(tb testing.TB){
+	subquery := Select("account").
+		Select([]string{
+			"key",
+			"test_col1 alias1",
+			"l.test_col2 alias2",
+		}).
+		Left_join("language", "l", "id", "language_id", nil).
+		Where(Where().
+			Eq("name", "where_inner"),
+		)
+	
+	query := Select("user").
+		Select([]string{
+			"id",
+			"email",
+		}).
+		Select_json("select_json_field", subquery, "inner_col", "outer_col").
+		Left_join("balance", "b", "id", "account_id", nil).
+		Where(Where().
+			Eq("name", "9"),
+		).
+		Limit(0, 10)
+	
+	sql, _ := query.Compile()
+	
+	want :=
+`SELECT u.id, u.email,
+(
+SELECT JSON_OBJECTAGG(a.key, JSON_OBJECT('alias1', a.test_col1, 'alias2', l.test_col2))
+FROM .account a
+LEFT JOIN .language l ON l.id=a.language_id
+WHERE a.inner_col=u.outer_col AND a.name=?
+) select_json_field
+FROM .user u
+LEFT JOIN .balance b ON b.id=u.account_id
+WHERE u.name=?
+LIMIT 0,10`
+	got := strings.TrimSpace(sql)
+	if got != want {
+		tb.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
+	}
+	
+	want =
+`SELECT u.id, u.email,
+(
+SELECT JSON_OBJECTAGG(a.key, JSON_OBJECT('alias1', a.test_col1, 'alias2', l.test_col2))
+FROM .account a
+LEFT JOIN .language l ON l.id=a.language_id
+WHERE a.inner_col=u.outer_col AND a.name=where_inner
+) select_json_field
+FROM .user u
+LEFT JOIN .balance b ON b.id=u.account_id
+WHERE u.name=9
 LIMIT 0,10`
 	got = SQL_debug(query)
 	if got != want {

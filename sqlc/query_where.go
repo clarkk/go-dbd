@@ -9,13 +9,17 @@ type query_where struct {
 	id 				uint64
 }
 
-func (q *query_where) compile_where(sb *sbuilder) error {
+func (q *query_where) compile_where(sb *sbuilder, inner_condition func(sb *sbuilder, first *bool)) error {
 	num, alloc, alloc_data := q.get_alloc()
 	
 	if q.use_id {
 		num++
 		alloc += 4	//	"id=?"
 		alloc_data++
+	}
+	
+	if inner_condition != nil {
+		num++
 	}
 	
 	if num == 0 {
@@ -42,6 +46,10 @@ func (q *query_where) compile_where(sb *sbuilder) error {
 		sb.WriteString("=?")
 		q.data = append(q.data, q.id)
 		first = false
+	}
+	
+	if inner_condition != nil {
+		inner_condition(sb, &first)
 	}
 	
 	if q.where_clause != nil {

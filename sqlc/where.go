@@ -127,7 +127,7 @@ func (w *Where_clause) Not_in(field string, values []any) *Where_clause {
 	return w
 }
 
-func (w *Where_clause) In_subquery(field string, query SQL) *Where_clause {
+func (w *Where_clause) In_subquery(field string, query *Select_query) *Where_clause {
 	w.clause(field, op_in_subquery, query)
 	return w
 }
