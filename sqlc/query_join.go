@@ -12,22 +12,20 @@ var char_table = [26]string{"a","b","c","d","e","f","g","h","i","j","k","l","m",
 type query_join struct {
 	query
 	t 			string
-	tables 		map[string]string
-	use_alias	bool
 	joined 		bool
-	joined_t	bool
+	joined_t	bool	//	Joined on a non-base (pre-defined) table
 	joins 		[]join
 }
 
 func (q *query_join) left_join(table, t, field, field_foreign string, conditions Map){
 	var join_t string
-	if before, _, found := strings.Cut(field_foreign, "."); found {
+	// Join on a non-base (pre-defined) table
+	if i := strings.IndexByte(field_foreign, '.'); i != -1 {
 		q.joined_t	= true
-		join_t		= before
+		join_t		= field_foreign[:i]
 	}
 	
-	q.use_alias	= true
-	q.joined	= true
+	q.joined = true
 	
 	q.joins = append(q.joins, join{
 		mode:			"LEFT JOIN",
@@ -40,55 +38,50 @@ func (q *query_join) left_join(table, t, field, field_foreign string, conditions
 	})
 }
 
-func (q *query_join) compile_tables(c string, tables map[string]string) error {
-	//	Reset
-	q.data = q.data[:0]
-	if tables != nil {
-		q.tables = tables
-	} else if q.tables == nil {
-		q.tables = make(map[string]string, len(q.joins)+1)
-	} else {
-		clear(q.tables)
-	}
-	
-	if q.use_alias {
+func (q *query_join) compile_tables(ctx *compiler, t string) error {
+	if ctx.use_alias {
 		//	Check for char collisions in joined tables
 		for i := range q.joins {
 			j := &q.joins[i]	//	Avoid copying struct
-			if _, ok := q.tables[j.t]; ok {
+			if _, ok := ctx.tables[j.t]; ok {
 				return fmt.Errorf("Join table short already used: %s (%s)", j.t, j.table)
 			}
-			q.tables[j.t] = j.table
+			ctx.tables[j.t] = j.table
 		}
 	}
 	
 	//	Get available char for base table (a-z)
-	if _, ok := q.tables[c]; ok {
+	if _, ok := ctx.tables[t]; ok {
+		var found bool
 		for i := range 26 {
 			char := char_table[i]
-			if _, ok := q.tables[char]; !ok {
-				c = char
+			if _, ok := ctx.tables[char]; !ok {
+				t 		= char
+				found	= true
 				break
 			}
 		}
+		if !found {
+			return fmt.Errorf("No available table aliases for table: %s", q.table)
+		}
 	}
 	
-	q.t 		= c
-	q.tables[c]	= q.table
+	q.t 			= t
+	ctx.tables[t]	= q.table
 	return nil
 }
 
-func (q *query_join) compile_from(sb *sbuilder){
-	sb.WriteString("FROM .")
-	sb.WriteString(q.table)
-	if q.use_alias {
-		sb.WriteByte(' ')
-		sb.WriteString(q.t)
+func (q *query_join) compile_from(ctx *compiler){
+	ctx.sb.WriteString("FROM .")
+	ctx.sb.WriteString(q.table)
+	if ctx.use_alias {
+		ctx.sb.WriteByte(' ')
+		ctx.sb.WriteString(q.t)
 	}
-	sb.WriteByte('\n')
+	ctx.sb.WriteByte('\n')
 }
 
-func (q *query_join) compile_joins(sb *sbuilder){
+func (q *query_join) compile_joins(ctx *compiler){
 	if !q.joined {
 		return
 	}
@@ -107,62 +100,50 @@ func (q *query_join) compile_joins(sb *sbuilder){
 	}
 	
 	//	Pre-allocation
-	sb.Alloc((20 + alloc_join_clause) * len(q.joins))
+	ctx.sb.Alloc((20 + alloc_join_clause) * len(q.joins))
 	
 	for i := range q.joins {
 		j := &q.joins[i]	//	Avoid copying struct
-		sb.WriteString(j.mode)
-		sb.WriteString(" .")
-		sb.WriteString(j.table)
-		sb.WriteByte(' ')
-		sb.WriteString(j.t)
-		sb.WriteString(" ON ")
-		sb.WriteString(j.t)
-		sb.WriteByte('.')
-		sb.WriteString(j.field)
-		sb.WriteByte('=')
-		q.write_field(sb, j.field_foreign)
+		ctx.sb.WriteString(j.mode)
+		ctx.sb.WriteString(" .")
+		ctx.sb.WriteString(j.table)
+		ctx.sb.WriteByte(' ')
+		ctx.sb.WriteString(j.t)
+		ctx.sb.WriteString(" ON ")
+		ctx.sb.WriteString(j.t)
+		ctx.sb.WriteByte('.')
+		ctx.sb.WriteString(j.field)
+		ctx.sb.WriteByte('=')
+		ctx.write_field(q.t, j.field_foreign)
 		
 		if len(j.conditions) > 0 {
 			keys := slices.Sorted(maps.Keys(j.conditions))
 			
 			for _, column := range keys {
-				sb.WriteString(" AND ")
-				sb.WriteString(j.t)
-				sb.WriteByte('.')
-				sb.WriteString(column)
-				sb.WriteString("=?")
+				ctx.sb.WriteString(" AND ")
+				ctx.sb.WriteString(j.t)
+				ctx.sb.WriteByte('.')
+				ctx.sb.WriteString(column)
+				ctx.sb.WriteString("=?")
 				
-				q.append_data(j.conditions[column])
+				ctx.append_data(j.conditions[column])
 			}
 		}
-		sb.WriteByte('\n')
+		ctx.sb.WriteByte('\n')
 	}
 }
 
-func (q *query_join) write_update_field(sb *sbuilder, field, operator string){
+func (q *query_join) write_update_field(ctx *compiler, field, operator string){
 	switch operator {
 	case op_update_add:
-		q.write_field(sb, field)
-		sb.WriteByte('=')
-		q.write_field(sb, field)
-		sb.WriteString("+?")
+		ctx.write_field(q.t, field)
+		ctx.sb.WriteByte('=')
+		ctx.write_field(q.t, field)
+		ctx.sb.WriteString("+?")
 	default:
-		q.write_field(sb, field)
-		sb.WriteString("=?")
+		ctx.write_field(q.t, field)
+		ctx.sb.WriteString("=?")
 	}
-}
-
-func (q *query_join) write_field(sb *sbuilder, field string){
-	if !q.use_alias {
-		sb.WriteString(field)
-		return
-	}
-	if strings.IndexByte(field, '.') == -1 {
-		sb.WriteString(q.t)
-		sb.WriteByte('.')
-	}
-	sb.WriteString(field)
 }
 
 func (q *query_join) base_table_short() string {

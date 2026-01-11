@@ -12,9 +12,13 @@ const (
 	alloc_query			= 200
 )
 
-var builder_pool = sync.Pool{
+var compiler_pool = sync.Pool{
 	New: func() any {
-		return &sbuilder{}
+		//	Pre-allocation
+		return &compiler{
+			tables:	make(map[string]string, 5),
+			data:	make([]any, 0, 5),
+		}
 	},
 }
 
@@ -27,15 +31,15 @@ type (
 	Map map[string]any
 	
 	query struct {
-		table 	string
-		data 	[]any
+		table 			string
+		data_compiled	[]any
 	}
 	
 	join struct {
 		mode 			string
 		table 			string
-		t 				string
-		join_t			string
+		t 				string	//	Table alias
+		join_t			string	//	Join on a non-base (pre-defined) table (table alias)
 		field 			string
 		field_foreign 	string
 		conditions		Map
@@ -43,11 +47,11 @@ type (
 )
 
 func SQL_debug(q SQL) string {
-	s, _ := q.Compile()
+	sql, _ := q.Compile()
 	for _, value := range q.Data() {
-		s = strings.Replace(s, "?", fmt.Sprintf("%v", value), 1)
+		sql = strings.Replace(sql, "?", fmt.Sprintf("%v", value), 1)
 	}
-	return strings.TrimSpace(s)
+	return strings.TrimSpace(sql)
 }
 
 func SQL_error(msg string, q SQL, err error) string {
@@ -55,27 +59,7 @@ func SQL_error(msg string, q SQL, err error) string {
 }
 
 func (q *query) Data() []any {
-	return q.data
-}
-
-func (q *query) append_data(val any){
-	if val == nil {
-		return
-	}
-	
-	//	Flatten data slices
-	if v, ok := val.([]any); ok {
-		length := len(v)
-		if length == 0 {
-			return
-		}
-		
-		q.alloc_data_capacity(len(q.data) + length)
-		
-		q.data = append(q.data, v...)
-	} else {
-		q.data = append(q.data, val)
-	}
+	return q.data_compiled
 }
 
 func field_placeholder_list(count int, sb *sbuilder){
@@ -88,17 +72,9 @@ func field_placeholder_list(count int, sb *sbuilder){
 	}
 }
 
-func (q *query) alloc_data_capacity(total int){
-	if cap(q.data) < total {
-		new_data := make([]any, len(q.data), total)
-		copy(new_data, q.data)
-		q.data = new_data
-	}
-}
-
-func (q *query_join) alloc_field_list(count int) int {
+func (q *query_join) alloc_field_list(count int, use_alias bool) int {
 	alloc := alloc_field + 2	//	", "
-	if q.use_alias {
+	if use_alias {
 		alloc += 1 + len(q.t)
 	}
 	return alloc * count

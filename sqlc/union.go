@@ -66,33 +66,38 @@ func (q *Union_query) Limit(offset uint32, limit uint8) *Union_query {
 }
 
 func (q *Union_query) Compile() (string, error){
-	if err := q.compile_tables("t", nil); err != nil {
-		return "", err
-	}
-	
-	sb := builder_pool.Get().(*sbuilder)
+	ctx := compiler_pool.Get().(*compiler)
 	defer func() {
-		sb.Reset()
-		builder_pool.Put(sb)
+		ctx.reset()
+		compiler_pool.Put(ctx)
 	}()
 	
-	q.compile_select(sb)
-	if err := q.compile_from(sb); err != nil {
-		return "", err
+	if q.joined {
+		ctx.use_alias = true
 	}
-	q.compile_joins(sb)
-	if err := q.compile_where(sb, nil); err != nil {
-		return "", err
-	}
-	q.compile_group(sb)
-	q.compile_order(sb)
-	q.compile_limit(sb)
-	sb.WriteByte('\n')
 	
-	return sb.String(), nil
+	if err := q.compile_tables(ctx, "t"); err != nil {
+		return "", err
+	}
+	
+	q.compile_select(ctx)
+	if err := q.compile_from(ctx); err != nil {
+		return "", err
+	}
+	q.compile_joins(ctx)
+	if err := q.compile_where(ctx, nil); err != nil {
+		return "", err
+	}
+	q.compile_group(ctx)
+	q.compile_order(ctx)
+	q.compile_limit(ctx)
+	ctx.sb.WriteByte('\n')
+	
+	q.data_compiled = ctx.data
+	return ctx.sb.String(), nil
 }
 
-func (q *Union_query) compile_from(sb *sbuilder) error {
+func (q *Union_query) compile_from(ctx *compiler) error {
 	length := len(q.unions)
 	if length < 1 {
 		return fmt.Errorf("Must have at least two queries to union")
@@ -107,10 +112,10 @@ func (q *Union_query) compile_from(sb *sbuilder) error {
 	
 	//	Pre-allocation
 	alloc := 10 + len(q.t) + length * (alloc_query + len(sep))	//	"FROM (\n" + ") \n"
-	sb.Alloc(alloc)
+	ctx.sb.Alloc(alloc)
 	//audit.Grow(alloc)
 	
-	sb.WriteString("FROM (\n")
+	ctx.sb.WriteString("FROM (\n")
 	
 	for i, query := range q.unions {
 		sql, err := query.Compile()
@@ -119,16 +124,16 @@ func (q *Union_query) compile_from(sb *sbuilder) error {
 		}
 		
 		if i > 0 {
-			sb.WriteString(sep)
+			ctx.sb.WriteString(sep)
 		}
-		sb.WriteString(sql)
+		ctx.sb.WriteString(sql)
 		
-		q.append_data(query.Data())
+		ctx.append_data(query.Data())
 	}
 	
-	sb.WriteString(") ")
-	sb.WriteString(q.t)
-	sb.WriteByte('\n')
+	ctx.sb.WriteString(") ")
+	ctx.sb.WriteString(q.t)
+	ctx.sb.WriteByte('\n')
 	//audit.Audit()
 	return nil
 }

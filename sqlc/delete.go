@@ -34,34 +34,39 @@ func (q *Delete_query) Where(clause *Where_clause) *Delete_query {
 }
 
 func (q *Delete_query) Compile() (string, error){
-	t := q.base_table_short()
-	if err := q.compile_tables(t, nil); err != nil {
-		return "", err
+	ctx := compiler_pool.Get().(*compiler)
+	defer func() {
+		ctx.reset()
+		compiler_pool.Put(ctx)
+	}()
+	
+	if q.joined {
+		ctx.use_alias = true
 	}
 	
-	sb := builder_pool.Get().(*sbuilder)
-	defer func() {
-		sb.Reset()
-		builder_pool.Put(sb)
-	}()
+	t := q.base_table_short()
+	if err := q.compile_tables(ctx, t); err != nil {
+		return "", err
+	}
 	
 	//	Pre-allocation
 	alloc := 15 + len(q.table)	//	"DELETE \n" + "FROM .\n"
-	if q.use_alias {
+	if ctx.use_alias {
 		alloc += (1 + len(q.t)) * 2
 	}
-	sb.Alloc(alloc)
+	ctx.sb.Alloc(alloc)
 	
-	sb.WriteString("DELETE ")
-	if q.use_alias {
-		sb.WriteString(q.t)
-		sb.WriteByte(' ')
+	ctx.sb.WriteString("DELETE ")
+	if ctx.use_alias {
+		ctx.sb.WriteString(q.t)
+		ctx.sb.WriteByte(' ')
 	}
-	q.compile_from(sb)
-	q.compile_joins(sb)
-	if err := q.compile_where(sb, nil); err != nil {
+	q.compile_from(ctx)
+	q.compile_joins(ctx)
+	if err := q.compile_where(ctx, nil); err != nil {
 		return "", err
 	}
 	
-	return sb.String(), nil
+	q.data_compiled = ctx.data
+	return ctx.sb.String(), nil
 }

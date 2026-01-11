@@ -9,7 +9,7 @@ type query_where struct {
 	id 				uint64
 }
 
-func (q *query_where) compile_where(sb *sbuilder, inner_condition func(sb *sbuilder, first *bool)) error {
+func (q *query_where) compile_where(ctx *compiler, inner_condition func(ctx *compiler, first *bool)) error {
 	num, alloc, alloc_data := q.get_alloc()
 	
 	if q.use_id {
@@ -30,26 +30,26 @@ func (q *query_where) compile_where(sb *sbuilder, inner_condition func(sb *sbuil
 	
 	//	Pre-allocation
 	alloc += 7 + num * 5	//	"WHERE \n" + " AND "
-	if q.use_alias {
+	if ctx.use_alias {
 		alloc += num * 3
 	}
 	
-	sb.Alloc(alloc)
+	ctx.sb.Alloc(alloc)
 	//audit.Grow(alloc)
-	q.alloc_data_capacity(alloc_data + len(q.data))
+	ctx.alloc_data_capacity(alloc_data + len(ctx.data))
 	
-	sb.WriteString("WHERE ")
+	ctx.sb.WriteString("WHERE ")
 	first := true
 	
 	if q.use_id {
-		q.write_field(sb, "id")
-		sb.WriteString("=?")
-		q.data = append(q.data, q.id)
+		ctx.write_field(q.t, "id")
+		ctx.sb.WriteString("=?")
+		ctx.append_data(q.id)
 		first = false
 	}
 	
 	if inner_condition != nil {
-		inner_condition(sb, &first)
+		inner_condition(ctx, &first)
 	}
 	
 	if q.where_clause != nil {
@@ -60,19 +60,19 @@ func (q *query_where) compile_where(sb *sbuilder, inner_condition func(sb *sbuil
 			duplicates = make(map[string]string, 2)
 		}
 		
-		if err := q.walk_where_clause(sb, q.where_clause, &duplicates, &first); err != nil {
+		if err := q.walk_where_clause(ctx, q.where_clause, &duplicates, &first); err != nil {
 			return err
 		}
 	}
-	sb.WriteByte('\n')
+	ctx.sb.WriteByte('\n')
 	//audit.Audit()
 	return nil
 }
 
-func (q *query_where) walk_where_clause(sb *sbuilder, clause *Where_clause, duplicates *map[string]string, first *bool) error {
+func (q *query_where) walk_where_clause(ctx *compiler, clause *Where_clause, duplicates *map[string]string, first *bool) error {
 	//	Apply wrapped conditions
 	if clause.wrapped != nil {
-		if err := q.walk_where_clause(sb, clause.wrapped, duplicates, first); err != nil {
+		if err := q.walk_where_clause(ctx, clause.wrapped, duplicates, first); err != nil {
 			return err
 		}
 	}
@@ -92,11 +92,11 @@ func (q *query_where) walk_where_clause(sb *sbuilder, clause *Where_clause, dupl
 		if *first {
 			*first = false
 		} else {
-			sb.WriteString(" AND ")
+			ctx.sb.WriteString(" AND ")
 		}
 		
-		q.write_field(sb, condition.field)
-		subquery, err := clause.write_condition(sb, condition)
+		ctx.write_field(q.t, condition.field)
+		subquery, err := clause.write_condition(&ctx.sb, condition)
 		if err != nil {
 			return err
 		}
@@ -107,9 +107,9 @@ func (q *query_where) walk_where_clause(sb *sbuilder, clause *Where_clause, dupl
 		
 		//	Apply data
 		if subquery != nil {
-			q.append_data(subquery.Data())
+			ctx.append_data(subquery.Data())
 		} else {
-			q.append_data(condition.value)
+			ctx.append_data(condition.value)
 		}
 	}
 	
@@ -119,24 +119,24 @@ func (q *query_where) walk_where_clause(sb *sbuilder, clause *Where_clause, dupl
 			if *first {
 				*first = false
 			} else {
-				sb.WriteString(" AND ")
+				ctx.sb.WriteString(" AND ")
 			}
 			
-			sb.WriteByte('(')
+			ctx.sb.WriteByte('(')
 			for i, condition := range group.conditions {
 				if i > 0 {
-					sb.WriteString(" OR ")
+					ctx.sb.WriteString(" OR ")
 				}
 				
-				q.write_field(sb, condition.field)
-				_, err := clause.write_condition(sb, condition)
+				ctx.write_field(q.t, condition.field)
+				_, err := clause.write_condition(&ctx.sb, condition)
 				if err != nil {
 					return err
 				}
 				
-				q.append_data(condition.value)
+				ctx.append_data(condition.value)
 			}
-			sb.WriteByte(')')
+			ctx.sb.WriteByte(')')
 		}
 	}
 	

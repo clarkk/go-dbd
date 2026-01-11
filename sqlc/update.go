@@ -55,52 +55,58 @@ func (q *Update_query) Where(clause *Where_clause) *Update_query {
 }
 
 func (q *Update_query) Compile() (string, error){
-	t := q.base_table_short()
-	if err := q.compile_tables(t, nil); err != nil {
-		return "", err
+	ctx := compiler_pool.Get().(*compiler)
+	defer func() {
+		ctx.reset()
+		compiler_pool.Put(ctx)
+	}()
+	
+	if q.joined {
+		ctx.use_alias = true
 	}
 	
-	sb := builder_pool.Get().(*sbuilder)
-	defer func() {
-		sb.Reset()
-		builder_pool.Put(sb)
-	}()
+	t := q.base_table_short()
+	if err := q.compile_tables(ctx, t); err != nil {
+		return "", err
+	}
 	
 	//audit := Audit(sb, "update")
 	
 	//	Pre-allocation
 	alloc := 14 + len(q.table) + alloc_field_assign(len(q.fields.entries))	//	"UPDATE .\n" + "SET \n"
-	if q.use_alias {
+	if ctx.use_alias {
 		alloc += 2 + len(q.t)
 	}
-	sb.Alloc(alloc)
+	ctx.sb.Alloc(alloc)
 	//audit.Grow(alloc)
 	
-	sb.WriteString("UPDATE .")
-	sb.WriteString(q.table)
-	if q.use_alias {
-		sb.WriteByte(' ')
-		sb.WriteString(q.t)
-		sb.WriteByte('\n')
-		q.compile_joins(sb)
+	ctx.sb.WriteString("UPDATE .")
+	ctx.sb.WriteString(q.table)
+	if ctx.use_alias {
+		ctx.sb.WriteByte(' ')
+		ctx.sb.WriteString(q.t)
+		ctx.sb.WriteByte('\n')
+		q.compile_joins(ctx)
 	} else {
-		sb.WriteByte('\n')
+		ctx.sb.WriteByte('\n')
 	}
-	sb.WriteString("SET ")
-	if err := q.compile_fields(sb); err != nil {
+	ctx.sb.WriteString("SET ")
+	if err := q.compile_fields(ctx); err != nil {
 		return "", err
 	}
-	sb.WriteByte('\n')
+	ctx.sb.WriteByte('\n')
 	//audit.Audit()
-	if err := q.compile_where(sb, nil); err != nil {
+	if err := q.compile_where(ctx, nil); err != nil {
 		return "", err
 	}
-	return sb.String(), nil
+	
+	q.data_compiled = ctx.data
+	return ctx.sb.String(), nil
 }
 
-func (q *Update_query) compile_fields(sb *sbuilder) error {
+func (q *Update_query) compile_fields(ctx *compiler) error {
 	length := len(q.fields.entries)
-	q.data = make([]any, length)
+	ctx.alloc_data_capacity(len(ctx.data) + length)
 	unique := make(map[string]struct{}, length)
 	
 	for i, entry := range q.fields.entries {
@@ -108,12 +114,12 @@ func (q *Update_query) compile_fields(sb *sbuilder) error {
 			return fmt.Errorf("Duplicate field: %s", entry.field)
 		}
 		if i > 0 {
-			sb.WriteString(", ")
+			ctx.sb.WriteString(", ")
 		}
 		
-		q.write_update_field(sb, entry.field, entry.operator)
+		q.write_update_field(ctx, entry.field, entry.operator)
 		
-		q.data[i]			= entry.value
+		ctx.append_data(entry.value)
 		unique[entry.field]	= struct{}{}
 	}
 	return nil
