@@ -170,7 +170,7 @@ func (q *Select_query) Compile() (string, error){
 		ctx.sb.WriteString("FOR UPDATE\n")
 	}
 	
-	q.data_compiled = ctx.data
+	q.data_compiled = ctx.copy_data()
 	return ctx.sb.String(), nil
 }
 

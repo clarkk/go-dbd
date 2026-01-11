@@ -26,7 +26,6 @@ func (q *query_join) left_join(table, t, field, field_foreign string, conditions
 	}
 	
 	q.joined = true
-	
 	q.joins = append(q.joins, join{
 		mode:			"LEFT JOIN",
 		table:			table,
@@ -42,22 +41,21 @@ func (q *query_join) compile_tables(ctx *compiler, t string) error {
 	if ctx.use_alias {
 		//	Check for char collisions in joined tables
 		for i := range q.joins {
-			j := &q.joins[i]	//	Avoid copying struct
-			if _, ok := ctx.tables[j.t]; ok {
-				return fmt.Errorf("Join table short already used: %s (%s)", j.t, j.table)
+			alias := q.joins[i].t
+			if _, ok := ctx.tables[alias]; ok {
+				return fmt.Errorf("Join table short already used: %s (%s)", alias, q.joins[i].table)
 			}
-			ctx.tables[j.t] = j.table
+			ctx.tables[alias] = q.joins[i].table
 		}
 	}
 	
 	//	Get available char for base table (a-z)
 	if _, ok := ctx.tables[t]; ok {
 		var found bool
-		for i := range 26 {
-			char := char_table[i]
+		for _, char := range char_table {
 			if _, ok := ctx.tables[char]; !ok {
-				t 		= char
-				found	= true
+				t = char
+				found = true
 				break
 			}
 		}
@@ -88,7 +86,7 @@ func (q *query_join) compile_joins(ctx *compiler){
 	
 	if q.joined_t {
 		//	Sort joins and put joins which does not join on the base table last
-		slices.SortFunc(q.joins, func(a, b join) int {
+		slices.SortStableFunc(q.joins, func(a, b join) int {
 			if a.join_t == "" && b.join_t != "" {
 				return -1
 			}

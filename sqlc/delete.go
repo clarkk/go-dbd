@@ -67,6 +67,6 @@ func (q *Delete_query) Compile() (string, error){
 		return "", err
 	}
 	
-	q.data_compiled = ctx.data
+	q.data_compiled = ctx.copy_data()
 	return ctx.sb.String(), nil
 }

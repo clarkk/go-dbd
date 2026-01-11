@@ -122,7 +122,7 @@ func (q *Inserts_query) Compile() (string, error){
 	}
 	//audit.Audit()
 	
-	q.data_compiled = ctx.data
+	q.data_compiled = ctx.copy_data()
 	return ctx.sb.String(), nil
 }
 

@@ -78,7 +78,9 @@ func (q *query_where) walk_where_clause(ctx *compiler, clause *Where_clause, dup
 	}
 	
 	//	Apply conditions
-	for _, condition := range clause.conditions {
+	for i := range clause.conditions {
+		condition := &clause.conditions[i]	//	Avoid copying data
+		
 		if *duplicates != nil {
 			if operator, ok := (*duplicates)[condition.field]; ok {
 				if err := check_operator_compatibility(operator, condition.operator, condition.field); err != nil {
@@ -123,7 +125,9 @@ func (q *query_where) walk_where_clause(ctx *compiler, clause *Where_clause, dup
 			}
 			
 			ctx.sb.WriteByte('(')
-			for i, condition := range group.conditions {
+			for i := range group.conditions {
+				condition := &group.conditions[i]	//	Avoid copying data
+				
 				if i > 0 {
 					ctx.sb.WriteString(" OR ")
 				}
@@ -150,35 +154,39 @@ func (q *query_where) get_alloc() (int, int, int){
 	return q.where_clause.get_alloc()
 }
 
-func check_operator_compatibility(prev_operator, new_operator, field string) error {
-	switch prev_operator {
+func check_operator_compatibility(current_operator, new_operator, field string) error {
+	if current_operator == new_operator {
+		return where_operator_error(field, current_operator, new_operator)
+	}
+	
+	switch current_operator {
 	//	Operator not compatable with "oposite" operators
 	case op_null:
 		if new_operator == op_not_null {
-			return where_operator_error(field, prev_operator, new_operator)
+			return where_operator_error(field, current_operator, new_operator)
 		}
 	case op_not_null:
 		if new_operator == op_null {
-			return where_operator_error(field, prev_operator, new_operator)
+			return where_operator_error(field, current_operator, new_operator)
 		}
 	
 	//	Operator not compatable with other operators
 	case op_eq, op_not_eq, op_bt, op_not_bt, op_in, op_not_in:
-		return where_operator_error(field, prev_operator, new_operator)
+		return where_operator_error(field, current_operator, new_operator)
 	
 	//	Operator only compatable with "oposite" operators
 	case op_gt, op_gteq:
 		if new_operator != op_lt && new_operator != op_lteq {
-			return where_operator_error(field, prev_operator, new_operator)
+			return where_operator_error(field, current_operator, new_operator)
 		}
 	case op_lt, op_lteq:
 		if new_operator != op_gt && new_operator != op_gteq {
-			return where_operator_error(field, prev_operator, new_operator)
+			return where_operator_error(field, current_operator, new_operator)
 		}
 	}
 	return nil
 }
 
-func where_operator_error(field, prev_operator, new_operator string) error {
-	return fmt.Errorf("Where clause operator incompatable on same field (%s): %s %s", field, prev_operator, new_operator)
+func where_operator_error(field, current_operator, new_operator string) error {
+	return fmt.Errorf("Where clause operator incompatable on same field (%s): %s %s", field, current_operator, new_operator)
 }

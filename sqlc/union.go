@@ -93,7 +93,7 @@ func (q *Union_query) Compile() (string, error){
 	q.compile_limit(ctx)
 	ctx.sb.WriteByte('\n')
 	
-	q.data_compiled = ctx.data
+	q.data_compiled = ctx.copy_data()
 	return ctx.sb.String(), nil
 }
 

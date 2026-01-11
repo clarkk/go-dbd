@@ -19,14 +19,12 @@ func (c *compiler) reset(){
 }
 
 func (c *compiler) write_field(t, field string){
-	if !c.use_alias {
+	if !c.use_alias || strings.IndexByte(field, '.') != -1 {
 		c.sb.WriteString(field)
 		return
 	}
-	if strings.IndexByte(field, '.') == -1 {
-		c.sb.WriteString(t)
-		c.sb.WriteByte('.')
-	}
+	c.sb.WriteString(t)
+	c.sb.WriteByte('.')
 	c.sb.WriteString(field)
 }
 
@@ -35,18 +33,28 @@ func (c *compiler) append_data(val any){
 		return
 	}
 	//	Flatten data slices
-	if v, ok := val.([]any); ok {
+	switch v := val.(type) {
+	case []any:
 		length := len(v)
 		if length == 0 {
 			return
 		}
-		
 		c.alloc_data_capacity(len(c.data) + length)
-		
 		c.data = append(c.data, v...)
-	} else {
-		c.data = append(c.data, val)
+		
+	default:
+		c.data = append(c.data, v)
 	}
+}
+
+func (c *compiler) copy_data() []any {
+	length := len(c.data)
+	if length > 0 {
+		copied := make([]any, length)
+		copy(copied, c.data)
+		return copied
+	}
+	return nil
 }
 
 func (c *compiler) alloc_data_capacity(total int){

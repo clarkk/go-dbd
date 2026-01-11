@@ -132,7 +132,7 @@ func (w *Where_clause) In_subquery(field string, query *Select_query) *Where_cla
 	return w
 }
 
-func (w *Where_clause) write_condition(sb *sbuilder, field where_condition) (*Select_query, error){
+func (w *Where_clause) write_condition(sb *sbuilder, field *where_condition) (*Select_query, error){
 	var subquery *Select_query
 	
 	switch field.operator {
@@ -219,10 +219,10 @@ func (w *Where_clause) clause(field, operator string, value any){
 	w.alloc_data	+= alloc_data
 }
 
-func (w *Where_clause) get_alloc() (int, int, int){
-	num			:= w.num
-	alloc		:= w.alloc
-	alloc_data	:= w.alloc_data
+func (w *Where_clause) get_alloc() (num, alloc, alloc_data int){
+	num			= w.num
+	alloc		= w.alloc
+	alloc_data	= w.alloc_data
 	if w.wrapped != nil {
 		n, a, ad := w.wrapped.get_alloc()
 		num			+= n
