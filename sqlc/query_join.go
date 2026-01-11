@@ -13,6 +13,7 @@ type query_join struct {
 	query
 	t 			string
 	tables 		map[string]string
+	use_alias	bool
 	joined 		bool
 	joined_t	bool
 	joins 		[]join
@@ -25,7 +26,9 @@ func (q *query_join) left_join(table, t, field, field_foreign string, conditions
 		join_t		= before
 	}
 	
-	q.joined = true
+	q.use_alias	= true
+	q.joined	= true
+	
 	q.joins = append(q.joins, join{
 		mode:			"LEFT JOIN",
 		table:			table,
@@ -48,7 +51,7 @@ func (q *query_join) compile_tables(c string, tables map[string]string) error {
 		clear(q.tables)
 	}
 	
-	if q.joined {
+	if q.use_alias {
 		//	Check for char collisions in joined tables
 		for i := range q.joins {
 			j := &q.joins[i]	//	Avoid copying struct
@@ -78,7 +81,7 @@ func (q *query_join) compile_tables(c string, tables map[string]string) error {
 func (q *query_join) compile_from(sb *sbuilder){
 	sb.WriteString("FROM .")
 	sb.WriteString(q.table)
-	if q.joined {
+	if q.use_alias {
 		sb.WriteByte(' ')
 		sb.WriteString(q.t)
 	}
@@ -151,7 +154,7 @@ func (q *query_join) write_update_field(sb *sbuilder, field, operator string){
 }
 
 func (q *query_join) write_field(sb *sbuilder, field string){
-	if !q.joined {
+	if !q.use_alias {
 		sb.WriteString(field)
 		return
 	}

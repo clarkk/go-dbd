@@ -47,13 +47,13 @@ func (q *Delete_query) Compile() (string, error){
 	
 	//	Pre-allocation
 	alloc := 15 + len(q.table)	//	"DELETE \n" + "FROM .\n"
-	if q.joined {
+	if q.use_alias {
 		alloc += (1 + len(q.t)) * 2
 	}
 	sb.Alloc(alloc)
 	
 	sb.WriteString("DELETE ")
-	if q.joined {
+	if q.use_alias {
 		sb.WriteString(q.t)
 		sb.WriteByte(' ')
 	}

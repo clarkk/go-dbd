@@ -122,6 +122,10 @@ func (q *Select_query) Limit(offset uint32, limit uint8) *Select_query {
 }
 
 func (q *Select_query) Compile() (string, error){
+	if len(q.select_jsons) > 0 {
+		q.use_alias = true
+	}
+	
 	t := q.base_table_short()
 	if err := q.compile_tables(t, nil); err != nil {
 		return "", err
@@ -143,7 +147,7 @@ func (q *Select_query) Compile() (string, error){
 		alloc += 8	//	"SELECT \n"
 	}
 	alloc += 7 + len(q.table)	//	"FROM .\n"
-	if q.joined {
+	if q.use_alias {
 		alloc += 1 + len(q.t)
 	}
 	alloc += len(q.select_jsons) * alloc_query
@@ -217,6 +221,8 @@ func (q *Select_query) compile_select_joins(sb *sbuilder) error {
 		if len(sj.query.select_fields) < 2 {
 			return fmt.Errorf("Minimum 2 fields in select json")
 		}
+		
+		sj.query.use_alias = true
 		
 		t := sj.query.base_table_short()
 		if err := sj.query.compile_tables(t, q.tables); err != nil {

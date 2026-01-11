@@ -98,7 +98,7 @@ func (q *query) alloc_data_capacity(total int){
 
 func (q *query_join) alloc_field_list(count int) int {
 	alloc := alloc_field + 2	//	", "
-	if q.joined {
+	if q.use_alias {
 		alloc += 1 + len(q.t)
 	}
 	return alloc * count

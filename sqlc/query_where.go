@@ -30,7 +30,7 @@ func (q *query_where) compile_where(sb *sbuilder, inner_condition func(sb *sbuil
 	
 	//	Pre-allocation
 	alloc += 7 + num * 5	//	"WHERE \n" + " AND "
-	if q.joined {
+	if q.use_alias {
 		alloc += num * 3
 	}
 	

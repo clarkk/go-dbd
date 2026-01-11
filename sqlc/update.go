@@ -70,7 +70,7 @@ func (q *Update_query) Compile() (string, error){
 	
 	//	Pre-allocation
 	alloc := 14 + len(q.table) + alloc_field_assign(len(q.fields.entries))	//	"UPDATE .\n" + "SET \n"
-	if q.joined {
+	if q.use_alias {
 		alloc += 2 + len(q.t)
 	}
 	sb.Alloc(alloc)
@@ -78,7 +78,7 @@ func (q *Update_query) Compile() (string, error){
 	
 	sb.WriteString("UPDATE .")
 	sb.WriteString(q.table)
-	if q.joined {
+	if q.use_alias {
 		sb.WriteByte(' ')
 		sb.WriteString(q.t)
 		sb.WriteByte('\n')
