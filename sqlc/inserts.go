@@ -2,7 +2,6 @@ package sqlc
 
 import (
 	"fmt"
-	"maps"
 	"slices"
 )
 
@@ -36,8 +35,15 @@ func (q *Inserts_query) Fields(fields map[string]any) error {
 	length := len(fields)
 	if q.col_count == 0 {
 		q.col_count	= length
-		q.col_map	= make(map[string]int, q.col_count)
-		q.col_keys	= slices.Sorted(maps.Keys(fields))
+		q.col_map	= make(map[string]int, length)
+		//	Sort keys
+		q.col_keys = make([]string, length)
+		var i int
+		for key := range fields {
+			q.col_keys[i] = key
+			i++
+		}
+		slices.Sort(q.col_keys)
 		for i, key := range q.col_keys {
 			q.col_map[key] = i
 		}

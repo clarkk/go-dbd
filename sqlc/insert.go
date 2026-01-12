@@ -2,7 +2,6 @@ package sqlc
 
 import (
 	"fmt"
-	"maps"
 	"slices"
 )
 
@@ -40,7 +39,14 @@ func (q *Insert_query) Update_duplicate_operator(fields *Fields_clause, update_f
 
 func (q *Insert_query) Fields(fields map[string]any) *Insert_query {
 	q.fields = Fields()
-	keys := slices.Sorted(maps.Keys(fields))
+	//	Sort keys
+	keys := make([]string, len(fields))
+	var i int
+	for k := range fields {
+		keys[i] = k
+		i++
+	}
+	slices.Sort(keys)
 	for _, field := range keys {
 		q.fields.Value(field, fields[field])
 	}

@@ -2,7 +2,6 @@ package sqlc
 
 import (
 	"fmt"
-	"maps"
 	"slices"
 	"strings"
 )
@@ -115,7 +114,14 @@ func (q *query_join) compile_joins(ctx *compiler){
 		ctx.write_field(q.t, j.field_foreign)
 		
 		if len(j.conditions) > 0 {
-			keys := slices.Sorted(maps.Keys(j.conditions))
+			//	Sort keys
+			keys := make([]string, len(j.conditions))
+			var i int
+			for k := range j.conditions {
+				keys[i] = k
+				i++
+			}
+			slices.Sort(keys)
 			
 			for _, column := range keys {
 				ctx.sb.WriteString(" AND ")

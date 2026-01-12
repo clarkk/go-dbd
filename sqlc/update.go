@@ -2,7 +2,6 @@ package sqlc
 
 import (
 	"fmt"
-	"maps"
 	"slices"
 )
 
@@ -32,7 +31,14 @@ func Update(table string) *Update_query {
 
 func (q *Update_query) Fields(fields map[string]any) *Update_query {
 	q.fields = Fields()
-	keys := slices.Sorted(maps.Keys(fields))
+	//	Sort keys
+	keys := make([]string, len(fields))
+	var i int
+	for k := range fields {
+		keys[i] = k
+		i++
+	}
+	slices.Sort(keys)
 	for _, field := range keys {
 		q.fields.Value(field, fields[field])
 	}
