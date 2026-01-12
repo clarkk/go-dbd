@@ -1466,6 +1466,7 @@ func Benchmark_update(b *testing.B) {
 		run_update_id_set(b)
 		run_update(b)
 		run_update_operator(b)
+		run_update_nil(b)
 	}
 }
 
@@ -1484,6 +1485,10 @@ func Test_update(t *testing.T){
 	
 	t.Run("update operator", func(t *testing.T){
 		run_update_operator(t)
+	})
+	
+	t.Run("update nil", func(t *testing.T){
+		run_update_nil(t)
 	})
 }
 
@@ -1588,6 +1593,32 @@ WHERE id=?`
 `UPDATE .user
 SET balance=balance+12, draft=draft+-10
 WHERE id=123`
+	got = SQL_debug(query)
+	if got != want {
+		tb.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
+	}
+}
+
+func run_update_nil(tb testing.TB){
+	query := Update("user").
+		Fields(Map{
+			"time_login":	123,
+			"test":			nil,
+		})
+	
+	sql, _ := query.Compile()
+	
+	want :=
+`UPDATE .user
+SET test=?, time_login=?`
+	got := strings.TrimSpace(sql)
+	if got != want {
+		tb.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
+	}
+	
+	want =
+`UPDATE .user
+SET test=<nil>, time_login=123`
 	got = SQL_debug(query)
 	if got != want {
 		tb.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)

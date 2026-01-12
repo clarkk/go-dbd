@@ -29,9 +29,6 @@ func (c *compiler) write_field(t, field string){
 }
 
 func (c *compiler) append_data(val any){
-	if val == nil {
-		return
-	}
 	//	Flatten data slices
 	switch v := val.(type) {
 	case []any:
