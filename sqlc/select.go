@@ -228,7 +228,7 @@ func (q *Select_query) compile_select_joins(ctx *compiler) error {
 			return err
 		}
 		
-		ctx.sb.WriteString(",\n(\nSELECT JSON_ARRAYAGG(JSON_OBJECT")
+		ctx.sb.WriteString(",\n(\nSELECT JSON_ARRAYAGG(JSON_OBJECT(")
 		for i, field := range sj.query.select_fields {
 			if i > 0 {
 				ctx.sb.WriteString(", ")
