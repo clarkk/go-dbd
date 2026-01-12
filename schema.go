@@ -2,7 +2,8 @@ package dbd
 
 import (
 	"log"
-	//"sort"
+	//"maps"
+	//"slices"
 	"context"
 	"regexp"
 	"strconv"
@@ -100,14 +101,7 @@ func Schema(table, column string) schema_column {
 }
 
 /*func Schema_tables() []string {
-	s := make([]string, len(db_tables))
-	i := 0
-	for table := range db_tables {
-		s[i] = table
-		i++
-	}
-	sort.Strings(s)
-	return s
+	return slices.Sorted(maps.Keys(db_tables))
 }
 
 func Schema_table_columns(table string) []string {
