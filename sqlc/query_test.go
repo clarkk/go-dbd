@@ -910,7 +910,7 @@ func run_select_json(tb testing.TB){
 	want :=
 `SELECT u.id, u.email,
 (
-SELECT JSON_AGG(JSON_BUILD_OBJECT('key', a.key, 'alias1', a.test_col1, 'alias2', l.test_col2))
+SELECT JSON_ARRAYAGG(JSON_OBJECT'key', a.key, 'alias1', a.test_col1, 'alias2', l.test_col2))
 FROM .account a
 LEFT JOIN .language l ON l.id=a.language_id
 WHERE a.inner_col=u.outer_col AND a.name=?
@@ -927,7 +927,7 @@ LIMIT 0,10`
 	want =
 `SELECT u.id, u.email,
 (
-SELECT JSON_AGG(JSON_BUILD_OBJECT('key', a.key, 'alias1', a.test_col1, 'alias2', l.test_col2))
+SELECT JSON_ARRAYAGG(JSON_OBJECT'key', a.key, 'alias1', a.test_col1, 'alias2', l.test_col2))
 FROM .account a
 LEFT JOIN .language l ON l.id=a.language_id
 WHERE a.inner_col=u.outer_col AND a.name=where_inner
