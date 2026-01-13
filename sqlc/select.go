@@ -96,6 +96,11 @@ func (q *Select_query) Select_json(field string, query *Select_query, inner_fiel
 	return q
 }
 
+func (q *Select_query) Inner_join(table, t, field, field_foreign string, conditions Map) *Select_query {
+	q.inner_join(table, t, field, field_foreign, conditions)
+	return q
+}
+
 func (q *Select_query) Left_join(table, t, field, field_foreign string, conditions Map) *Select_query {
 	q.left_join(table, t, field, field_foreign, conditions)
 	return q

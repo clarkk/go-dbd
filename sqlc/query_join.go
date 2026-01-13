@@ -16,7 +16,15 @@ type query_join struct {
 	joins 		[]join
 }
 
+func (q *query_join) inner_join(table, t, field, field_foreign string, conditions Map){
+	q.join("JOIN", table, t, field, field_foreign, conditions)
+}
+
 func (q *query_join) left_join(table, t, field, field_foreign string, conditions Map){
+	q.join("LEFT JOIN", table, t, field, field_foreign, conditions)
+}
+
+func (q *query_join) join(mode, table, t, field, field_foreign string, conditions Map){
 	var join_t string
 	// Join on a non-base (pre-defined) table
 	if i := strings.IndexByte(field_foreign, '.'); i != -1 {
@@ -26,7 +34,7 @@ func (q *query_join) left_join(table, t, field, field_foreign string, conditions
 	
 	q.joined = true
 	q.joins = append(q.joins, join{
-		mode:			"LEFT JOIN",
+		mode:			mode,
 		table:			table,
 		t:				t,
 		join_t:			join_t,
