@@ -96,6 +96,37 @@ func (q *Select_query) Select_json(field string, query *Select_query, inner_fiel
 	return q
 }
 
+func (q *Select_query) Collect_aliases() []string {
+	list := alias_collect{}
+	
+	//	Check SELECT clause
+	for _, f := range q.select_fields {
+		list.apply(f.field)
+	}
+	for _, f := range q.select_jsons {
+		list.apply(f.outer_field)
+	}
+	
+	//	Check WHERE clause
+	list.merge(q.where_clause.collect_aliases())
+	
+	//	Check GROUP clause
+	for _, f := range q.group {
+		list.apply(f)
+	}
+	
+	//	Check ORDER clause
+	for _, f := range q.order {
+		list.apply(f)
+	}
+	
+	/*if q.joined {
+		q.resolve_alias_dependencies()
+	}*/
+	
+	return list.sorted()
+}
+
 func (q *Select_query) Inner_join(table, t, field, field_foreign string, conditions Map) *Select_query {
 	q.inner_join(table, t, field, field_foreign, conditions)
 	return q

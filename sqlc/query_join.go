@@ -86,6 +86,10 @@ func (q *query_join) compile_from(ctx *compiler){
 	ctx.sb.WriteByte('\n')
 }
 
+/*func (q *query_join) resolve_alias_dependencies(){
+	q.joins
+}*/
+
 func (q *query_join) compile_joins(ctx *compiler){
 	if !q.joined {
 		return

@@ -243,3 +243,22 @@ func (w *Where_clause) get_alloc() (num, alloc, alloc_data int){
 	}
 	return num, alloc, alloc_data
 }
+
+func (w *Where_clause) collect_aliases() alias_collect {
+	if w == nil {
+		return nil
+	}
+	list := alias_collect{}
+	if w.wrapped != nil {
+		list.merge(w.wrapped.collect_aliases())
+	}
+	for _, group := range w.or_groups {
+		if group != nil {
+			list.merge(group.collect_aliases())
+		}
+	}
+	for _, f := range w.conditions {
+		list.apply(f.field)
+	}
+	return list
+}
