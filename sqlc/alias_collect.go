@@ -2,9 +2,17 @@ package sqlc
 
 import (
 	"maps"
+	"sync"
 	"slices"
 	"strings"
 )
+
+var alias_collect_pool = sync.Pool{
+	New: func() any {
+		//	Pre-allocation
+		return make(alias_collect, 4)
+	},
+}
 
 type alias_collect map[string]struct{}
 
@@ -12,10 +20,6 @@ func (m alias_collect) apply(field string){
 	if pos := strings.IndexByte(field, '.'); pos != -1 {
 		m[field[:pos]] = struct{}{}
 	}
-}
-
-func (m alias_collect) merge(a alias_collect){
-	maps.Copy(m, a)
 }
 
 func (m alias_collect) filter(joins []join) []join {
@@ -37,4 +41,8 @@ func (m alias_collect) sorted() []string {
 	}
 	slices.Sort(keys)
 	return keys
+}
+
+func (m alias_collect) reset(){
+	clear(m)
 }

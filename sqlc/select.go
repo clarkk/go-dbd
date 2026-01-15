@@ -134,7 +134,12 @@ func (q *Select_query) Limit(offset uint32, limit uint8) *Select_query {
 func (q *Select_query) Compile() (string, error){
 	var aliases alias_collect
 	if q.joined && q.optimize_joins {
-		aliases = q.collect_aliases()
+		aliases = alias_collect_pool.Get().(alias_collect)
+		defer func() {
+			aliases.reset()
+			alias_collect_pool.Put(aliases)
+		}()
+		q.collect_aliases(aliases)
 	}
 	
 	ctx := compiler_pool.Get().(*compiler)
@@ -189,9 +194,7 @@ func (q *Select_query) Compile() (string, error){
 	return ctx.sb.String(), nil
 }
 
-func (q *Select_query) collect_aliases() alias_collect {
-	list := alias_collect{}
-	
+func (q *Select_query) collect_aliases(list alias_collect){
 	//	Check SELECT clause
 	for _, f := range q.select_fields {
 		list.apply(f.field)
@@ -201,7 +204,7 @@ func (q *Select_query) collect_aliases() alias_collect {
 	}
 	
 	//	Check WHERE clause
-	list.merge(q.where_clause.collect_aliases())
+	q.where_clause.collect_aliases(list)
 	
 	//	Check GROUP clause
 	for _, f := range q.group {
@@ -214,8 +217,6 @@ func (q *Select_query) collect_aliases() alias_collect {
 	}
 	
 	q.resolve_alias_join_dependencies(list)
-	
-	return list
 }
 
 func (q *Select_query) compile_select(ctx *compiler) error {

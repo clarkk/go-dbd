@@ -76,16 +76,14 @@ func (q *query_join) resolve_alias_join_dependencies(list alias_collect){
 				}
 				
 				//	Find depth
-				if q.optimize_joins {
-					for _, parent := range q.joins {
-						if parent.t == j.join_t {
-							depth := parent.depth + 1
-							if j.depth != depth {
-								j.depth = depth
-								changed = true
-							}
-							break
+				for _, parent := range q.joins {
+					if parent.t == j.join_t {
+						depth := parent.depth + 1
+						if j.depth != depth {
+							j.depth = depth
+							changed = true
 						}
+						break
 					}
 				}
 			}
