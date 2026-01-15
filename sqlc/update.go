@@ -92,7 +92,7 @@ func (q *Update_query) Compile() (string, error){
 		ctx.sb.WriteByte(' ')
 		ctx.sb.WriteString(q.t)
 		ctx.sb.WriteByte('\n')
-		q.compile_joins(ctx)
+		q.compile_joins(ctx, nil)
 	} else {
 		ctx.sb.WriteByte('\n')
 	}

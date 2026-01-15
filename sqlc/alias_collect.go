@@ -18,6 +18,16 @@ func (m alias_collect) merge(a alias_collect){
 	maps.Copy(m, a)
 }
 
+func (m alias_collect) filter(joins []join) []join {
+	filtered := make([]join, 0, len(joins)) 
+	for _, j := range joins {
+		if _, ok := m[j.t]; ok {
+			filtered = append(filtered, j)
+		}
+	}
+	return filtered
+}
+
 func (m alias_collect) sorted() []string {
 	keys := make([]string, len(m))
 	var i int

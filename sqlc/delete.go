@@ -62,7 +62,7 @@ func (q *Delete_query) Compile() (string, error){
 		ctx.sb.WriteByte(' ')
 	}
 	q.compile_from(ctx)
-	q.compile_joins(ctx)
+	q.compile_joins(ctx, nil)
 	if err := q.compile_where(ctx, nil); err != nil {
 		return "", err
 	}

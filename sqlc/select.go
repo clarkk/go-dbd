@@ -61,6 +61,10 @@ func (q *Select_query) Read_lock() *Select_query {
 	return q
 }
 
+func (q *Select_query) Optimize_joins(){
+	q.optimize_joins = true
+}
+
 func (q *Select_query) Select(list []string) *Select_query {
 	q.select_fields = make([]select_field, len(list))
 	for i, v := range list {
@@ -96,37 +100,6 @@ func (q *Select_query) Select_json(field string, query *Select_query, inner_fiel
 	return q
 }
 
-func (q *Select_query) Collect_aliases() []string {
-	list := alias_collect{}
-	
-	//	Check SELECT clause
-	for _, f := range q.select_fields {
-		list.apply(f.field)
-	}
-	for _, f := range q.select_jsons {
-		list.apply(f.outer_field)
-	}
-	
-	//	Check WHERE clause
-	list.merge(q.where_clause.collect_aliases())
-	
-	//	Check GROUP clause
-	for _, f := range q.group {
-		list.apply(f)
-	}
-	
-	//	Check ORDER clause
-	for _, f := range q.order {
-		list.apply(f)
-	}
-	
-	/*if q.joined {
-		q.resolve_alias_dependencies()
-	}*/
-	
-	return list.sorted()
-}
-
 func (q *Select_query) Inner_join(table, t, field, field_foreign string, conditions Map) *Select_query {
 	q.inner_join(table, t, field, field_foreign, conditions)
 	return q
@@ -158,6 +131,11 @@ func (q *Select_query) Limit(offset uint32, limit uint8) *Select_query {
 }
 
 func (q *Select_query) Compile() (string, error){
+	var aliases alias_collect
+	if q.joined && q.optimize_joins {
+		aliases = q.collect_aliases()
+	}
+	
 	ctx := compiler_pool.Get().(*compiler)
 	defer func() {
 		ctx.reset()
@@ -194,7 +172,7 @@ func (q *Select_query) Compile() (string, error){
 		return "", err
 	}
 	q.compile_from(ctx)
-	q.compile_joins(ctx)
+	q.compile_joins(ctx, aliases)
 	//audit.Audit()
 	if err := q.compile_where(ctx, nil); err != nil {
 		return "", err
@@ -208,6 +186,35 @@ func (q *Select_query) Compile() (string, error){
 	
 	q.data_compiled = ctx.copy_data()
 	return ctx.sb.String(), nil
+}
+
+func (q *Select_query) collect_aliases() alias_collect {
+	list := alias_collect{}
+	
+	//	Check SELECT clause
+	for _, f := range q.select_fields {
+		list.apply(f.field)
+	}
+	for _, f := range q.select_jsons {
+		list.apply(f.outer_field)
+	}
+	
+	//	Check WHERE clause
+	list.merge(q.where_clause.collect_aliases())
+	
+	//	Check GROUP clause
+	for _, f := range q.group {
+		list.apply(f)
+	}
+	
+	//	Check ORDER clause
+	for _, f := range q.order {
+		list.apply(f)
+	}
+	
+	q.resolve_alias_join_dependencies(list)
+	
+	return list
 }
 
 func (q *Select_query) compile_select(ctx *compiler) error {
@@ -277,7 +284,7 @@ func (q *Select_query) compile_select_joins(ctx *compiler) error {
 		ctx.sb.WriteString("))\n")
 		
 		sj.query.compile_from(ctx)
-		sj.query.compile_joins(ctx)
+		sj.query.compile_joins(ctx, nil)
 		
 		if err := sj.query.compile_where(ctx, func(ctx *compiler, first *bool){
 			if *first {

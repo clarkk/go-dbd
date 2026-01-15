@@ -43,6 +43,7 @@ type (
 		field 			string
 		field_foreign 	string
 		conditions		Map
+		depth			int
 	}
 )
 

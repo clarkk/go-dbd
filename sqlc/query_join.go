@@ -10,10 +10,11 @@ var char_table = [26]string{"a","b","c","d","e","f","g","h","i","j","k","l","m",
 
 type query_join struct {
 	query
-	t 			string
-	joined 		bool
-	joined_t	bool	//	Joined on a non-base (pre-defined) table
-	joins 		[]join
+	t 				string
+	joined 			bool
+	joined_t		bool	//	Joined on a non-base (pre-defined) table
+	joins 			[]join
+	optimize_joins	bool
 }
 
 func (q *query_join) inner_join(table, t, field, field_foreign string, conditions Map){
@@ -42,6 +43,37 @@ func (q *query_join) join(mode, table, t, field, field_foreign string, condition
 		field_foreign:	field_foreign,
 		conditions:		conditions,
 	})
+}
+
+func (q *query_join) resolve_alias_join_dependencies(list alias_collect){
+	changed := true
+	for changed {
+		changed = false
+		for i := range q.joins {
+			j := &q.joins[i]	//	Avoid copying data
+			if _, ok := list[j.t]; ok {
+				//	Check if joined on non-base table
+				if j.join_t != "" {
+					if _, exists := list[j.join_t]; !exists {
+						list[j.join_t] = struct{}{}
+						changed = true
+					}
+					
+					//	Find depth
+					for _, parent := range q.joins {
+						if parent.t == j.join_t {
+							depth := parent.depth + 1
+							if j.depth != depth {
+								j.depth = depth
+								changed = true
+							}
+							break
+						}
+					}
+				}
+			}
+		}
+	}
 }
 
 func (q *query_join) compile_tables(ctx *compiler, t string) error {
@@ -86,33 +118,33 @@ func (q *query_join) compile_from(ctx *compiler){
 	ctx.sb.WriteByte('\n')
 }
 
-/*func (q *query_join) resolve_alias_dependencies(){
-	q.joins
-}*/
-
-func (q *query_join) compile_joins(ctx *compiler){
+func (q *query_join) compile_joins(ctx *compiler, aliases alias_collect){
 	if !q.joined {
 		return
 	}
 	
-	if q.joined_t {
-		//	Sort joins and put joins which does not join on the base table last
-		slices.SortStableFunc(q.joins, func(a, b join) int {
-			if a.join_t == "" && b.join_t != "" {
-				return -1
-			}
-			if a.join_t != "" && b.join_t == "" {
-				return 1
-			}
-			return 0
-		})
+	joins_compile := q.joins
+	
+	if q.optimize_joins {
+		joins_compile = aliases.filter(joins_compile)
+		
+		if q.joined_t && len(joins_compile) > 1 {
+			//	Sort joins and put joins which does not join on the base table last
+			slices.SortStableFunc(joins_compile, func(a, b join) int {
+				if a.depth != b.depth {
+					return a.depth - b.depth
+				}
+				//	Sort alphabetically if same level
+				return strings.Compare(a.t, b.t)
+			})
+		}
 	}
 	
 	//	Pre-allocation
-	ctx.sb.Alloc((20 + alloc_join_clause) * len(q.joins))
+	ctx.sb.Alloc((20 + alloc_join_clause) * len(joins_compile))
 	
-	for i := range q.joins {
-		j := &q.joins[i]	//	Avoid copying struct
+	for i := range joins_compile {
+		j := &joins_compile[i]	//	Avoid copying struct
 		ctx.sb.WriteString(j.mode)
 		ctx.sb.WriteString(" .")
 		ctx.sb.WriteString(j.table)

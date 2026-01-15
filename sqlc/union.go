@@ -84,7 +84,7 @@ func (q *Union_query) Compile() (string, error){
 	if err := q.compile_from(ctx); err != nil {
 		return "", err
 	}
-	q.compile_joins(ctx)
+	q.compile_joins(ctx, nil)
 	if err := q.compile_where(ctx, nil); err != nil {
 		return "", err
 	}
