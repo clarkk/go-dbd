@@ -11,8 +11,58 @@ package sqlc
 import (
 	"slices"
 	"strings"
+	"reflect"
 	"testing"
 )
+
+func Test_optimize_joins(t *testing.T){
+	t.Run("optimize_joins", func(t *testing.T){
+		q := &query_join{
+			query: query{
+				table: "table",
+			},
+			optimize_joins: true,
+		}
+		q.left_join("bank_account", "b", "id", "i.bank_account_id", nil)
+		q.left_join("module", "m", "id", "i.accounting_module_id", nil)
+		q.left_join("invoice_customer", "i", "invoice_id", "id", nil)
+		
+		aliases := alias_collect{}
+		aliases.apply("b.name")
+		
+		q.resolve_alias_join_dependencies(aliases)
+		
+		want_alias	:= []string{"b", "i"}
+		got_alias	:= aliases.sorted()
+		if !slices.Equal(want_alias, got_alias) {
+			t.Fatalf("Alias want:\n%s\nAlias got:\n%s", want_alias, got_alias)
+		}
+		
+		want_joins := []join{{
+			mode:			"LEFT JOIN",
+			table:			"invoice_customer",
+			t:				"i",
+			join_t:			"",
+			field:			"invoice_id",
+			field_foreign:	"id",
+			conditions:		nil,
+			depth:			0,
+		},{
+			mode:			"LEFT JOIN",
+			table:			"bank_account",
+			t:				"b",
+			join_t:			"i",
+			field:			"id",
+			field_foreign:	"i.bank_account_id",
+			conditions:		nil,
+			depth:			1,
+		}}
+		got_joins := q.compile_optimize_joins(aliases)
+		if !reflect.DeepEqual(want_joins, got_joins) {
+			t.Fatalf("Joins want:\n%v\nJoins got:\n%v", want_joins, got_joins)
+		}
+	})
+}
 
 func Benchmark_error(b *testing.B) {
 	for i := 0; i < b.N; i++ {

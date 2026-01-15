@@ -34,17 +34,6 @@ type (
 		table 			string
 		data_compiled	[]any
 	}
-	
-	join struct {
-		mode 			string
-		table 			string
-		t 				string	//	Table alias
-		join_t			string	//	Join on a non-base (pre-defined) table (table alias)
-		field 			string
-		field_foreign 	string
-		conditions		Map
-		depth			int
-	}
 )
 
 func SQL_debug(q SQL) string {

@@ -8,14 +8,27 @@ import (
 
 var char_table = [26]string{"a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"}
 
-type query_join struct {
-	query
-	t 				string
-	joined 			bool
-	joined_t		bool	//	Joined on a non-base (pre-defined) table
-	joins 			[]join
-	optimize_joins	bool
-}
+type (
+	query_join struct {
+		query
+		t 				string
+		joined 			bool
+		joined_t		bool	//	Joined on a non-base (pre-defined) table
+		joins 			[]join
+		optimize_joins	bool
+	}
+	
+	join struct {
+		mode 			string
+		table 			string
+		t 				string	//	Table alias
+		join_t			string	//	Join on a non-base (pre-defined) table (table alias)
+		field 			string
+		field_foreign 	string
+		conditions		Map
+		depth			int
+	}
+)
 
 func (q *query_join) inner_join(table, t, field, field_foreign string, conditions Map){
 	q.join("JOIN", table, t, field, field_foreign, conditions)
@@ -53,13 +66,17 @@ func (q *query_join) resolve_alias_join_dependencies(list alias_collect){
 			j := &q.joins[i]	//	Avoid copying data
 			if _, ok := list[j.t]; ok {
 				//	Check if joined on non-base table
-				if j.join_t != "" {
-					if _, exists := list[j.join_t]; !exists {
-						list[j.join_t] = struct{}{}
-						changed = true
-					}
-					
-					//	Find depth
+				if j.join_t == "" {
+					continue
+				}
+				
+				if _, exists := list[j.join_t]; !exists {
+					list[j.join_t] = struct{}{}
+					changed = true
+				}
+				
+				//	Find depth
+				if q.optimize_joins {
 					for _, parent := range q.joins {
 						if parent.t == j.join_t {
 							depth := parent.depth + 1
@@ -123,21 +140,11 @@ func (q *query_join) compile_joins(ctx *compiler, aliases alias_collect){
 		return
 	}
 	
-	joins_compile := q.joins
-	
+	var joins_compile []join
 	if q.optimize_joins {
-		joins_compile = aliases.filter(joins_compile)
-		
-		if q.joined_t && len(joins_compile) > 1 {
-			//	Sort joins and put joins which does not join on the base table last
-			slices.SortStableFunc(joins_compile, func(a, b join) int {
-				if a.depth != b.depth {
-					return a.depth - b.depth
-				}
-				//	Sort alphabetically if same level
-				return strings.Compare(a.t, b.t)
-			})
-		}
+		joins_compile = q.compile_optimize_joins(aliases)
+	} else {
+		joins_compile = q.joins
 	}
 	
 	//	Pre-allocation
@@ -179,6 +186,23 @@ func (q *query_join) compile_joins(ctx *compiler, aliases alias_collect){
 		}
 		ctx.sb.WriteByte('\n')
 	}
+}
+
+func (q *query_join) compile_optimize_joins(aliases alias_collect) []join {
+	joins_compile := aliases.filter(q.joins)
+	
+	if q.joined_t && len(joins_compile) > 1 {
+		//	Sort joins by depth
+		slices.SortStableFunc(joins_compile, func(a, b join) int {
+			if a.depth != b.depth {
+				return a.depth - b.depth
+			}
+			//	Sort alphabetically if same depth
+			return strings.Compare(a.t, b.t)
+		})
+	}
+	
+	return joins_compile
 }
 
 func (q *query_join) write_update_field(ctx *compiler, field, operator string){
