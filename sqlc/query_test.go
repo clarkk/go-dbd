@@ -1057,8 +1057,11 @@ func run_select_in_subquery(tb testing.TB){
 		).
 		Limit(0, 10)
 	
+	aliases := alias_collect{}
+	query.collect_aliases(aliases)
+	
 	want_alias	:= []string{}
-	got_alias	:= query.collect_aliases().sorted()
+	got_alias	:= aliases.sorted()
 	if !slices.Equal(want_alias, got_alias) {
 		tb.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
 	}
@@ -1120,8 +1123,11 @@ func run_select_json(tb testing.TB){
 		).
 		Limit(0, 10)
 	
+	aliases := alias_collect{}
+	query.collect_aliases(aliases)
+	
 	want_alias	:= []string{"b"}
-	got_alias	:= query.collect_aliases().sorted()
+	got_alias	:= aliases.sorted()
 	if !slices.Equal(want_alias, got_alias) {
 		tb.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
 	}
@@ -1189,8 +1195,11 @@ func run_select_json_optimize(tb testing.TB){
 		Limit(0, 10).
 		Optimize_joins()
 	
+	aliases := alias_collect{}
+	query.collect_aliases(aliases)
+	
 	want_alias	:= []string{"b"}
-	got_alias	:= query.collect_aliases().sorted()
+	got_alias	:= aliases.sorted()
 	if !slices.Equal(want_alias, got_alias) {
 		tb.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
 	}
@@ -1243,8 +1252,11 @@ func run_select_not_in(tb testing.TB){
 		).
 		Limit(0, 10)
 	
+	aliases := alias_collect{}
+	query.collect_aliases(aliases)
+	
 	want_alias	:= []string{}
-	got_alias	:= query.collect_aliases().sorted()
+	got_alias	:= aliases.sorted()
 	if !slices.Equal(want_alias, got_alias) {
 		tb.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
 	}
@@ -1283,8 +1295,11 @@ func run_where_eqs(tb testing.TB){
 			"name": "test2",
 		}))
 	
+	aliases := alias_collect{}
+	query.collect_aliases(aliases)
+	
 	want_alias	:= []string{}
-	got_alias	:= query.collect_aliases().sorted()
+	got_alias	:= aliases.sorted()
 	if !slices.Equal(want_alias, got_alias) {
 		tb.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
 	}
@@ -1322,8 +1337,11 @@ func run_select_join(tb testing.TB){
 			Gt("c.timeout", "test2"),
 		)
 	
+	aliases := alias_collect{}
+	query.collect_aliases(aliases)
+	
 	want_alias	:= []string{"c"}
-	got_alias	:= query.collect_aliases().sorted()
+	got_alias	:= aliases.sorted()
 	if !slices.Equal(want_alias, got_alias) {
 		tb.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
 	}
@@ -1359,8 +1377,11 @@ func run_select_for_update(tb testing.TB){
 		}).
 		Read_lock()
 	
+	aliases := alias_collect{}
+	query.collect_aliases(aliases)
+	
 	want_alias	:= []string{}
-	got_alias	:= query.collect_aliases().sorted()
+	got_alias	:= aliases.sorted()
 	if !slices.Equal(want_alias, got_alias) {
 		tb.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
 	}

@@ -1,7 +1,6 @@
 package sqlc
 
 import (
-	"maps"
 	"sync"
 	"slices"
 	"strings"
