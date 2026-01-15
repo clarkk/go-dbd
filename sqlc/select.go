@@ -132,24 +132,25 @@ func (q *Select_query) Limit(offset uint32, limit uint8) *Select_query {
 }
 
 func (q *Select_query) Compile() (string, error){
-	var aliases alias_collect
-	if q.joined && q.optimize_joins {
-		aliases = alias_collect_pool.Get().(alias_collect)
-		defer func() {
-			aliases.reset()
-			alias_collect_pool.Put(aliases)
-		}()
-		q.collect_aliases(aliases)
-	}
-	
 	ctx := compiler_pool.Get().(*compiler)
 	defer func() {
 		ctx.reset()
 		compiler_pool.Put(ctx)
 	}()
 	
+	var aliases alias_collect
+	
 	if q.joined || q.select_jsons != nil {
 		ctx.use_alias = true
+		
+		if q.optimize_joins {
+			aliases = alias_collect_pool.Get().(alias_collect)
+			defer func() {
+				aliases.reset()
+				alias_collect_pool.Put(aliases)
+			}()
+			q.collect_aliases(aliases)
+		}
 	}
 	
 	t := q.base_table_short()
@@ -263,54 +264,75 @@ func (q *Select_query) compile_select(ctx *compiler) error {
 }
 
 func (q *Select_query) compile_select_joins(ctx *compiler) error {
+	var err error
 	for _, sj := range q.select_jsons {
-		if len(sj.query.select_fields) < 2 {
-			return fmt.Errorf("Minimum 2 fields in select json")
-		}
-		
-		t := sj.query.base_table_short()
-		if err := sj.query.compile_tables(ctx, t); err != nil {
+		if err = q.compile_select_join(ctx, sj); err != nil {
 			return err
 		}
-		
-		ctx.sb.WriteString(",\n(\nSELECT JSON_ARRAYAGG(JSON_OBJECT(")
-		for i, field := range sj.query.select_fields {
-			if i > 0 {
-				ctx.sb.WriteString(", ")
-			}
-			ctx.sb.WriteByte('\'')
-			ctx.sb.WriteString(field.alias)
-			ctx.sb.WriteString("', ")
-			ctx.write_field(sj.query.t, field.field)
-		}
-		ctx.sb.WriteString("))\n")
-		
-		sj.query.compile_from(ctx)
-		sj.query.compile_joins(ctx, nil)
-		
-		if err := sj.query.compile_where(ctx, func(ctx *compiler, first *bool){
-			if *first {
-				*first = false
-			} else {
-				ctx.sb.WriteString(" AND ")
-			}
-			
-			ctx.write_field(sj.query.t, sj.inner_field)
-			ctx.sb.WriteByte('=')
-			ctx.write_field(q.t, sj.outer_field)
-		}); err != nil {
-			return err
-		}
-		
-		sj.query.compile_group(ctx)
-		sj.query.compile_order(ctx)
-		sj.query.compile_limit(ctx)
-		
-		ctx.sb.WriteString(") ")
-		ctx.sb.WriteString(sj.select_field)
-		
-		ctx.append_data(sj.query.Data())
 	}
+	
+	return nil
+}
+
+func (q *Select_query) compile_select_join(ctx *compiler, sj *select_json) error {
+	if len(sj.query.select_fields) < 2 {
+		return fmt.Errorf("Minimum 2 fields in select json")
+	}
+	
+	var sub_aliases alias_collect
+	
+	if sj.query.joined && sj.query.optimize_joins {
+		sub_aliases = alias_collect_pool.Get().(alias_collect)
+		defer func() {
+			sub_aliases.reset()
+			alias_collect_pool.Put(sub_aliases)
+		}()
+		sj.query.collect_aliases(sub_aliases)
+	}
+	
+	t := sj.query.base_table_short()
+	if err := sj.query.compile_tables(ctx, t); err != nil {
+		return err
+	}
+	
+	ctx.sb.WriteString(",\n(\nSELECT JSON_ARRAYAGG(JSON_OBJECT(")
+	for i := range sj.query.select_fields {
+		field := &sj.query.select_fields[i]	//	Avoid copying data
+		if i > 0 {
+			ctx.sb.WriteString(", ")
+		}
+		ctx.sb.WriteByte('\'')
+		ctx.sb.WriteString(field.alias)
+		ctx.sb.WriteString("', ")
+		ctx.write_field(sj.query.t, field.field)
+	}
+	ctx.sb.WriteString("))\n")
+	
+	sj.query.compile_from(ctx)
+	sj.query.compile_joins(ctx, sub_aliases)
+	
+	if err := sj.query.compile_where(ctx, func(ctx *compiler, first *bool){
+		if *first {
+			*first = false
+		} else {
+			ctx.sb.WriteString(" AND ")
+		}
+		
+		ctx.write_field(sj.query.t, sj.inner_field)
+		ctx.sb.WriteByte('=')
+		ctx.write_field(q.t, sj.outer_field)
+	}); err != nil {
+		return err
+	}
+	
+	sj.query.compile_group(ctx)
+	sj.query.compile_order(ctx)
+	sj.query.compile_limit(ctx)
+	
+	ctx.sb.WriteString(") ")
+	ctx.sb.WriteString(sj.select_field)
+	
+	ctx.append_data(sj.query.Data())
 	
 	return nil
 }

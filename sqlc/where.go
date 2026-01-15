@@ -184,6 +184,7 @@ func (w *Where_clause) clause(field, operator string, value any){
 		alloc		int
 		alloc_data	int
 	)
+	
 	switch operator {
 	case op_null:
 		alloc			= 8
