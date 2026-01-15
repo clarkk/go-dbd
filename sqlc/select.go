@@ -61,8 +61,9 @@ func (q *Select_query) Read_lock() *Select_query {
 	return q
 }
 
-func (q *Select_query) Optimize_joins(){
+func (q *Select_query) Optimize_joins() *Select_query {
 	q.optimize_joins = true
+	return q
 }
 
 func (q *Select_query) Select(list []string) *Select_query {
