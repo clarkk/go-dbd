@@ -6,7 +6,12 @@ import (
 	"strings"
 )
 
-const char_table = "abcdefghijklmnopqrstuvwxyz"
+const (
+	JOIN_INNER	= "JOIN"
+	JOIN_LEFT	= "LEFT JOIN"
+	
+	char_table = "abcdefghijklmnopqrstuvwxyz"
+)
 
 type (
 	query_join struct {
@@ -31,11 +36,11 @@ type (
 )
 
 func (q *query_join) inner_join(table, t, field, field_foreign string, conditions Map){
-	q.join("JOIN", table, t, field, field_foreign, conditions)
+	q.join(JOIN_INNER, table, t, field, field_foreign, conditions)
 }
 
 func (q *query_join) left_join(table, t, field, field_foreign string, conditions Map){
-	q.join("LEFT JOIN", table, t, field, field_foreign, conditions)
+	q.join(JOIN_LEFT, table, t, field, field_foreign, conditions)
 }
 
 func (q *query_join) join(mode, table, t, field, field_foreign string, conditions Map){
@@ -191,11 +196,21 @@ func (q *query_join) compile_joins(ctx *compiler, aliases alias_collect){
 func (q *query_join) compile_optimize_joins(aliases alias_collect) []join {
 	joins_compile := aliases.filter(q.joins)
 	
-	if q.joined_t && len(joins_compile) > 1 {
-		//	Sort joins by depth
+	if len(joins_compile) > 1 {
+		//	Sort joins
 		slices.SortStableFunc(joins_compile, func(a, b join) int {
+			//	First priority: Depth
 			if a.depth != b.depth {
 				return a.depth - b.depth
+			}
+			//	Second priority: Inner join
+			if a.mode != b.mode {
+				if a.mode == JOIN_INNER {
+					return -1
+				}
+				if b.mode == JOIN_INNER {
+					return 1
+				}
 			}
 			//	Sort alphabetically if same depth
 			return strings.Compare(a.t, b.t)

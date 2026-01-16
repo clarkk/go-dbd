@@ -259,9 +259,5 @@ func (w *Where_clause) collect_aliases(list alias_collect){
 	}
 	for _, f := range w.conditions {
 		list.apply(f.field)
-		
-		/*if f.operator == op_in_subquery {
-			f.value.(*Select_query).collect_aliases(list)
-		}*/
 	}
 }
