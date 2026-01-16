@@ -58,7 +58,7 @@ func (q *Insert_query) Left_join(table, t, field, field_foreign string, conditio
 	return q
 }
 
-func (q *Insert_query) Compile() (string, error){
+func (q *Insert_query) Compile() (string, []any, error){
 	ctx := compiler_pool.Get().(*compiler)
 	defer func() {
 		ctx.reset()
@@ -67,7 +67,7 @@ func (q *Insert_query) Compile() (string, error){
 	
 	t := q.base_table_short()
 	if err := q.compile_tables(ctx, t); err != nil {
-		return "", err
+		return "", nil, err
 	}
 	
 	//audit := Audit(sb, "insert")
@@ -89,21 +89,20 @@ func (q *Insert_query) Compile() (string, error){
 	ctx.sb.WriteByte('\n')
 	ctx.sb.WriteString("SET ")
 	if err := q.compile_fields(ctx); err != nil {
-		return "", err
+		return "", nil, err
 	}
 	ctx.sb.WriteByte('\n')
 	if q.update_duplicate {
 		ctx.sb.WriteString("ON DUPLICATE KEY UPDATE ")
 		err := q.compile_update_duplicate_fields(ctx)
 		if err != nil {
-			return "", err
+			return "", nil, err
 		}
 		ctx.sb.WriteByte('\n')
 	}
 	//audit.Audit()
 	
-	q.data_compiled = ctx.copy_data()
-	return ctx.sb.String(), nil
+	return ctx.sb.String(), ctx.data, nil
 }
 
 func (q *Insert_query) compile_fields(ctx *compiler) error {

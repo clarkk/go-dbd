@@ -60,7 +60,7 @@ func (q *Update_query) Where(clause *Where_clause) *Update_query {
 	return q
 }
 
-func (q *Update_query) Compile() (string, error){
+func (q *Update_query) Compile() (string, []any, error){
 	ctx := compiler_pool.Get().(*compiler)
 	defer func() {
 		ctx.reset()
@@ -73,7 +73,7 @@ func (q *Update_query) Compile() (string, error){
 	
 	t := q.base_table_short()
 	if err := q.compile_tables(ctx, t); err != nil {
-		return "", err
+		return "", nil, err
 	}
 	
 	//audit := Audit(sb, "update")
@@ -98,16 +98,15 @@ func (q *Update_query) Compile() (string, error){
 	}
 	ctx.sb.WriteString("SET ")
 	if err := q.compile_fields(ctx); err != nil {
-		return "", err
+		return "", nil, err
 	}
 	ctx.sb.WriteByte('\n')
 	//audit.Audit()
 	if err := q.compile_where(ctx, nil); err != nil {
-		return "", err
+		return "", nil, err
 	}
 	
-	q.data_compiled = ctx.copy_data()
-	return ctx.sb.String(), nil
+	return ctx.sb.String(), ctx.data, nil
 }
 
 func (q *Update_query) compile_fields(ctx *compiler) error {

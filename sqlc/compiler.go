@@ -44,16 +44,6 @@ func (c *compiler) append_data(val any){
 	}
 }
 
-func (c *compiler) copy_data() []any {
-	length := len(c.data)
-	if length > 0 {
-		copied := make([]any, length)
-		copy(copied, c.data)
-		return copied
-	}
-	return nil
-}
-
 func (c *compiler) alloc_data_capacity(total int){
 	if cap(c.data) < total {
 		new_data := make([]any, len(c.data), total)

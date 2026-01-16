@@ -46,12 +46,12 @@ func Ping() bool {
 }
 
 func Exec(ctx context.Context, query sqlc.SQL) (sql.Result, error){
-	sql, err := query.Compile()
+	sql, data, err := query.Compile()
 	if err != nil {
 		return nil, &Error{"DB execute compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
-	result, err := db.ExecContext(ctx, sql, query.Data()...)
+	result, err := db.ExecContext(ctx, sql, data...)
 	if err != nil {
 		msg 	:= sqlc.SQL_error("DB execute", query, err)
 		stack 	:= errors.Wrap(err, 0).ErrorStack()
@@ -64,12 +64,12 @@ func Exec(ctx context.Context, query sqlc.SQL) (sql.Result, error){
 }
 
 func Query_row(ctx context.Context, query sqlc.SQL, scan []any) (bool, error){
-	sql, err := query.Compile()
+	sql, data, err := query.Compile()
 	if err != nil {
 		return false, &Error{"DB query row compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
-	if err := db.QueryRowContext(ctx, sql, query.Data()...).Scan(scan...); err != nil {
+	if err := db.QueryRowContext(ctx, sql, data...).Scan(scan...); err != nil {
 		if No_rows_error(err) {
 			return true, ErrNotFound
 		}
@@ -84,12 +84,12 @@ func Query_row(ctx context.Context, query sqlc.SQL, scan []any) (bool, error){
 }
 
 func Query(ctx context.Context, query sqlc.SQL) (*sql.Rows, error){
-	sql, err := query.Compile()
+	sql, data, err := query.Compile()
 	if err != nil {
 		return nil, &Error{"DB query compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
-	rows, err := db.QueryContext(ctx, sql, query.Data()...)
+	rows, err := db.QueryContext(ctx, sql, data...)
 	if err != nil {
 		msg := sqlc.SQL_error("DB query", query, err)
 		stack := errors.Wrap(err, 0).ErrorStack()
@@ -103,12 +103,12 @@ func Query(ctx context.Context, query sqlc.SQL) (*sql.Rows, error){
 
 func Insert(ctx context.Context, query sqlc.SQL) (uint64, error){
 	var id uint64
-	sql, err := query.Compile()
+	sql, data, err := query.Compile()
 	if err != nil {
 		return id, &Error{"DB insert compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
-	if err := db.QueryRowContext(ctx, sql+"RETURNING id", query.Data()...).Scan(&id); err != nil {
+	if err := db.QueryRowContext(ctx, sql+"RETURNING id", data...).Scan(&id); err != nil {
 		msg := sqlc.SQL_error("DB insert", query, err)
 		stack := errors.Wrap(err, 0).ErrorStack()
 		if ctx_canceled(err) {
@@ -120,12 +120,12 @@ func Insert(ctx context.Context, query sqlc.SQL) (uint64, error){
 }
 
 func Update(ctx context.Context, query sqlc.SQL) (sql.Result, error){
-	sql, err := query.Compile()
+	sql, data, err := query.Compile()
 	if err != nil {
 		return nil, &Error{"DB update compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
-	result, err := db.ExecContext(ctx, sql, query.Data()...)
+	result, err := db.ExecContext(ctx, sql, data...)
 	if err != nil {
 		msg := sqlc.SQL_error("DB update", query, err)
 		stack := errors.Wrap(err, 0).ErrorStack()
@@ -138,13 +138,13 @@ func Update(ctx context.Context, query sqlc.SQL) (sql.Result, error){
 }
 
 func Delete(ctx context.Context, query sqlc.SQL) (bool, error){
-	sql, err := query.Compile()
+	sql, data, err := query.Compile()
 	if err != nil {
 		return false, &Error{"DB delete compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
 	var id uint64
-	if err := db.QueryRowContext(ctx, sql+"RETURNING id", query.Data()...).Scan(&id); err != nil {
+	if err := db.QueryRowContext(ctx, sql+"RETURNING id", data...).Scan(&id); err != nil {
 		if No_rows_error(err) {
 			return true, ErrNotFound
 		}

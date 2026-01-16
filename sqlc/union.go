@@ -65,7 +65,7 @@ func (q *Union_query) Limit(offset uint32, limit uint8) *Union_query {
 	return q
 }
 
-func (q *Union_query) Compile() (string, error){
+func (q *Union_query) Compile() (string, []any, error){
 	ctx := compiler_pool.Get().(*compiler)
 	defer func() {
 		ctx.reset()
@@ -77,24 +77,23 @@ func (q *Union_query) Compile() (string, error){
 	}
 	
 	if err := q.compile_tables(ctx, "t"); err != nil {
-		return "", err
+		return "", nil, err
 	}
 	
 	q.compile_select(ctx)
 	if err := q.compile_from(ctx); err != nil {
-		return "", err
+		return "", nil, err
 	}
 	q.compile_joins(ctx, nil)
 	if err := q.compile_where(ctx, nil); err != nil {
-		return "", err
+		return "", nil, err
 	}
 	q.compile_group(ctx)
 	q.compile_order(ctx)
 	q.compile_limit(ctx)
 	ctx.sb.WriteByte('\n')
 	
-	q.data_compiled = ctx.copy_data()
-	return ctx.sb.String(), nil
+	return ctx.sb.String(), ctx.data, nil
 }
 
 func (q *Union_query) compile_from(ctx *compiler) error {
@@ -118,7 +117,7 @@ func (q *Union_query) compile_from(ctx *compiler) error {
 	ctx.sb.WriteString("FROM (\n")
 	
 	for i, query := range q.unions {
-		sql, err := query.Compile()
+		sql, data, err := query.Compile()
 		if err != nil {
 			return err
 		}
@@ -128,7 +127,7 @@ func (q *Union_query) compile_from(ctx *compiler) error {
 		}
 		ctx.sb.WriteString(sql)
 		
-		ctx.append_data(query.Data())
+		ctx.append_data(data)
 	}
 	
 	ctx.sb.WriteString(") ")

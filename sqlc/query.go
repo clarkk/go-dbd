@@ -24,21 +24,22 @@ var compiler_pool = sync.Pool{
 
 type (
 	SQL interface {
-		Compile() (string, error)
-		Data() []any
+		Compile() (string, []any, error)
 	}
 	
 	Map map[string]any
 	
 	query struct {
-		table 			string
-		data_compiled	[]any
+		table	string
 	}
 )
 
 func SQL_debug(q SQL) string {
-	sql, _ := q.Compile()
-	for _, value := range q.Data() {
+	sql, data, err := q.Compile()
+	if err != nil {
+		return "Error compiling SQL: "+err.Error()
+	}
+	for _, value := range data {
 		sql = strings.Replace(sql, "?", fmt.Sprintf("%v", value), 1)
 	}
 	return strings.TrimSpace(sql)
@@ -46,10 +47,6 @@ func SQL_debug(q SQL) string {
 
 func SQL_error(msg string, q SQL, err error) string {
 	return msg+"\n"+err.Error()+"\n"+SQL_debug(q)
-}
-
-func (q *query) Data() []any {
-	return q.data_compiled
 }
 
 func field_placeholder_list(count int, sb *sbuilder){

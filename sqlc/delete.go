@@ -33,7 +33,7 @@ func (q *Delete_query) Where(clause *Where_clause) *Delete_query {
 	return q
 }
 
-func (q *Delete_query) Compile() (string, error){
+func (q *Delete_query) Compile() (string, []any, error){
 	ctx := compiler_pool.Get().(*compiler)
 	defer func() {
 		ctx.reset()
@@ -46,7 +46,7 @@ func (q *Delete_query) Compile() (string, error){
 	
 	t := q.base_table_short()
 	if err := q.compile_tables(ctx, t); err != nil {
-		return "", err
+		return "", nil, err
 	}
 	
 	//	Pre-allocation
@@ -64,9 +64,8 @@ func (q *Delete_query) Compile() (string, error){
 	q.compile_from(ctx)
 	q.compile_joins(ctx, nil)
 	if err := q.compile_where(ctx, nil); err != nil {
-		return "", err
+		return "", nil, err
 	}
 	
-	q.data_compiled = ctx.copy_data()
-	return ctx.sb.String(), nil
+	return ctx.sb.String(), ctx.data, nil
 }

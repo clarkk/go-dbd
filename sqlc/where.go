@@ -136,8 +136,8 @@ func (w *Where_clause) In_subquery(field string, query *Select_query) *Where_cla
 	return w
 }
 
-func (w *Where_clause) write_condition(sb *sbuilder, field *where_condition) (*Select_query, error){
-	var subquery *Select_query
+func (w *Where_clause) write_condition(sb *sbuilder, field *where_condition) ([]any, error){
+	var subquery_data []any
 	
 	switch field.operator {
 	case op_null:
@@ -162,13 +162,16 @@ func (w *Where_clause) write_condition(sb *sbuilder, field *where_condition) (*S
 		sb.WriteByte(')')
 		
 	case op_in_subquery:
-		subquery = field.value.(*Select_query)
-		sql_subquery, err := subquery.Compile()
+		var (
+			err error
+			sql	string
+		)
+		sql, subquery_data, err = field.value.(*Select_query).Compile()
 		if err != nil {
 			return nil, err
 		}
 		sb.WriteString(" IN (\n")
-		sb.WriteString(sql_subquery)
+		sb.WriteString(sql)
 		sb.WriteByte(')')
 		
 	default:
@@ -176,7 +179,7 @@ func (w *Where_clause) write_condition(sb *sbuilder, field *where_condition) (*S
 		sb.WriteByte('?')
 	}
 	
-	return subquery, nil
+	return subquery_data, nil
 }
 
 func (w *Where_clause) clause(field, operator string, value any){

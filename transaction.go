@@ -65,12 +65,12 @@ func (t *Tx) Exec(query sqlc.SQL) (sql.Result, error){
 		panic("DB transaction execute: No active transaction")
 	}
 	
-	sql, err := query.Compile()
+	sql, data, err := query.Compile()
 	if err != nil {
 		return nil, &Error{"DB transaction execute compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
-	result, err := t.tx.ExecContext(t.ctx, sql, query.Data()...)
+	result, err := t.tx.ExecContext(t.ctx, sql, data...)
 	if err != nil {
 		msg 	:= sqlc.SQL_error("DB transaction execute", query, err)
 		stack 	:= errors.Wrap(err, 0).ErrorStack()
@@ -87,12 +87,12 @@ func (t *Tx) Query_row(query sqlc.SQL, scan []any) (bool, error){
 		panic("DB transaction query row: No active transaction")
 	}
 	
-	sql, err := query.Compile()
+	sql, data, err := query.Compile()
 	if err != nil {
 		return false, &Error{"DB transaction query row compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
-	if err := t.tx.QueryRowContext(t.ctx, sql, query.Data()...).Scan(scan...); err != nil {
+	if err := t.tx.QueryRowContext(t.ctx, sql, data...).Scan(scan...); err != nil {
 		if No_rows_error(err) {
 			return true, ErrNotFound
 		}
@@ -111,12 +111,12 @@ func (t *Tx) Query(query sqlc.SQL) (*sql.Rows, error){
 		panic("DB transaction query: No active transaction")
 	}
 	
-	sql, err := query.Compile()
+	sql, data, err := query.Compile()
 	if err != nil {
 		return nil, &Error{"DB transaction query compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
-	rows, err := t.tx.QueryContext(t.ctx, sql, query.Data()...)
+	rows, err := t.tx.QueryContext(t.ctx, sql, data...)
 	if err != nil {
 		msg 	:= sqlc.SQL_error("DB transaction query", query, err)
 		stack 	:= errors.Wrap(err, 0).ErrorStack()
@@ -134,12 +134,12 @@ func (t *Tx) Insert(query sqlc.SQL) (uint64, error){
 	}
 	
 	var id uint64
-	sql, err := query.Compile()
+	sql, data, err := query.Compile()
 	if err != nil {
 		return id, &Error{"DB transaction insert compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
-	if err := t.tx.QueryRowContext(t.ctx, sql+"RETURNING id", query.Data()...).Scan(&id); err != nil {
+	if err := t.tx.QueryRowContext(t.ctx, sql+"RETURNING id", data...).Scan(&id); err != nil {
 		msg 	:= sqlc.SQL_error("DB transaction insert", query, err)
 		stack 	:= errors.Wrap(err, 0).ErrorStack()
 		if ctx_canceled(err) {
@@ -155,12 +155,12 @@ func (t *Tx) Insert_no_return(query sqlc.SQL) error {
 		panic("DB transaction insert no return: No active transaction")
 	}
 	
-	sql, err := query.Compile()
+	sql, data, err := query.Compile()
 	if err != nil {
 		return &Error{"DB transaction insert no return compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
-	_, err = t.tx.ExecContext(t.ctx, sql, query.Data()...)
+	_, err = t.tx.ExecContext(t.ctx, sql, data...)
 	if err != nil {
 		msg 	:= sqlc.SQL_error("DB transaction insert no return", query, err)
 		stack 	:= errors.Wrap(err, 0).ErrorStack()
@@ -177,12 +177,12 @@ func (t *Tx) Update(query sqlc.SQL) error {
 		panic("DB transaction update: No active transaction")
 	}
 	
-	sql, err := query.Compile()
+	sql, data, err := query.Compile()
 	if err != nil {
 		return &Error{"DB transaction update compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
-	if _, err := t.tx.ExecContext(t.ctx, sql, query.Data()...); err != nil {
+	if _, err := t.tx.ExecContext(t.ctx, sql, data...); err != nil {
 		msg 	:= sqlc.SQL_error("DB transaction update", query, err)
 		stack 	:= errors.Wrap(err, 0).ErrorStack()
 		if ctx_canceled(err) {
@@ -198,13 +198,13 @@ func (t *Tx) Delete(query sqlc.SQL) (bool, error){
 		panic("DB transaction delete: No active transaction")
 	}
 	
-	sql, err := query.Compile()
+	sql, data, err := query.Compile()
 	if err != nil {
 		return false, &Error{"DB transaction delete compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
 	var id uint64
-	if err := t.tx.QueryRowContext(t.ctx, sql+"RETURNING id", query.Data()...).Scan(&id); err != nil {
+	if err := t.tx.QueryRowContext(t.ctx, sql+"RETURNING id", data...).Scan(&id); err != nil {
 		if No_rows_error(err) {
 			return true, ErrNotFound
 		}

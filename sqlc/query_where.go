@@ -101,7 +101,7 @@ func (q *query_where) walk_where_clause(ctx *compiler, clause *Where_clause, dup
 		}
 		
 		ctx.write_field(q.t, condition.field)
-		subquery, err := clause.write_condition(&ctx.sb, condition)
+		sub_data, err := clause.write_condition(&ctx.sb, condition)
 		if err != nil {
 			return err
 		}
@@ -111,8 +111,8 @@ func (q *query_where) walk_where_clause(ctx *compiler, clause *Where_clause, dup
 		}
 		
 		//	Apply data
-		if subquery != nil {
-			ctx.append_data(subquery.Data())
+		if sub_data != nil {
+			ctx.append_data(sub_data)
 		} else {
 			ctx.append_data(condition.value)
 		}

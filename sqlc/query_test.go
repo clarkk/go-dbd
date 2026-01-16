@@ -92,7 +92,7 @@ func run_operator_compatibility(tb testing.TB){
 			Gt("email", "test2"),
 		)
 	
-	_, err := query.Compile()
+	_, _, err := query.Compile()
 	
 	want := "Where clause operator incompatable on same field (email): = >"
 	
@@ -116,7 +116,7 @@ func run_operator_compatibility_oposite(tb testing.TB){
 			Eq("email", "test2"),
 		)
 	
-	_, err := query.Compile()
+	_, _, err := query.Compile()
 	
 	want := "Where clause operator incompatable on same field (email): > ="
 	
@@ -173,7 +173,7 @@ func run_where_wrap(tb testing.TB){
 		tb.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
 	}
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `SELECT a.id, a.email, u.time
@@ -240,7 +240,7 @@ func run_select_where_or_group(tb testing.TB){
 		tb.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
 	}
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `SELECT a.id, a.email, u.time
@@ -406,7 +406,7 @@ func run_select_abbreviation_collisions(t testing.TB){
 		t.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
 	}
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `SELECT a.id, a.email, u.time
@@ -449,7 +449,7 @@ func run_select_function(tb testing.TB){
 		tb.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
 	}
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `SELECT COUNT(id)
@@ -491,7 +491,7 @@ func run_select_id_empty(tb testing.TB){
 		tb.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
 	}
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `SELECT id, email
@@ -535,7 +535,7 @@ func run_select_id_set(tb testing.TB){
 		tb.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
 	}
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `SELECT id, email
@@ -579,7 +579,7 @@ func run_where_operator_compatability_opposite(tb testing.TB){
 		tb.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
 	}
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `SELECT id, email
@@ -622,7 +622,7 @@ func run_select_eq(tb testing.TB){
 		tb.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
 	}
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `SELECT id, email
@@ -665,7 +665,7 @@ func run_select_gt(tb testing.TB){
 		tb.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
 	}
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `SELECT id, email
@@ -708,7 +708,7 @@ func run_select_gt_eq(tb testing.TB){
 		tb.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
 	}
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `SELECT id, email
@@ -751,7 +751,7 @@ func run_select_lt(tb testing.TB){
 		tb.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
 	}
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `SELECT id, email
@@ -794,7 +794,7 @@ func run_select_lt_eq(tb testing.TB){
 		tb.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
 	}
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `SELECT id, email
@@ -839,7 +839,7 @@ func run_select_null(tb testing.TB){
 		tb.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
 	}
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `SELECT id, email
@@ -884,7 +884,7 @@ func run_select_not_null(tb	testing.TB){
 		tb.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
 	}
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `SELECT id, email
@@ -927,7 +927,7 @@ func run_select_bt(tb testing.TB){
 		tb.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
 	}
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `SELECT id, email
@@ -970,7 +970,7 @@ func run_select_not_bt(tb testing.TB){
 		tb.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
 	}
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `SELECT id, email
@@ -1013,7 +1013,7 @@ func run_select_in(tb testing.TB){
 		tb.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
 	}
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `SELECT id, email
@@ -1066,7 +1066,7 @@ func run_select_in_subquery(tb testing.TB){
 		tb.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
 	}
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `SELECT id, email
@@ -1132,7 +1132,7 @@ func run_select_json(tb testing.TB){
 		tb.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
 	}
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `SELECT u.id, u.email,
@@ -1204,7 +1204,7 @@ func run_select_json_optimize(tb testing.TB){
 		tb.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
 	}
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `SELECT u.id, u.email,
@@ -1261,7 +1261,7 @@ func run_select_not_in(tb testing.TB){
 		tb.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
 	}
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `SELECT id, email
@@ -1304,7 +1304,7 @@ func run_where_eqs(tb testing.TB){
 		tb.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
 	}
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `SELECT id, email
@@ -1346,7 +1346,7 @@ func run_select_join(tb testing.TB){
 		tb.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
 	}
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `SELECT u.id, c.timeout
@@ -1386,7 +1386,7 @@ func run_select_for_update(tb testing.TB){
 		tb.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
 	}
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `SELECT id, email
@@ -1453,7 +1453,7 @@ func run_select_union(tb testing.TB){
 		}).
 		Limit(0, 1)
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `SELECT col_id, col_email
@@ -1530,7 +1530,7 @@ func run_insert(tb testing.TB){
 			"time_login": 123,
 		})
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `INSERT .user
@@ -1557,7 +1557,7 @@ func run_insert_update_duplicate(tb testing.TB){
 			"name":			"test",
 		})
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `INSERT .user
@@ -1586,7 +1586,7 @@ func run_insert_update_duplicate_operator(tb testing.TB){
 			nil,
 		)
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `INSERT .user
@@ -1615,7 +1615,7 @@ func run_insert_update_duplicate_operator_fields(tb testing.TB){
 			[]string{"draft"},
 		)
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `INSERT .user
@@ -1646,7 +1646,7 @@ func run_insert_update_duplicate_fields(tb testing.TB){
 			"name":			"test",
 		})
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `INSERT .user
@@ -1708,7 +1708,7 @@ func run_inserts(tb testing.TB){
 		"name":				"test4",
 	})
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `INSERT .account (account_number,name)
@@ -1739,7 +1739,7 @@ func run_inserts_update_duplicate(tb testing.TB){
 		"name":				"test2",
 	})
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `INSERT .account (account_number,name)
@@ -1774,7 +1774,7 @@ func run_inserts_update_duplicate_fields(tb testing.TB){
 		"name":				"test2",
 	})
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `INSERT .account (account_number,name)
@@ -1833,7 +1833,7 @@ func run_update_id_empty(tb testing.TB){
 			"time_login": 123,
 		})
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `UPDATE .user
@@ -1860,7 +1860,7 @@ func run_update_id_set(tb testing.TB){
 			"time_login": 123,
 		})
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `UPDATE .user
@@ -1887,7 +1887,7 @@ func run_update(tb testing.TB){
 			"time_login": 123,
 		})
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `UPDATE .user
@@ -1913,7 +1913,7 @@ func run_update_operator(tb testing.TB){
 			Add("draft", -10),
 		)
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `UPDATE .user
@@ -1941,7 +1941,7 @@ func run_update_nil(tb testing.TB){
 			"test":			nil,
 		})
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `UPDATE .user
@@ -1985,7 +1985,7 @@ func Test_delete(t *testing.T){
 func run_delete_id_empty(tb testing.TB){
 	query := Delete_id("user", 0)
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `DELETE FROM .user
@@ -2007,7 +2007,7 @@ WHERE id=0`
 func run_delete_id_set(tb testing.TB){
 	query := Delete_id("user", 100)
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `DELETE FROM .user
@@ -2029,7 +2029,7 @@ WHERE id=100`
 func run_delete(tb testing.TB){
 	query := Delete("user")
 	
-	sql, _ := query.Compile()
+	sql, _, _ := query.Compile()
 	
 	want :=
 `DELETE FROM .user`

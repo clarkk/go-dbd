@@ -71,7 +71,7 @@ func (q *Inserts_query) Left_join(table, t, field, field_foreign string, conditi
 	return q
 }
 
-func (q *Inserts_query) Compile() (string, error){
+func (q *Inserts_query) Compile() (string, []any, error){
 	ctx := compiler_pool.Get().(*compiler)
 	defer func() {
 		ctx.reset()
@@ -80,7 +80,7 @@ func (q *Inserts_query) Compile() (string, error){
 	
 	t := q.base_table_short()
 	if err := q.compile_tables(ctx, t); err != nil {
-		return "", err
+		return "", nil, err
 	}
 	
 	//audit := Audit(sb, "inserts")
@@ -97,7 +97,7 @@ func (q *Inserts_query) Compile() (string, error){
 	q.compile_inserts(ctx)
 	ctx.sb.WriteString("VALUES ")
 	if err := q.compile_fields(ctx); err != nil {
-		return "", err
+		return "", nil, err
 	}
 	ctx.sb.WriteByte('\n')
 	
@@ -108,7 +108,7 @@ func (q *Inserts_query) Compile() (string, error){
 			var found bool
 			for i, field := range q.update_dublicate_fields {
 				if _, found = q.col_map[field]; !found {
-					return "", fmt.Errorf("Invalid update duplicate field: %s", field)
+					return "", nil, fmt.Errorf("Invalid update duplicate field: %s", field)
 				}
 				if i > 0 {
 					ctx.sb.WriteByte(',')
@@ -128,8 +128,7 @@ func (q *Inserts_query) Compile() (string, error){
 	}
 	//audit.Audit()
 	
-	q.data_compiled = ctx.copy_data()
-	return ctx.sb.String(), nil
+	return ctx.sb.String(), ctx.data, nil
 }
 
 func (q *Inserts_query) compile_inserts(ctx *compiler){

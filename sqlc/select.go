@@ -131,7 +131,7 @@ func (q *Select_query) Limit(offset uint32, limit uint8) *Select_query {
 	return q
 }
 
-func (q *Select_query) Compile() (string, error){
+func (q *Select_query) Compile() (string, []any, error){
 	ctx := compiler_pool.Get().(*compiler)
 	defer func() {
 		ctx.reset()
@@ -155,7 +155,7 @@ func (q *Select_query) Compile() (string, error){
 	
 	t := q.base_table_short()
 	if err := q.compile_tables(ctx, t); err != nil {
-		return "", err
+		return "", nil, err
 	}
 	
 	//audit := Audit(sb, "select")
@@ -176,13 +176,13 @@ func (q *Select_query) Compile() (string, error){
 	//audit.Grow(alloc)
 	
 	if err := q.compile_select(ctx); err != nil {
-		return "", err
+		return "", nil, err
 	}
 	q.compile_from(ctx)
 	q.compile_joins(ctx, aliases)
 	//audit.Audit()
 	if err := q.compile_where(ctx, nil); err != nil {
-		return "", err
+		return "", nil, err
 	}
 	q.compile_group(ctx)
 	q.compile_order(ctx)
@@ -191,8 +191,7 @@ func (q *Select_query) Compile() (string, error){
 		ctx.sb.WriteString("FOR UPDATE\n")
 	}
 	
-	q.data_compiled = ctx.copy_data()
-	return ctx.sb.String(), nil
+	return ctx.sb.String(), ctx.data, nil
 }
 
 func (q *Select_query) collect_aliases(list alias_collect){
@@ -332,8 +331,6 @@ func (q *Select_query) compile_select_join(ctx *compiler, sj *select_json) error
 	
 	ctx.sb.WriteString(") ")
 	ctx.sb.WriteString(sj.select_field)
-	
-	ctx.append_data(sj.query.Data())
 	
 	return nil
 }
