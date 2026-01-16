@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-var char_table = [26]string{"a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"}
+const char_table = "abcdefghijklmnopqrstuvwxyz"
 
 type (
 	query_join struct {
@@ -106,7 +106,8 @@ func (q *query_join) compile_tables(ctx *compiler, t string) error {
 	//	Get available char for base table (a-z)
 	if _, ok := ctx.tables[t]; ok {
 		var found bool
-		for _, char := range char_table {
+		for i := range len(char_table) {
+			char := char_table[i : i+1]
 			if _, ok := ctx.tables[char]; !ok {
 				t = char
 				found = true
@@ -150,6 +151,7 @@ func (q *query_join) compile_joins(ctx *compiler, aliases alias_collect){
 	
 	for i := range joins_compile {
 		j := &joins_compile[i]	//	Avoid copying struct
+		
 		ctx.sb.WriteString(j.mode)
 		ctx.sb.WriteString(" .")
 		ctx.sb.WriteString(j.table)

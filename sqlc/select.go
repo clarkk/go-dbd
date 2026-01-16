@@ -201,6 +201,7 @@ func (q *Select_query) collect_aliases(list alias_collect){
 		list.apply(f.field)
 	}
 	for _, f := range q.select_jsons {
+		list.apply(f.inner_field)
 		list.apply(f.outer_field)
 	}
 	

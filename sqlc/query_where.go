@@ -89,6 +89,9 @@ func (q *query_where) walk_where_clause(ctx *compiler, clause *Where_clause, dup
 			} else {
 				(*duplicates)[condition.field] = condition.operator
 			}
+		} else {
+			*duplicates = make(map[string]string, 2)
+			(*duplicates)[condition.field] = condition.operator
 		}
 		
 		if *first {
