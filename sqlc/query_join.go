@@ -198,7 +198,7 @@ func (q *query_join) compile_optimize_joins(aliases alias_collect) []join {
 	
 	if len(joins_compile) > 1 {
 		//	Sort joins
-		slices.SortStableFunc(joins_compile, func(a, b join) int {
+		slices.SortFunc(joins_compile, func(a, b join) int {
 			//	First priority: Depth
 			if a.depth != b.depth {
 				return a.depth - b.depth
