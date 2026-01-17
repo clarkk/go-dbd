@@ -48,6 +48,7 @@ func (q *Delete_query) Compile() (string, []any, error){
 	if err := q.compile_tables(ctx, t); err != nil {
 		return "", nil, err
 	}
+	ctx.root_t = t
 	
 	//	Pre-allocation
 	alloc := 15 + len(q.table)	//	"DELETE \n" + "FROM .\n"

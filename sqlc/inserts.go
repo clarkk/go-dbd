@@ -82,6 +82,7 @@ func (q *Inserts_query) Compile() (string, []any, error){
 	if err := q.compile_tables(ctx, t); err != nil {
 		return "", nil, err
 	}
+	ctx.root_t = t
 	
 	//audit := Audit(sb, "inserts")
 	

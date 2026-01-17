@@ -101,7 +101,6 @@ func (q *query_join) resolve_alias_join_dependencies(list alias_collect){
 
 func (q *query_join) compile_tables(ctx *compiler, t string) error {
 	if ctx.use_alias {
-		ctx.root_t = t
 		//	Check for char collisions in joined tables
 		for i := range q.joins {
 			alias := q.joins[i].t
