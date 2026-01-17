@@ -75,7 +75,7 @@ func (q *Update_query) Compile() (string, []any, error){
 	if err := q.compile_tables(ctx, t); err != nil {
 		return "", nil, err
 	}
-	ctx.root_t = t
+	ctx.root_t = q.t
 	
 	//audit := Audit(sb, "update")
 	
