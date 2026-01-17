@@ -34,12 +34,12 @@ query := sqlc.Select("user").
   }).
   Limit(0, 10)
 
-sql, err := query.Compile()
+sql, data, err := query.Compile()
 if err != nil {
   panic(err)
 }
 
-fmt.Println(sql, query.Data(), sqlc.SQL_debug(query))
+fmt.Println(sql, data, sqlc.SQL_debug(query))
 ```
 
 ### SQL
@@ -65,12 +65,12 @@ query := sqlc.Select_id("user", 123).
     "email",
   })
 
-sql, err := query.Compile()
+sql, data, err := query.Compile()
 if err != nil {
   panic(err)
 }
 
-fmt.Println(sql, query.Data(), sqlc.SQL_debug(query))
+fmt.Println(sql, data, sqlc.SQL_debug(query))
 ```
 
 ### SQL
@@ -96,12 +96,12 @@ query := sqlc.Select_id("user", 123).
   }).
   Read_lock()
 
-sql, err := query.Compile()
+sql, data, err := query.Compile()
 if err != nil {
   panic(err)
 }
 
-fmt.Println(sql, query.Data(), sqlc.SQL_debug(query))
+fmt.Println(sql, data, sqlc.SQL_debug(query))
 ```
 
 ### SQL
@@ -133,12 +133,12 @@ query := sqlc.Select("user").
   }).
   Where(where)
 
-sql, err := query.Compile()
+sql, data, err := query.Compile()
 if err != nil {
   panic(err)
 }
 
-fmt.Println(sql, query.Data(), sqlc.SQL_debug(query))
+fmt.Println(sql, data, sqlc.SQL_debug(query))
 ```
 
 ### SQL
@@ -171,12 +171,12 @@ query := sqlc.Select("user").
   Left_join("client", "c", "id", "client_id").
   Where(where)
 
-sql, err := query.Compile()
+sql, data, err := query.Compile()
 if err != nil {
   panic(err)
 }
 
-fmt.Println(sql, query.Data(), sqlc.SQL_debug(query))
+fmt.Println(sql, data, sqlc.SQL_debug(query))
 ```
 
 ### SQL
@@ -213,12 +213,12 @@ query := sqlc.Select("user").
   }).
   Where(where)
 
-sql, err := query.Compile()
+sql, data, err := query.Compile()
 if err != nil {
   panic(err)
 }
 
-fmt.Println(sql, query.Data(), sqlc.SQL_debug(query))
+fmt.Println(sql, data, sqlc.SQL_debug(query))
 ```
 
 ### SQL
@@ -256,12 +256,12 @@ query := sqlc.Select("user").
   }).
   Where(where)
 
-sql, err := query.Compile()
+sql, data, err := query.Compile()
 if err != nil {
   panic(err)
 }
 
-fmt.Println(sql, query.Data(), sqlc.SQL_debug(query))
+fmt.Println(sql, data, sqlc.SQL_debug(query))
 ```
 
 ### SQL
@@ -300,12 +300,12 @@ query := sqlc.Select("user").
   Left_join("user_block", "u", "id", "user_id").
   Where(where_outer)
 
-sql, err := query.Compile()
+sql, data, err := query.Compile()
 if err != nil {
   panic(err)
 }
 
-fmt.Println(sql, query.Data(), sqlc.SQL_debug(query))
+fmt.Println(sql, data, sqlc.SQL_debug(query))
 ```
 
 ### SQL
@@ -350,12 +350,12 @@ query := Union_all().
   Union(query_union2).
   Limit(0, 10)
 
-sql, err := query.Compile()
+sql, data, err := query.Compile()
 if err != nil {
   panic(err)
 }
 
-fmt.Println(sql, query.Data(), sqlc.SQL_debug(query))
+fmt.Println(sql, data, sqlc.SQL_debug(query))
 ```
 
 ### SQL
@@ -388,12 +388,12 @@ query := sqlc.Insert("user").
     "email":  "alias@test.com",
   })
 
-sql, err := query.Compile()
+sql, data, err := query.Compile()
 if err != nil {
   panic(err)
 }
 
-fmt.Println(sql, query.Data(), sqlc.SQL_debug(query))
+fmt.Println(sql, data, sqlc.SQL_debug(query))
 ```
 
 ### SQL
@@ -416,12 +416,12 @@ query := sqlc.Insert("user").
     "email":  "alias@test.com",
   })
 
-sql, err := query.Compile()
+sql, data, err := query.Compile()
 if err != nil {
   panic(err)
 }
 
-fmt.Println(sql, query.Data(), sqlc.SQL_debug(query))
+fmt.Println(sql, data, sqlc.SQL_debug(query))
 ```
 
 ### SQL
@@ -447,12 +447,12 @@ query := sqlc.Insert("user").
     "email":  "alias@test.com",
   })
 
-sql, err := query.Compile()
+sql, data, err := query.Compile()
 if err != nil {
   panic(err)
 }
 
-fmt.Println(sql, query.Data(), sqlc.SQL_debug(query))
+fmt.Println(sql, data, sqlc.SQL_debug(query))
 ```
 
 ### SQL
@@ -476,12 +476,12 @@ fields := sqlc.Fields().
 query := sqlc.Insert("sum").
   Update_duplicate_operator(fields, nil)
 
-sql, err := query.Compile()
+sql, data, err := query.Compile()
 if err != nil {
   panic(err)
 }
 
-fmt.Println(sql, query.Data(), sqlc.SQL_debug(query))
+fmt.Println(sql, data, sqlc.SQL_debug(query))
 ```
 
 ### SQL
@@ -516,12 +516,12 @@ query := sqlc.Inserts("account").
     "name":     "test4",
   })
 
-sql, err := query.Compile()
+sql, data, err := query.Compile()
 if err != nil {
   panic(err)
 }
 
-fmt.Println(sql, query.Data(), sqlc.SQL_debug(query))
+fmt.Println(sql, data, sqlc.SQL_debug(query))
 ```
 
 ### SQL
@@ -542,12 +542,12 @@ query := sqlc.Update_id("user", 123).
     "name": "michael",
   })
 
-sql, err := query.Compile()
+sql, data, err := query.Compile()
 if err != nil {
   panic(err)
 }
 
-fmt.Println(sql, query.Data(), sqlc.SQL_debug(query))
+fmt.Println(sql, data, sqlc.SQL_debug(query))
 ```
 
 ### SQL
@@ -569,12 +569,12 @@ query := sqlc.Update("user").
     "name": "michael",
   })
 
-sql, err := query.Compile()
+sql, data, err := query.Compile()
 if err != nil {
   panic(err)
 }
 
-fmt.Println(sql, query.Data(), sqlc.SQL_debug(query))
+fmt.Println(sql, data, sqlc.SQL_debug(query))
 ```
 
 ### SQL
@@ -592,12 +592,12 @@ import (
 
 query := sqlc.Delete_id("user", 123)
 
-sql, err := query.Compile()
+sql, data, err := query.Compile()
 if err != nil {
   panic(err)
 }
 
-fmt.Println(sql, query.Data(), sqlc.SQL_debug(query))
+fmt.Println(sql, data, sqlc.SQL_debug(query))
 ```
 
 ### SQL
@@ -615,12 +615,12 @@ import (
 
 query := sqlc.Delete("user")
 
-sql, err := query.Compile()
+sql, data, err := query.Compile()
 if err != nil {
   panic(err)
 }
 
-fmt.Println(sql, query.Data(), sqlc.SQL_debug(query))
+fmt.Println(sql, data, sqlc.SQL_debug(query))
 ```
 
 ### SQL
