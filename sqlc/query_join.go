@@ -7,10 +7,13 @@ import (
 )
 
 const (
-	JOIN_INNER	= "JOIN"
-	JOIN_LEFT	= "LEFT JOIN"
+	BASE_ALIAS			= "<base>"
+	base_alias_len		= len(BASE_ALIAS)
 	
-	char_table = "abcdefghijklmnopqrstuvwxyz"
+	join_inner			= "JOIN"
+	join_left			= "LEFT JOIN"
+	
+	char_table			= "abcdefghijklmnopqrstuvwxyz"
 )
 
 type (
@@ -36,11 +39,11 @@ type (
 )
 
 func (q *query_join) inner_join(table, t, field, field_foreign string, conditions Map){
-	q.join(JOIN_INNER, table, t, field, field_foreign, conditions)
+	q.join(join_inner, table, t, field, field_foreign, conditions)
 }
 
 func (q *query_join) left_join(table, t, field, field_foreign string, conditions Map){
-	q.join(JOIN_LEFT, table, t, field, field_foreign, conditions)
+	q.join(join_left, table, t, field, field_foreign, conditions)
 }
 
 func (q *query_join) join(mode, table, t, field, field_foreign string, conditions Map){
@@ -205,10 +208,10 @@ func (q *query_join) compile_optimize_joins(aliases alias_collect) []join {
 			}
 			//	Second priority: Inner join
 			if a.mode != b.mode {
-				if a.mode == JOIN_INNER {
+				if a.mode == join_inner {
 					return -1
 				}
-				if b.mode == JOIN_INNER {
+				if b.mode == join_inner {
 					return 1
 				}
 			}

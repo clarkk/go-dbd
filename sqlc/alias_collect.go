@@ -17,7 +17,11 @@ type alias_collect map[string]struct{}
 
 func (m alias_collect) apply(field string){
 	if pos := strings.IndexByte(field, '.'); pos != -1 {
-		m[field[:pos]] = struct{}{}
+		alias := field[:pos]
+		if alias == BASE_ALIAS {
+			return
+		}
+		m[alias] = struct{}{}
 	}
 }
 

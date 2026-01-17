@@ -73,6 +73,7 @@ func (q *Inserts_query) Left_join(table, t, field, field_foreign string, conditi
 
 func (q *Inserts_query) Compile() (string, []any, error){
 	ctx := compiler_pool.Get().(*compiler)
+	ctx.t = q.t
 	defer func() {
 		ctx.reset()
 		compiler_pool.Put(ctx)

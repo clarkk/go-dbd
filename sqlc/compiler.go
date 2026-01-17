@@ -5,6 +5,7 @@ import "strings"
 type compiler struct {
 	sb			sbuilder
 	use_alias	bool
+	t 			string
 	tables		map[string]string
 	data		[]any
 }
@@ -12,6 +13,7 @@ type compiler struct {
 func (c *compiler) reset(){
 	c.sb.Reset()
 	c.use_alias = false
+	c.t = ""
 	if c.tables != nil {
 		clear(c.tables)
 	}
@@ -19,10 +21,21 @@ func (c *compiler) reset(){
 }
 
 func (c *compiler) write_field(t, field string){
-	if !c.use_alias || strings.IndexByte(field, '.') != -1 {
+	if !c.use_alias {
 		c.sb.WriteString(field)
 		return
 	}
+	
+	if pos := strings.IndexByte(field, '.'); pos != -1 {
+		if pos == base_alias_len && field[:base_alias_len] == BASE_ALIAS {
+			c.sb.WriteString(c.t)
+			c.sb.WriteString(field[pos:])
+			return
+		}
+		c.sb.WriteString(field)
+		return
+	}
+	
 	c.sb.WriteString(t)
 	c.sb.WriteByte('.')
 	c.sb.WriteString(field)

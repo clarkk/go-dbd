@@ -35,6 +35,7 @@ func (q *Delete_query) Where(clause *Where_clause) *Delete_query {
 
 func (q *Delete_query) Compile() (string, []any, error){
 	ctx := compiler_pool.Get().(*compiler)
+	ctx.t = q.t
 	defer func() {
 		ctx.reset()
 		compiler_pool.Put(ctx)

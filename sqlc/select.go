@@ -133,6 +133,7 @@ func (q *Select_query) Limit(offset uint32, limit uint8) *Select_query {
 
 func (q *Select_query) Compile() (string, []any, error){
 	ctx := compiler_pool.Get().(*compiler)
+	ctx.t = q.t
 	defer func() {
 		ctx.reset()
 		compiler_pool.Put(ctx)
