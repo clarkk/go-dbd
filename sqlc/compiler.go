@@ -5,15 +5,15 @@ import "strings"
 type compiler struct {
 	sb			sbuilder
 	use_alias	bool
-	t 			string
+	root_t 		string
 	tables		map[string]string
 	data		[]any
 }
 
 func (c *compiler) reset(){
 	c.sb.Reset()
-	c.use_alias = false
-	c.t = ""
+	c.use_alias	= false
+	c.root_t	= ""
 	if c.tables != nil {
 		clear(c.tables)
 	}
@@ -27,8 +27,8 @@ func (c *compiler) write_field(t, field string){
 	}
 	
 	if pos := strings.IndexByte(field, '.'); pos != -1 {
-		if pos == base_alias_len && field[:base_alias_len] == BASE_ALIAS {
-			c.sb.WriteString(c.t)
+		if pos == root_alias_len && field[:root_alias_len] == ROOT_ALIAS {
+			c.sb.WriteString(c.root_t)
 			c.sb.WriteString(field[pos:])
 			return
 		}

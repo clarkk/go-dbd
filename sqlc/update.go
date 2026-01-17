@@ -62,7 +62,6 @@ func (q *Update_query) Where(clause *Where_clause) *Update_query {
 
 func (q *Update_query) Compile() (string, []any, error){
 	ctx := compiler_pool.Get().(*compiler)
-	ctx.t = q.t
 	defer func() {
 		ctx.reset()
 		compiler_pool.Put(ctx)
