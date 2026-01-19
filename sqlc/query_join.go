@@ -17,11 +17,13 @@ const (
 )
 
 type (
+	Join_conditions		[]join_condition
+	
 	query_join struct {
 		query
 		t 				string
 		joined 			bool
-		joined_t		bool	//	Joined on a non-base (pre-defined) table
+		joined_t		bool		//	Joined on a non-base (pre-defined) table
 		joins 			[]join
 		optimize_joins	bool
 	}
@@ -29,12 +31,16 @@ type (
 	join struct {
 		mode 			string
 		table 			string
-		t 				string	//	Table alias
-		join_t			string	//	Join on a non-base (pre-defined) table (table alias)
-		field 			string
-		field_foreign 	string
+		t 				string		//	Table alias
+		join_t			[]string	//	Join on a non-base (pre-defined) table (table alias)
+		on				Join_conditions
 		conditions		Map
 		depth			int
+	}
+	
+	join_condition struct {
+		field 			string
+		field_foreign 	string
 	}
 )
 
@@ -46,24 +52,53 @@ func (q *query_join) left_join(table, t, field, field_foreign string, conditions
 	q.join(join_left, table, t, field, field_foreign, conditions)
 }
 
+func (q *query_join) inner_join_multi(table, t string, fields Join_conditions, conditions Map){
+	q.join_multi(join_inner, table, t, fields, conditions)
+}
+
+func (q *query_join) left_join_multi(table, t string, fields Join_conditions, conditions Map){
+	q.join_multi(join_left, table, t, fields, conditions)
+}
+
 func (q *query_join) join(mode, table, t, field, field_foreign string, conditions Map){
-	var join_t string
-	// Join on a non-base (pre-defined) table
-	if i := strings.IndexByte(field_foreign, '.'); i != -1 {
-		q.joined_t	= true
-		join_t		= field_foreign[:i]
-	}
+	fields := Join_conditions{{
+		field:			field,
+		field_foreign:	field_foreign,
+	}}
 	
 	q.joined = true
 	q.joins = append(q.joins, join{
 		mode:			mode,
 		table:			table,
 		t:				t,
-		join_t:			join_t,
-		field:			field,
-		field_foreign:	field_foreign,
+		join_t:			q.join_condition_foreign(fields),
+		on:				fields,
 		conditions:		conditions,
 	})
+}
+
+func (q *query_join) join_multi(mode, table, t string, fields Join_conditions, conditions Map){
+	q.joined = true
+	q.joins = append(q.joins, join{
+		mode:			mode,
+		table:			table,
+		t:				t,
+		join_t:			q.join_condition_foreign(fields),
+		on:				fields,
+		conditions:		conditions,
+	})
+}
+
+func (q *query_join) join_condition_foreign(fields Join_conditions) []string {
+	join_t := make([]string, 0, len(fields))
+	for _, f := range fields {
+		// Join on a non-base (pre-defined) table
+		if i := strings.IndexByte(f.field_foreign, '.'); i != -1 {
+			q.joined_t	= true
+			join_t		= append(join_t, f.field_foreign[:i])
+		}
+	}
+	return join_t
 }
 
 func (q *query_join) resolve_alias_join_dependencies(list alias_collect){
@@ -74,18 +109,42 @@ func (q *query_join) resolve_alias_join_dependencies(list alias_collect){
 			j := &q.joins[i]	//	Avoid copying data
 			if _, ok := list[j.t]; ok {
 				//	Check if joined on non-base table
-				if j.join_t == "" {
+				if len(j.join_t) == 0 {
 					continue
 				}
 				
-				if _, exists := list[j.join_t]; !exists {
-					list[j.join_t] = struct{}{}
+				/*for _, depAlias := range j.join_t {
+					if _, exists := list[depAlias]; !exists {
+						list[depAlias] = struct{}{}
+						changed = true
+					}
+				}
+				
+				maxDepth := 0
+				for _, depAlias := range j.join_t {
+					for _, parent := range q.joins {
+						if parent.t == depAlias {
+							if parent.depth+1 > maxDepth {
+								maxDepth = parent.depth + 1
+							}
+							break
+						}
+					}
+				}
+				
+				if j.depth != maxDepth {
+					j.depth = maxDepth
+					changed = true
+				}*/
+				
+				if _, exists := list[j.join_t[0]]; !exists {
+					list[j.join_t[0]] = struct{}{}
 					changed = true
 				}
 				
 				//	Find depth
 				for _, parent := range q.joins {
-					if parent.t == j.join_t {
+					if parent.t == j.join_t[0] {
 						depth := parent.depth + 1
 						if j.depth != depth {
 							j.depth = depth
@@ -166,11 +225,17 @@ func (q *query_join) compile_joins(ctx *compiler, aliases alias_collect){
 		ctx.sb.WriteByte(' ')
 		ctx.sb.WriteString(j.t)
 		ctx.sb.WriteString(" ON ")
-		ctx.sb.WriteString(j.t)
-		ctx.sb.WriteByte('.')
-		ctx.sb.WriteString(j.field)
-		ctx.sb.WriteByte('=')
-		ctx.write_field(q.t, j.field_foreign)
+		
+		for e, jf := range j.on {
+			if e > 0 {
+				ctx.sb.WriteString(" AND ")
+			}
+			ctx.sb.WriteString(j.t)
+			ctx.sb.WriteByte('.')
+			ctx.sb.WriteString(jf.field)
+			ctx.sb.WriteByte('=')
+			ctx.write_field(q.t, jf.field_foreign)
+		}
 		
 		if len(j.conditions) > 0 {
 			//	Sort keys

@@ -42,18 +42,22 @@ func Test_optimize_joins(t *testing.T){
 			mode:			"LEFT JOIN",
 			table:			"invoice_customer",
 			t:				"i",
-			join_t:			"",
-			field:			"invoice_id",
-			field_foreign:	"id",
+			join_t:			[]string{},
+			on: Join_conditions{{
+				field:			"invoice_id",
+				field_foreign:	"id",
+			}},
 			conditions:		nil,
 			depth:			0,
 		},{
 			mode:			"LEFT JOIN",
 			table:			"bank_account",
 			t:				"b",
-			join_t:			"i",
-			field:			"id",
-			field_foreign:	"i.bank_account_id",
+			join_t:			[]string{"i"},
+			on: Join_conditions{{
+				field:			"id",
+				field_foreign:	"i.bank_account_id",
+			}},
 			conditions:		nil,
 			depth:			1,
 		}}
