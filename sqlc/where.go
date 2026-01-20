@@ -248,19 +248,25 @@ func (w *Where_clause) get_alloc() (num, alloc, alloc_data int){
 	return num, alloc, alloc_data
 }
 
-func (w *Where_clause) collect_aliases(list alias_collect){
+func (w *Where_clause) collect_aliases(list alias_collect) error {
 	if w == nil {
-		return
+		return nil
 	}
+	var err error
 	if w.wrapped != nil {
-		w.wrapped.collect_aliases(list)
+		if err = w.wrapped.collect_aliases(list); err != nil {
+			return err
+		}
 	}
 	for _, group := range w.or_groups {
 		if group != nil {
-			group.collect_aliases(list)
+			if err = group.collect_aliases(list); err != nil {
+				return err
+			}
 		}
 	}
 	for _, f := range w.conditions {
 		list.apply(f.field)
 	}
+	return nil
 }

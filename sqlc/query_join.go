@@ -101,61 +101,55 @@ func (q *query_join) join_condition_foreign(fields Join_conditions) []string {
 	return join_t
 }
 
-func (q *query_join) resolve_alias_join_dependencies(list alias_collect){
-	changed := true
+func (q *query_join) resolve_alias_join_dependencies(list alias_collect) error {
+	changed			:= true
+	max_iterations	:= len(q.joins) + 1
+	
+	var iterations int
 	for changed {
 		changed = false
+		iterations++
+		
+		if iterations > max_iterations {
+			return fmt.Errorf("Circular dependency detected in joins")
+		}
+		
 		for i := range q.joins {
 			j := &q.joins[i]	//	Avoid copying data
 			if _, ok := list[j.t]; ok {
-				//	Check if joined on non-base table
+				//	Check if joined on base table
 				if len(j.join_t) == 0 {
 					continue
 				}
 				
-				/*for _, depAlias := range j.join_t {
-					if _, exists := list[depAlias]; !exists {
-						list[depAlias] = struct{}{}
+				var max_depth int
+				for _, alias := range j.join_t {
+					//	Collect dependency alias
+					if _, exists := list[alias]; !exists {
+						list[alias] = struct{}{}
 						changed = true
 					}
-				}
-				
-				maxDepth := 0
-				for _, depAlias := range j.join_t {
+					
 					for _, parent := range q.joins {
-						if parent.t == depAlias {
-							if parent.depth+1 > maxDepth {
-								maxDepth = parent.depth + 1
+						if parent.t == alias {
+							depth := parent.depth + 1
+							if depth > max_depth {
+								max_depth = depth
 							}
 							break
 						}
 					}
 				}
 				
-				if j.depth != maxDepth {
-					j.depth = maxDepth
+				if j.depth != max_depth {
+					j.depth = max_depth
 					changed = true
-				}*/
-				
-				if _, exists := list[j.join_t[0]]; !exists {
-					list[j.join_t[0]] = struct{}{}
-					changed = true
-				}
-				
-				//	Find depth
-				for _, parent := range q.joins {
-					if parent.t == j.join_t[0] {
-						depth := parent.depth + 1
-						if j.depth != depth {
-							j.depth = depth
-							changed = true
-						}
-						break
-					}
 				}
 			}
 		}
 	}
+	
+	return nil
 }
 
 func (q *query_join) compile_tables(ctx *compiler, t string) error {

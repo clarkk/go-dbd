@@ -149,7 +149,9 @@ func (q *Select_query) Compile() (string, []any, error){
 				aliases.reset()
 				alias_collect_pool.Put(aliases)
 			}()
-			q.collect_aliases(aliases)
+			if err := q.collect_aliases(aliases); err != nil {
+				return "", nil, err
+			}
 		}
 	}
 	
@@ -195,7 +197,7 @@ func (q *Select_query) Compile() (string, []any, error){
 	return ctx.sb.String(), ctx.data, nil
 }
 
-func (q *Select_query) collect_aliases(list alias_collect){
+func (q *Select_query) collect_aliases(list alias_collect) error {
 	//	Check SELECT clause
 	for _, f := range q.select_fields {
 		list.apply(f.field)
@@ -206,7 +208,9 @@ func (q *Select_query) collect_aliases(list alias_collect){
 	}
 	
 	//	Check WHERE clause
-	q.where_clause.collect_aliases(list)
+	if err := q.where_clause.collect_aliases(list); err != nil {
+		return err
+	}
 	
 	//	Check GROUP clause
 	for _, f := range q.group {
@@ -218,7 +222,7 @@ func (q *Select_query) collect_aliases(list alias_collect){
 		list.apply(f)
 	}
 	
-	q.resolve_alias_join_dependencies(list)
+	return q.resolve_alias_join_dependencies(list)
 }
 
 func (q *Select_query) compile_select(ctx *compiler) error {
@@ -288,7 +292,9 @@ func (q *Select_query) compile_select_join(ctx *compiler, sj *select_json) error
 			sub_aliases.reset()
 			alias_collect_pool.Put(sub_aliases)
 		}()
-		sj.query.collect_aliases(sub_aliases)
+		if err := sj.query.collect_aliases(sub_aliases); err != nil {
+			return err
+		}
 	}
 	
 	t := sj.query.base_table_short()
