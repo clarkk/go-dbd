@@ -32,6 +32,8 @@ type (
 	select_json struct {
 		select_field	string
 		query			*Select_query
+		inner_field		string
+		outer_field		string
 	}
 )
 
@@ -93,6 +95,16 @@ func (q *Select_query) Select_json(field string, query *Select_query) *Select_qu
 	q.select_jsons = append(q.select_jsons, &select_json{
 		select_field:	field,
 		query:			query,
+	})
+	return q
+}
+
+func (q *Select_query) Select_json_condition(field string, query *Select_query, inner_field, outer_field string) *Select_query {
+	q.select_jsons = append(q.select_jsons, &select_json{
+		select_field:	field,
+		query:			query,
+		inner_field:	inner_field,
+		outer_field:	outer_field,
 	})
 	return q
 }
@@ -190,7 +202,7 @@ func (q *Select_query) Compile() (string, []any, error){
 	q.compile_from(ctx)
 	q.compile_joins(ctx, aliases)
 	//audit.Audit()
-	if err := q.compile_where(ctx); err != nil {
+	if err := q.compile_where(ctx, nil); err != nil {
 		return "", nil, err
 	}
 	q.compile_group(ctx)
@@ -207,6 +219,10 @@ func (q *Select_query) collect_aliases(list alias_collect) error {
 	//	Check SELECT clause
 	for _, f := range q.select_fields {
 		list.apply(f.field)
+	}
+	for _, f := range q.select_jsons {
+		list.apply(f.inner_field)
+		list.apply(f.outer_field)
 	}
 	
 	//	Check WHERE clause
@@ -320,7 +336,21 @@ func (q *Select_query) compile_select_join(ctx *compiler, sj *select_json) error
 	sj.query.compile_from(ctx)
 	sj.query.compile_joins(ctx, sub_aliases)
 	
-	if err := sj.query.compile_where(ctx); err != nil {
+	if err := sj.query.compile_where(ctx, func(ctx *compiler, first *bool){
+		if sj.inner_field == "" {
+			return
+		}
+		
+		if *first {
+			*first = false
+		} else {
+			ctx.sb.WriteString(" AND ")
+		}
+		
+		ctx.write_field(sj.query.t, sj.inner_field)
+		ctx.sb.WriteByte('=')
+		ctx.write_field(q.t, sj.outer_field)
+	}); err != nil {
 		return err
 	}
 	
