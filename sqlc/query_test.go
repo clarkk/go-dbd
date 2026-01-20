@@ -44,8 +44,8 @@ func Test_optimize_joins(t *testing.T){
 			t:				"i",
 			join_t:			[]string{},
 			on: Join_conditions{{
-				field:			"invoice_id",
-				field_foreign:	"id",
+				Field:			"invoice_id",
+				Field_foreign:	"id",
 			}},
 			conditions:		nil,
 			depth:			0,
@@ -55,8 +55,8 @@ func Test_optimize_joins(t *testing.T){
 			t:				"b",
 			join_t:			[]string{"i"},
 			on: Join_conditions{{
-				field:			"id",
-				field_foreign:	"i.bank_account_id",
+				Field:			"id",
+				Field_foreign:	"i.bank_account_id",
 			}},
 			conditions:		nil,
 			depth:			1,

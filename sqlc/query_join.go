@@ -17,7 +17,11 @@ const (
 )
 
 type (
-	Join_conditions		[]join_condition
+	Join_conditions		[]Join_condition
+	Join_condition struct {
+		Field 			string
+		Field_foreign 	string
+	}
 	
 	query_join struct {
 		query
@@ -36,11 +40,6 @@ type (
 		on				Join_conditions
 		conditions		Map
 		depth			int
-	}
-	
-	join_condition struct {
-		field 			string
-		field_foreign 	string
 	}
 )
 
@@ -62,8 +61,8 @@ func (q *query_join) left_join_multi(table, t string, fields Join_conditions, co
 
 func (q *query_join) join(mode, table, t, field, field_foreign string, conditions Map){
 	fields := Join_conditions{{
-		field:			field,
-		field_foreign:	field_foreign,
+		Field:			field,
+		Field_foreign:	field_foreign,
 	}}
 	q.join_multi(mode, table, t, fields, conditions)
 }
@@ -84,9 +83,9 @@ func (q *query_join) join_condition_foreign(fields Join_conditions) []string {
 	join_t := make([]string, 0, len(fields))
 	for _, f := range fields {
 		// Join on a non-base (pre-defined) table
-		if i := strings.IndexByte(f.field_foreign, '.'); i != -1 {
+		if i := strings.IndexByte(f.Field_foreign, '.'); i != -1 {
 			q.joined_t	= true
-			join_t		= append(join_t, f.field_foreign[:i])
+			join_t		= append(join_t, f.Field_foreign[:i])
 		}
 	}
 	return join_t
@@ -217,9 +216,9 @@ func (q *query_join) compile_joins(ctx *compiler, aliases alias_collect){
 			}
 			ctx.sb.WriteString(j.t)
 			ctx.sb.WriteByte('.')
-			ctx.sb.WriteString(jf.field)
+			ctx.sb.WriteString(jf.Field)
 			ctx.sb.WriteByte('=')
-			ctx.write_field(q.t, jf.field_foreign)
+			ctx.write_field(q.t, jf.Field_foreign)
 		}
 		
 		if len(j.conditions) > 0 {
