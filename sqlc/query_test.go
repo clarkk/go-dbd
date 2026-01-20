@@ -1110,7 +1110,13 @@ func run_select_json(tb testing.TB){
 			"test_col1 alias1",
 			"l.test_col2 alias2",
 		}).
-		Left_join("language", "l", "id", "language_id", nil).
+		Left_join_multi("language", "l", Join_conditions{{
+			Field:			"id",
+			Field_foreign:	"language_id",
+		},{
+			Field:			"inner_col",
+			Field_foreign:	ROOT_ALIAS+".outer_col",
+		}}, nil).
 		Where(Where().
 			Eq("name", "where_inner"),
 		)
@@ -1120,7 +1126,7 @@ func run_select_json(tb testing.TB){
 			"id",
 			"email",
 		}).
-		Select_json("select_json_field", subquery, "inner_col", "b.outer_col").
+		Select_json("select_json_field", subquery).
 		Left_join("balance", "b", "id", "account_id", nil).
 		Where(Where().
 			Eq("name", "9"),
@@ -1143,8 +1149,8 @@ func run_select_json(tb testing.TB){
 (
 SELECT JSON_ARRAYAGG(JSON_OBJECT('key', a.key, 'alias1', a.test_col1, 'alias2', l.test_col2))
 FROM .account a
-LEFT JOIN .language l ON l.id=a.language_id
-WHERE a.inner_col=b.outer_col AND a.name=?
+LEFT JOIN .language l ON l.id=a.language_id AND l.inner_col=u.outer_col
+WHERE a.name=?
 ) select_json_field
 FROM .user u
 LEFT JOIN .balance b ON b.id=u.account_id
@@ -1160,8 +1166,8 @@ LIMIT 0,10`
 (
 SELECT JSON_ARRAYAGG(JSON_OBJECT('key', a.key, 'alias1', a.test_col1, 'alias2', l.test_col2))
 FROM .account a
-LEFT JOIN .language l ON l.id=a.language_id
-WHERE a.inner_col=b.outer_col AND a.name=where_inner
+LEFT JOIN .language l ON l.id=a.language_id AND l.inner_col=u.outer_col
+WHERE a.name=where_inner
 ) select_json_field
 FROM .user u
 LEFT JOIN .balance b ON b.id=u.account_id
@@ -1180,7 +1186,13 @@ func run_select_json_optimize(tb testing.TB){
 			"test_col1 alias1",
 			"l.test_col2 alias2",
 		}).
-		Left_join("language", "l", "id", "language_id", nil).
+		Left_join_multi("language", "l", Join_conditions{{
+			Field:			"id",
+			Field_foreign:	"language_id",
+		},{
+			Field:			"inner_col",
+			Field_foreign:	ROOT_ALIAS+".outer_col",
+		}}, nil).
 		Where(Where().
 			Eq("name", "where_inner"),
 		).
@@ -1191,7 +1203,7 @@ func run_select_json_optimize(tb testing.TB){
 			"id",
 			"email",
 		}).
-		Select_json("select_json_field", subquery, "inner_col", "b.outer_col").
+		Select_json("select_json_field", subquery).
 		Left_join("balance", "b", "id", "account_id", nil).
 		Where(Where().
 			Eq("name", "9"),
@@ -1215,11 +1227,10 @@ func run_select_json_optimize(tb testing.TB){
 (
 SELECT JSON_ARRAYAGG(JSON_OBJECT('key', a.key, 'alias1', a.test_col1, 'alias2', l.test_col2))
 FROM .account a
-LEFT JOIN .language l ON l.id=a.language_id
-WHERE a.inner_col=b.outer_col AND a.name=?
+LEFT JOIN .language l ON l.id=a.language_id AND l.inner_col=u.outer_col
+WHERE a.name=?
 ) select_json_field
 FROM .user u
-LEFT JOIN .balance b ON b.id=u.account_id
 WHERE u.name=?
 LIMIT 0,10`
 	got := strings.TrimSpace(sql)
@@ -1232,11 +1243,10 @@ LIMIT 0,10`
 (
 SELECT JSON_ARRAYAGG(JSON_OBJECT('key', a.key, 'alias1', a.test_col1, 'alias2', l.test_col2))
 FROM .account a
-LEFT JOIN .language l ON l.id=a.language_id
-WHERE a.inner_col=b.outer_col AND a.name=where_inner
+LEFT JOIN .language l ON l.id=a.language_id AND l.inner_col=u.outer_col
+WHERE a.name=where_inner
 ) select_json_field
 FROM .user u
-LEFT JOIN .balance b ON b.id=u.account_id
 WHERE u.name=9
 LIMIT 0,10`
 	got = SQL_debug(query)
