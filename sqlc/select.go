@@ -111,6 +111,16 @@ func (q *Select_query) Left_join(table, t, field, field_foreign string, conditio
 	return q
 }
 
+func (q *Select_query) Inner_join_multi(table, t string, fields Join_conditions, conditions Map) *Select_query {
+	q.inner_join_multi(table, t, fields, conditions)
+	return q
+}
+
+func (q *Select_query) Left_join_multi(table, t string, fields Join_conditions, conditions Map) *Select_query {
+	q.left_join_multi(table, t, fields, conditions)
+	return q
+}
+
 func (q *Select_query) Where(clause *Where_clause) *Select_query {
 	q.where_clause = clause
 	return q
