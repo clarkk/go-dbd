@@ -65,16 +65,7 @@ func (q *query_join) join(mode, table, t, field, field_foreign string, condition
 		field:			field,
 		field_foreign:	field_foreign,
 	}}
-	
-	q.joined = true
-	q.joins = append(q.joins, join{
-		mode:			mode,
-		table:			table,
-		t:				t,
-		join_t:			q.join_condition_foreign(fields),
-		on:				fields,
-		conditions:		conditions,
-	})
+	q.join_multi(mode, table, t, fields, conditions)
 }
 
 func (q *query_join) join_multi(mode, table, t string, fields Join_conditions, conditions Map){
