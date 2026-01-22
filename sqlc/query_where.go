@@ -100,21 +100,8 @@ func (q *query_where) walk_where_clause(ctx *compiler, clause *Where_clause, dup
 			ctx.sb.WriteString(" AND ")
 		}
 		
-		ctx.write_field(q.t, condition.field)
-		sub_data, err := clause.write_condition(&ctx.sb, condition)
-		if err != nil {
+		if err := q.write_condition_data(ctx, clause, condition); err != nil {
 			return err
-		}
-		
-		if condition.operator == op_null || condition.operator == op_not_null {
-			continue
-		}
-		
-		//	Apply data
-		if sub_data != nil {
-			ctx.append_data(sub_data)
-		} else {
-			ctx.append_data(condition.value)
 		}
 	}
 	
@@ -135,18 +122,34 @@ func (q *query_where) walk_where_clause(ctx *compiler, clause *Where_clause, dup
 					ctx.sb.WriteString(" OR ")
 				}
 				
-				ctx.write_field(q.t, condition.field)
-				_, err := clause.write_condition(&ctx.sb, condition)
-				if err != nil {
+				if err := q.write_condition_data(ctx, clause, condition); err != nil {
 					return err
 				}
-				
-				ctx.append_data(condition.value)
 			}
 			ctx.sb.WriteByte(')')
 		}
 	}
 	
+	return nil
+}
+
+func (q *query_where) write_condition_data(ctx *compiler, clause *Where_clause, condition *where_condition) error {
+	ctx.write_field(q.t, condition.field)
+	sub_data, err := clause.write_condition(&ctx.sb, condition)
+	if err != nil {
+		return err
+	}
+	
+	if condition.operator == op_null || condition.operator == op_not_null {
+		return nil
+	}
+	
+	//	Apply data
+	if sub_data != nil {
+		ctx.append_data(sub_data)
+	} else {
+		ctx.append_data(condition.value)
+	}
 	return nil
 }
 
