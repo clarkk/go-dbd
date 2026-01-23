@@ -23,9 +23,9 @@ func Test_optimize_joins(t *testing.T){
 			},
 			optimize_joins: true,
 		}
-		q.left_join("bank_account", "b", "id", "i.bank_account_id", nil)
-		q.left_join("module", "m", "id", "i.accounting_module_id", nil)
-		q.left_join("invoice_customer", "i", "invoice_id", "id", nil)
+		q.left_join("bank_account", "b", "id", "i.bank_account_id")
+		q.left_join("module", "m", "id", "i.accounting_module_id")
+		q.left_join("invoice_customer", "i", "invoice_id", "id")
 		
 		aliases := alias_collect{}
 		aliases.apply("b.name")
@@ -47,7 +47,6 @@ func Test_optimize_joins(t *testing.T){
 				Field:			"invoice_id",
 				Field_foreign:	"id",
 			}},
-			conditions:		nil,
 			depth:			0,
 		},{
 			mode:			"LEFT JOIN",
@@ -58,7 +57,6 @@ func Test_optimize_joins(t *testing.T){
 				Field:			"id",
 				Field_foreign:	"i.bank_account_id",
 			}},
-			conditions:		nil,
 			depth:			1,
 		}}
 		got_joins := q.compile_optimize_joins(aliases)
@@ -165,7 +163,7 @@ func run_where_wrap(tb testing.TB){
 			"email",
 			"u.time",
 		}).
-		Left_join("user_block", "u", "id", "user_id", nil).
+		Left_join("user_block", "u", "id", "user_id").
 		Where(where_outer)
 	
 	/*aliases := alias_collect{}
@@ -232,7 +230,7 @@ func run_select_where_or_group(tb testing.TB){
 			"email",
 			"u.time",
 		}).
-		Left_join("user_block", "u", "id", "user_id", nil).
+		Left_join("user_block", "u", "id", "user_id").
 		Where(where)
 	
 	/*aliases := alias_collect{}
@@ -391,7 +389,7 @@ func run_select_abbreviation_collisions(t testing.TB){
 			"email",
 			"u.time",
 		}).
-		Left_join("user_block", "u", "id", "user_id", nil).
+		Left_join("user_block", "u", "id", "user_id").
 		Where(Where().
 			Eq("email", "test1").
 			In("u.time", []any{1,2,3}),
@@ -1045,7 +1043,7 @@ func run_select_in_subquery(tb testing.TB){
 		Select([]string{
 			"id",
 		}).
-		Left_join("language", "l", "id", "language_id", nil).
+		Left_join("language", "l", "id", "language_id").
 		Where(Where().
 			Eq("name", "subquery_value"),
 		)
@@ -1116,7 +1114,7 @@ func run_select_json(tb testing.TB){
 		},{
 			Field:			"inner_col",
 			Field_foreign:	ROOT_ALIAS+".outer_col",
-		}}, nil).
+		}}).
 		Where(Where().
 			Eq("name", "where_inner"),
 		)
@@ -1127,7 +1125,7 @@ func run_select_json(tb testing.TB){
 			"email",
 		}).
 		Select_json("select_json_field", subquery).
-		Left_join("balance", "b", "id", "account_id", nil).
+		Left_join("balance", "b", "id", "account_id").
 		Where(Where().
 			Eq("name", "9"),
 		).
@@ -1192,7 +1190,7 @@ func run_select_json_optimize(tb testing.TB){
 		},{
 			Field:			"inner_col",
 			Field_foreign:	ROOT_ALIAS+".outer_col",
-		}}, nil).
+		}}).
 		Where(Where().
 			Eq("name", "where_inner"),
 		).
@@ -1204,7 +1202,7 @@ func run_select_json_optimize(tb testing.TB){
 			"email",
 		}).
 		Select_json("select_json_field", subquery).
-		Left_join("balance", "b", "id", "account_id", nil).
+		Left_join("balance", "b", "id", "account_id").
 		Where(Where().
 			Eq("name", "9"),
 		).
@@ -1345,7 +1343,7 @@ func run_select_join(tb testing.TB){
 			"id",
 			"c.timeout",
 		}).
-		Left_join("client", "c", "id", "client_id", nil).
+		Left_join("client", "c", "id", "client_id").
 		Where(Where().
 			Eq("email", "test1").
 			Gt("c.timeout", "test2"),

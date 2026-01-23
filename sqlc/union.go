@@ -40,8 +40,8 @@ func (q *Union_query) Select_distinct(list []string) *Union_query {
 	return q
 }
 
-func (q *Union_query) Left_join(table, t, field, field_foreign string, conditions Map) *Union_query {
-	q.Select_query.Left_join(table, t, field, field_foreign, conditions)
+func (q *Union_query) Left_join(table, t, field, field_foreign string) *Union_query {
+	q.Select_query.Left_join(table, t, field, field_foreign)
 	return q
 }
 
@@ -76,16 +76,19 @@ func (q *Union_query) Compile() (string, []any, error){
 		ctx.use_alias = true
 	}
 	
-	if err := q.compile_tables(ctx, "t"); err != nil {
+	var err error
+	if err = q.compile_tables(ctx, "t"); err != nil {
 		return "", nil, err
 	}
 	
 	q.compile_select(ctx)
-	if err := q.compile_from(ctx); err != nil {
+	if err = q.compile_from(ctx); err != nil {
 		return "", nil, err
 	}
-	q.compile_joins(ctx, nil)
-	if err := q.compile_where(ctx, nil); err != nil {
+	if err = q.compile_joins(ctx, nil); err != nil {
+		return "", nil, err
+	}
+	if err = q.compile_where(ctx, nil); err != nil {
 		return "", nil, err
 	}
 	q.compile_group(ctx)

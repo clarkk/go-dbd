@@ -3,7 +3,7 @@ package sqlc
 import "slices"
 
 const (
-	op_eq operator = iota
+	op_eq Operator = iota
 	op_not_eq
 	op_gt
 	op_gteq
@@ -30,7 +30,7 @@ var sql_ops = [...]string{
 }
 
 type (
-	operator			uint8
+	Operator			uint8
 	
 	Where_clause struct {
 		wrapped			*Where_clause
@@ -44,7 +44,7 @@ type (
 	
 	where_condition struct {
 		field			string
-		operator		operator
+		operator		Operator
 		value			any
 	}
 )
@@ -146,10 +146,10 @@ func (w *Where_clause) In_subquery(field string, query *Select_query) *Where_cla
 	return w
 }
 
-func (w *Where_clause) write_condition(sb *sbuilder, field *where_condition) ([]any, error){
+func write_operator_condition(sb *sbuilder, operator Operator, value any) ([]any, error){
 	var subquery_data []any
 	
-	switch field.operator {
+	switch operator {
 	case op_null:
 		sb.WriteString(" IS NULL")
 		
@@ -157,18 +157,18 @@ func (w *Where_clause) write_condition(sb *sbuilder, field *where_condition) ([]
 		sb.WriteString(" IS NOT NULL")
 		
 	case op_bt, op_not_bt:
-		if field.operator == op_not_bt {
+		if operator == op_not_bt {
 			sb.WriteString(" NOT")
 		}
 		sb.WriteByte(' ')
 		sb.WriteString(sql_op_bt)
 		
 	case op_in, op_not_in:
-		if field.operator == op_not_in {
+		if operator == op_not_in {
 			sb.WriteString(" NOT")
 		}
 		sb.WriteString(" IN (")
-		field_placeholder_list(len(field.value.([]any)), sb)
+		field_placeholder_list(len(value.([]any)), sb)
 		sb.WriteByte(')')
 		
 	case op_in_subquery:
@@ -176,7 +176,7 @@ func (w *Where_clause) write_condition(sb *sbuilder, field *where_condition) ([]
 			err error
 			sql	string
 		)
-		sql, subquery_data, err = field.value.(*Select_query).Compile()
+		sql, subquery_data, err = value.(*Select_query).Compile()
 		if err != nil {
 			return nil, err
 		}
@@ -185,14 +185,14 @@ func (w *Where_clause) write_condition(sb *sbuilder, field *where_condition) ([]
 		sb.WriteByte(')')
 		
 	default:
-		sb.WriteString(sql_ops[field.operator])
+		sb.WriteString(sql_ops[operator])
 		sb.WriteByte('?')
 	}
 	
 	return subquery_data, nil
 }
 
-func (w *Where_clause) clause(field string, operator operator, value any){
+func (w *Where_clause) clause(field string, operator Operator, value any){
 	var (
 		alloc		int
 		alloc_data	int

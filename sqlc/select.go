@@ -109,23 +109,23 @@ func (q *Select_query) Select_json_condition(field string, query *Select_query, 
 	return q
 }
 
-func (q *Select_query) Inner_join(table, t, field, field_foreign string, conditions Map) *Select_query {
-	q.inner_join(table, t, field, field_foreign, conditions)
+func (q *Select_query) Inner_join(table, t, field, field_foreign string) *Select_query {
+	q.inner_join(table, t, field, field_foreign)
 	return q
 }
 
-func (q *Select_query) Left_join(table, t, field, field_foreign string, conditions Map) *Select_query {
-	q.left_join(table, t, field, field_foreign, conditions)
+func (q *Select_query) Left_join(table, t, field, field_foreign string) *Select_query {
+	q.left_join(table, t, field, field_foreign)
 	return q
 }
 
-func (q *Select_query) Inner_join_multi(table, t string, fields Join_conditions, conditions Map) *Select_query {
-	q.inner_join_multi(table, t, fields, conditions)
+func (q *Select_query) Inner_join_multi(table, t string, fields Join_conditions) *Select_query {
+	q.inner_join_multi(table, t, fields)
 	return q
 }
 
-func (q *Select_query) Left_join_multi(table, t string, fields Join_conditions, conditions Map) *Select_query {
-	q.left_join_multi(table, t, fields, conditions)
+func (q *Select_query) Left_join_multi(table, t string, fields Join_conditions) *Select_query {
+	q.left_join_multi(table, t, fields)
 	return q
 }
 
@@ -196,13 +196,16 @@ func (q *Select_query) Compile() (string, []any, error){
 	ctx.sb.Alloc(alloc)
 	//audit.Grow(alloc)
 	
-	if err := q.compile_select(ctx); err != nil {
+	var err error
+	if err = q.compile_select(ctx); err != nil {
 		return "", nil, err
 	}
 	q.compile_from(ctx)
-	q.compile_joins(ctx, aliases)
+	if err = q.compile_joins(ctx, aliases); err != nil {
+		return "", nil, err
+	}
 	//audit.Audit()
-	if err := q.compile_where(ctx, nil); err != nil {
+	if err = q.compile_where(ctx, nil); err != nil {
 		return "", nil, err
 	}
 	q.compile_group(ctx)

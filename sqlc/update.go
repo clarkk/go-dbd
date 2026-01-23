@@ -50,8 +50,8 @@ func (q *Update_query) Fields_operator(fields *Fields_clause) *Update_query {
 	return q
 }
 
-func (q *Update_query) Left_join(table, t, field, field_foreign string, conditions Map) *Update_query {
-	q.left_join(table, t, field, field_foreign, conditions)
+func (q *Update_query) Left_join(table, t, field, field_foreign string) *Update_query {
+	q.left_join(table, t, field, field_foreign)
 	return q
 }
 
@@ -71,8 +71,9 @@ func (q *Update_query) Compile() (string, []any, error){
 		ctx.use_alias = true
 	}
 	
+	var err error
 	t := q.base_table_short()
-	if err := q.compile_tables(ctx, t); err != nil {
+	if err = q.compile_tables(ctx, t); err != nil {
 		return "", nil, err
 	}
 	ctx.root_t = q.t
@@ -93,17 +94,19 @@ func (q *Update_query) Compile() (string, []any, error){
 		ctx.sb.WriteByte(' ')
 		ctx.sb.WriteString(q.t)
 		ctx.sb.WriteByte('\n')
-		q.compile_joins(ctx, nil)
+		if err = q.compile_joins(ctx, nil); err != nil {
+			return "", nil, err
+		}
 	} else {
 		ctx.sb.WriteByte('\n')
 	}
 	ctx.sb.WriteString("SET ")
-	if err := q.compile_fields(ctx); err != nil {
+	if err = q.compile_fields(ctx); err != nil {
 		return "", nil, err
 	}
 	ctx.sb.WriteByte('\n')
 	//audit.Audit()
-	if err := q.compile_where(ctx, nil); err != nil {
+	if err = q.compile_where(ctx, nil); err != nil {
 		return "", nil, err
 	}
 	

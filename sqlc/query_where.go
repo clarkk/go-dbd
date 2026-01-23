@@ -53,11 +53,11 @@ func (q *query_where) compile_where(ctx *compiler, inner_condition func(ctx *com
 	}
 	
 	if q.where_clause != nil {
-		var duplicates map[string]operator
+		var duplicates map[string]Operator
 		//	Only allocate if at least 2 conditions
 		if len(q.where_clause.conditions) > 1 {
 			//	Pre-allocation
-			duplicates = make(map[string]operator, 2)
+			duplicates = make(map[string]Operator, 2)
 		}
 		
 		if err := q.walk_where_clause(ctx, q.where_clause, &duplicates, &first); err != nil {
@@ -69,7 +69,7 @@ func (q *query_where) compile_where(ctx *compiler, inner_condition func(ctx *com
 	return nil
 }
 
-func (q *query_where) walk_where_clause(ctx *compiler, clause *Where_clause, duplicates *map[string]operator, first *bool) error {
+func (q *query_where) walk_where_clause(ctx *compiler, clause *Where_clause, duplicates *map[string]Operator, first *bool) error {
 	//	Apply wrapped conditions
 	if clause.wrapped != nil {
 		if err := q.walk_where_clause(ctx, clause.wrapped, duplicates, first); err != nil {
@@ -90,7 +90,7 @@ func (q *query_where) walk_where_clause(ctx *compiler, clause *Where_clause, dup
 				(*duplicates)[condition.field] = condition.operator
 			}
 		} else {
-			*duplicates = make(map[string]operator, 2)
+			*duplicates = make(map[string]Operator, 2)
 			(*duplicates)[condition.field] = condition.operator
 		}
 		
@@ -100,7 +100,7 @@ func (q *query_where) walk_where_clause(ctx *compiler, clause *Where_clause, dup
 			ctx.sb.WriteString(" AND ")
 		}
 		
-		if err := q.write_condition_data(ctx, clause, condition); err != nil {
+		if err := q.write_condition_data(ctx, condition); err != nil {
 			return err
 		}
 	}
@@ -122,7 +122,7 @@ func (q *query_where) walk_where_clause(ctx *compiler, clause *Where_clause, dup
 					ctx.sb.WriteString(" OR ")
 				}
 				
-				if err := q.write_condition_data(ctx, clause, condition); err != nil {
+				if err := q.write_condition_data(ctx, condition); err != nil {
 					return err
 				}
 			}
@@ -133,9 +133,9 @@ func (q *query_where) walk_where_clause(ctx *compiler, clause *Where_clause, dup
 	return nil
 }
 
-func (q *query_where) write_condition_data(ctx *compiler, clause *Where_clause, condition *where_condition) error {
+func (q *query_where) write_condition_data(ctx *compiler, condition *where_condition) error {
 	ctx.write_field(q.t, condition.field)
-	sub_data, err := clause.write_condition(&ctx.sb, condition)
+	sub_data, err := write_operator_condition(&ctx.sb, condition.operator, condition.value)
 	if err != nil {
 		return err
 	}
@@ -160,7 +160,7 @@ func (q *query_where) get_alloc() (int, int, int){
 	return q.where_clause.get_alloc()
 }
 
-func check_operator_compatibility(current_operator, new_operator operator, field string) error {
+func check_operator_compatibility(current_operator, new_operator Operator, field string) error {
 	if current_operator == new_operator {
 		return where_operator_error(field, current_operator, new_operator)
 	}
@@ -193,6 +193,6 @@ func check_operator_compatibility(current_operator, new_operator operator, field
 	return nil
 }
 
-func where_operator_error(field string, current_operator, new_operator operator) error {
+func where_operator_error(field string, current_operator, new_operator Operator) error {
 	return fmt.Errorf("Where clause operator incompatable on same field (%s): %s %s", field, sql_ops[current_operator], sql_ops[new_operator])
 }

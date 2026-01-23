@@ -23,8 +23,8 @@ func Delete(table string) *Delete_query {
 	}
 }
 
-func (q *Delete_query) Left_join(table, t, field, field_foreign string, conditions Map) *Delete_query {
-	q.left_join(table, t, field, field_foreign, conditions)
+func (q *Delete_query) Left_join(table, t, field, field_foreign string) *Delete_query {
+	q.left_join(table, t, field, field_foreign)
 	return q
 }
 
@@ -57,14 +57,17 @@ func (q *Delete_query) Compile() (string, []any, error){
 	}
 	ctx.sb.Alloc(alloc)
 	
+	var err error
 	ctx.sb.WriteString("DELETE ")
 	if ctx.use_alias {
 		ctx.sb.WriteString(q.t)
 		ctx.sb.WriteByte(' ')
 	}
 	q.compile_from(ctx)
-	q.compile_joins(ctx, nil)
-	if err := q.compile_where(ctx, nil); err != nil {
+	if err = q.compile_joins(ctx, nil); err != nil {
+		return "", nil, err
+	}
+	if err = q.compile_where(ctx, nil); err != nil {
 		return "", nil, err
 	}
 	

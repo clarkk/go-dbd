@@ -21,6 +21,10 @@ type (
 	Join_condition struct {
 		Field 			string
 		Field_foreign 	string
+		
+		Fixed_value		bool
+		Operator		Operator
+		Field_value		any
 	}
 	
 	query_join struct {
@@ -38,36 +42,35 @@ type (
 		t 				string		//	Table alias
 		join_t			[]string	//	Join on a non-base (pre-defined) table (table alias)
 		on				Join_conditions
-		conditions		Map
 		depth			int
 	}
 )
 
-func (q *query_join) inner_join(table, t, field, field_foreign string, conditions Map){
-	q.join(join_inner, table, t, field, field_foreign, conditions)
+func (q *query_join) inner_join(table, t, field, field_foreign string){
+	q.join(join_inner, table, t, field, field_foreign)
 }
 
-func (q *query_join) left_join(table, t, field, field_foreign string, conditions Map){
-	q.join(join_left, table, t, field, field_foreign, conditions)
+func (q *query_join) left_join(table, t, field, field_foreign string){
+	q.join(join_left, table, t, field, field_foreign)
 }
 
-func (q *query_join) inner_join_multi(table, t string, fields Join_conditions, conditions Map){
-	q.join_multi(join_inner, table, t, fields, conditions)
+func (q *query_join) inner_join_multi(table, t string, fields Join_conditions){
+	q.join_multi(join_inner, table, t, fields)
 }
 
-func (q *query_join) left_join_multi(table, t string, fields Join_conditions, conditions Map){
-	q.join_multi(join_left, table, t, fields, conditions)
+func (q *query_join) left_join_multi(table, t string, fields Join_conditions){
+	q.join_multi(join_left, table, t, fields)
 }
 
-func (q *query_join) join(mode, table, t, field, field_foreign string, conditions Map){
+func (q *query_join) join(mode, table, t, field, field_foreign string){
 	fields := Join_conditions{{
 		Field:			field,
 		Field_foreign:	field_foreign,
 	}}
-	q.join_multi(mode, table, t, fields, conditions)
+	q.join_multi(mode, table, t, fields)
 }
 
-func (q *query_join) join_multi(mode, table, t string, fields Join_conditions, conditions Map){
+func (q *query_join) join_multi(mode, table, t string, fields Join_conditions){
 	q.joined = true
 	q.joins = append(q.joins, join{
 		mode:			mode,
@@ -75,13 +78,16 @@ func (q *query_join) join_multi(mode, table, t string, fields Join_conditions, c
 		t:				t,
 		join_t:			q.join_condition_foreign(fields),
 		on:				fields,
-		conditions:		conditions,
 	})
 }
 
 func (q *query_join) join_condition_foreign(fields Join_conditions) []string {
 	join_t := make([]string, 0, len(fields))
 	for _, f := range fields {
+		if f.Fixed_value {
+			continue
+		}
+		
 		// Join on a non-base (pre-defined) table
 		if i := strings.IndexByte(f.Field_foreign, '.'); i != -1 {
 			q.joined_t	= true
@@ -185,9 +191,9 @@ func (q *query_join) compile_from(ctx *compiler){
 	ctx.sb.WriteByte('\n')
 }
 
-func (q *query_join) compile_joins(ctx *compiler, aliases alias_collect){
+func (q *query_join) compile_joins(ctx *compiler, aliases alias_collect) error {
 	if !q.joined {
-		return
+		return nil
 	}
 	
 	var joins_compile []join
@@ -217,32 +223,31 @@ func (q *query_join) compile_joins(ctx *compiler, aliases alias_collect){
 			ctx.sb.WriteString(j.t)
 			ctx.sb.WriteByte('.')
 			ctx.sb.WriteString(jf.Field)
-			ctx.sb.WriteByte('=')
-			ctx.write_field(q.t, jf.Field_foreign)
+			
+			if jf.Fixed_value {
+				sub_data, err := write_operator_condition(&ctx.sb, jf.Operator, jf.Field_value)
+				if err != nil {
+					return err
+				}
+				
+				if jf.Operator == op_null || jf.Operator == op_not_null {
+					continue
+				}
+				
+				if sub_data != nil {
+					ctx.append_data(sub_data)
+				} else {
+					ctx.append_data(jf.Field_value)
+				}
+			} else {
+				ctx.sb.WriteByte('=')
+				ctx.write_field(q.t, jf.Field_foreign)
+			}
 		}
 		
-		if len(j.conditions) > 0 {
-			//	Sort keys
-			keys := make([]string, len(j.conditions))
-			var i int
-			for k := range j.conditions {
-				keys[i] = k
-				i++
-			}
-			slices.Sort(keys)
-			
-			for _, column := range keys {
-				ctx.sb.WriteString(" AND ")
-				ctx.sb.WriteString(j.t)
-				ctx.sb.WriteByte('.')
-				ctx.sb.WriteString(column)
-				ctx.sb.WriteString("=?")
-				
-				ctx.append_data(j.conditions[column])
-			}
-		}
 		ctx.sb.WriteByte('\n')
 	}
+	return nil
 }
 
 func (q *query_join) compile_optimize_joins(aliases alias_collect) []join {

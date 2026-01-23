@@ -66,8 +66,8 @@ func (q *Inserts_query) Fields(fields map[string]any) error {
 	return nil
 }
 
-func (q *Inserts_query) Left_join(table, t, field, field_foreign string, conditions Map) *Inserts_query {
-	q.left_join(table, t, field, field_foreign, conditions)
+func (q *Inserts_query) Left_join(table, t, field, field_foreign string) *Inserts_query {
+	q.left_join(table, t, field, field_foreign)
 	return q
 }
 

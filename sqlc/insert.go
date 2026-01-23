@@ -53,8 +53,8 @@ func (q *Insert_query) Fields(fields map[string]any) *Insert_query {
 	return q
 }
 
-func (q *Insert_query) Left_join(table, t, field, field_foreign string, conditions Map) *Insert_query {
-	q.left_join(table, t, field, field_foreign, conditions)
+func (q *Insert_query) Left_join(table, t, field, field_foreign string) *Insert_query {
+	q.left_join(table, t, field, field_foreign)
 	return q
 }
 
