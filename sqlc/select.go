@@ -119,6 +119,16 @@ func (q *Select_query) Left_join(table, t, field, field_foreign string) *Select_
 	return q
 }
 
+func (q *Select_query) Inner_join_fixed(table, t, field, field_foreign, field_fixed string, value_fixed any) *Select_query {
+	q.inner_join_fixed(table, t, field, field_foreign, field_fixed, value_fixed)
+	return q
+}
+
+func (q *Select_query) Left_join_fixed(table, t, field, field_foreign, field_fixed string, value_fixed any) *Select_query {
+	q.left_join_fixed(table, t, field, field_foreign, field_fixed, value_fixed)
+	return q
+}
+
 func (q *Select_query) Inner_join_multi(table, t string, fields Join_conditions) *Select_query {
 	q.inner_join_multi(table, t, fields)
 	return q
