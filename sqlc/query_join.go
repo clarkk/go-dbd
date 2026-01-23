@@ -54,6 +54,14 @@ func (q *query_join) left_join(table, t, field, field_foreign string){
 	q.join(join_left, table, t, field, field_foreign)
 }
 
+func (q *query_join) inner_join_fixed(table, t, field, field_foreign, field_fixed string, value_fixed any){
+	q.join_fixed(join_inner, table, t, field, field_foreign, field_fixed, value_fixed)
+}
+
+func (q *query_join) left_join_fixed(table, t, field, field_foreign, field_fixed string, value_fixed any){
+	q.join_fixed(join_left, table, t, field, field_foreign, field_fixed, value_fixed)
+}
+
 func (q *query_join) inner_join_multi(table, t string, fields Join_conditions){
 	q.join_multi(join_inner, table, t, fields)
 }
@@ -66,6 +74,19 @@ func (q *query_join) join(mode, table, t, field, field_foreign string){
 	fields := Join_conditions{{
 		Field:			field,
 		Field_foreign:	field_foreign,
+	}}
+	q.join_multi(mode, table, t, fields)
+}
+
+func (q *query_join) join_fixed(mode, table, t, field, field_foreign, field_fixed string, value_fixed any){
+	fields := Join_conditions{{
+		Field:			field,
+		Field_foreign:	field_foreign,
+	},{
+		Field:			field_fixed,
+		Fixed_value:	true,
+		Operator:		Op_eq,
+		Field_value:	value_fixed,
 	}}
 	q.join_multi(mode, table, t, fields)
 }
