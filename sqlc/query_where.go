@@ -53,11 +53,11 @@ func (q *query_where) compile_where(ctx *compiler, inner_condition func(ctx *com
 	}
 	
 	if q.where_clause != nil {
-		var duplicates map[string]string
+		var duplicates map[string]operator
 		//	Only allocate if at least 2 conditions
 		if len(q.where_clause.conditions) > 1 {
 			//	Pre-allocation
-			duplicates = make(map[string]string, 2)
+			duplicates = make(map[string]operator, 2)
 		}
 		
 		if err := q.walk_where_clause(ctx, q.where_clause, &duplicates, &first); err != nil {
@@ -69,7 +69,7 @@ func (q *query_where) compile_where(ctx *compiler, inner_condition func(ctx *com
 	return nil
 }
 
-func (q *query_where) walk_where_clause(ctx *compiler, clause *Where_clause, duplicates *map[string]string, first *bool) error {
+func (q *query_where) walk_where_clause(ctx *compiler, clause *Where_clause, duplicates *map[string]operator, first *bool) error {
 	//	Apply wrapped conditions
 	if clause.wrapped != nil {
 		if err := q.walk_where_clause(ctx, clause.wrapped, duplicates, first); err != nil {
@@ -90,7 +90,7 @@ func (q *query_where) walk_where_clause(ctx *compiler, clause *Where_clause, dup
 				(*duplicates)[condition.field] = condition.operator
 			}
 		} else {
-			*duplicates = make(map[string]string, 2)
+			*duplicates = make(map[string]operator, 2)
 			(*duplicates)[condition.field] = condition.operator
 		}
 		
@@ -160,7 +160,7 @@ func (q *query_where) get_alloc() (int, int, int){
 	return q.where_clause.get_alloc()
 }
 
-func check_operator_compatibility(current_operator, new_operator, field string) error {
+func check_operator_compatibility(current_operator, new_operator operator, field string) error {
 	if current_operator == new_operator {
 		return where_operator_error(field, current_operator, new_operator)
 	}
@@ -193,6 +193,6 @@ func check_operator_compatibility(current_operator, new_operator, field string) 
 	return nil
 }
 
-func where_operator_error(field, current_operator, new_operator string) error {
-	return fmt.Errorf("Where clause operator incompatable on same field (%s): %s %s", field, current_operator, new_operator)
+func where_operator_error(field string, current_operator, new_operator operator) error {
+	return fmt.Errorf("Where clause operator incompatable on same field (%s): %s %s", field, sql_ops[current_operator], sql_ops[new_operator])
 }

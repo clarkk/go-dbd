@@ -3,25 +3,35 @@ package sqlc
 import "slices"
 
 const (
-	op_eq 			= "="
-	op_not_eq 		= "!="
-	op_gt 			= ">"
-	op_gteq 		= ">="
-	op_lt 			= "<"
-	op_lteq 		= "<="
-	op_null 		= "null"
-	op_not_null 	= "not_null"
-	op_bt 			= "bt"
-	op_not_bt 		= "not_bt"
-	op_in 			= "in"
-	op_not_in 		= "not_in"
-	
-	op_in_subquery 	= "in_sub"
+	op_eq operator = iota
+	op_not_eq
+	op_gt
+	op_gteq
+	op_lt
+	op_lteq
+	op_null
+	op_not_null
+	op_bt
+	op_not_bt
+	op_in
+	op_not_in
+	op_in_subquery
 	
 	sql_op_bt		= "BETWEEN ? AND ?"
 )
 
+var sql_ops = [...]string{
+	op_eq:		"=",
+	op_not_eq:	"!=",
+	op_gt:		">",
+	op_gteq:	">=",
+	op_lt:		"<",
+	op_lteq:	"<=",
+}
+
 type (
+	operator			uint8
+	
 	Where_clause struct {
 		wrapped			*Where_clause
 		or_groups		[]*Where_clause
@@ -34,7 +44,7 @@ type (
 	
 	where_condition struct {
 		field			string
-		operator		string
+		operator		operator
 		value			any
 	}
 )
@@ -175,14 +185,14 @@ func (w *Where_clause) write_condition(sb *sbuilder, field *where_condition) ([]
 		sb.WriteByte(')')
 		
 	default:
-		sb.WriteString(field.operator)
+		sb.WriteString(sql_ops[field.operator])
 		sb.WriteByte('?')
 	}
 	
 	return subquery_data, nil
 }
 
-func (w *Where_clause) clause(field, operator string, value any){
+func (w *Where_clause) clause(field string, operator operator, value any){
 	var (
 		alloc		int
 		alloc_data	int
@@ -214,7 +224,7 @@ func (w *Where_clause) clause(field, operator string, value any){
 		
 	default:
 		alloc_data		= 1
-		alloc			= 1 + len(operator)
+		alloc			= 1 + len(sql_ops[operator])
 	}
 	
 	w.conditions = append(w.conditions, where_condition{
