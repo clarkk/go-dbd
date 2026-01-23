@@ -140,7 +140,7 @@ func (q *query_where) write_condition_data(ctx *compiler, condition *where_condi
 		return err
 	}
 	
-	if condition.operator == op_null || condition.operator == op_not_null {
+	if condition.operator == Op_null || condition.operator == Op_not_null {
 		return nil
 	}
 	
@@ -167,26 +167,26 @@ func check_operator_compatibility(current_operator, new_operator Operator, field
 	
 	switch current_operator {
 	//	Operator not compatable with "oposite" operators
-	case op_null:
-		if new_operator == op_not_null {
+	case Op_null:
+		if new_operator == Op_not_null {
 			return where_operator_error(field, current_operator, new_operator)
 		}
-	case op_not_null:
-		if new_operator == op_null {
+	case Op_not_null:
+		if new_operator == Op_null {
 			return where_operator_error(field, current_operator, new_operator)
 		}
 	
 	//	Operator not compatable with other operators
-	case op_eq, op_not_eq, op_bt, op_not_bt, op_in, op_not_in:
+	case Op_eq, Op_not_eq, Op_bt, Op_not_bt, Op_in, Op_not_in:
 		return where_operator_error(field, current_operator, new_operator)
 	
 	//	Operator only compatable with "oposite" operators
-	case op_gt, op_gteq:
-		if new_operator != op_lt && new_operator != op_lteq {
+	case Op_gt, Op_gteq:
+		if new_operator != Op_lt && new_operator != Op_lteq {
 			return where_operator_error(field, current_operator, new_operator)
 		}
-	case op_lt, op_lteq:
-		if new_operator != op_gt && new_operator != op_gteq {
+	case Op_lt, Op_lteq:
+		if new_operator != Op_gt && new_operator != Op_gteq {
 			return where_operator_error(field, current_operator, new_operator)
 		}
 	}

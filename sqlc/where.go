@@ -3,30 +3,30 @@ package sqlc
 import "slices"
 
 const (
-	op_eq Operator = iota
-	op_not_eq
-	op_gt
-	op_gteq
-	op_lt
-	op_lteq
-	op_null
-	op_not_null
-	op_bt
-	op_not_bt
-	op_in
-	op_not_in
-	op_in_subquery
+	Op_eq Operator = iota
+	Op_not_eq
+	Op_gt
+	Op_gteq
+	Op_lt
+	Op_lteq
+	Op_null
+	Op_not_null
+	Op_bt
+	Op_not_bt
+	Op_in
+	Op_not_in
+	Op_in_subquery
 	
 	sql_op_bt		= "BETWEEN ? AND ?"
 )
 
 var sql_ops = [...]string{
-	op_eq:		"=",
-	op_not_eq:	"!=",
-	op_gt:		">",
-	op_gteq:	">=",
-	op_lt:		"<",
-	op_lteq:	"<=",
+	Op_eq:		"=",
+	Op_not_eq:	"!=",
+	Op_gt:		">",
+	Op_gteq:	">=",
+	Op_lt:		"<",
+	Op_lteq:	"<=",
 }
 
 type (
@@ -67,12 +67,12 @@ func (w *Where_clause) Or_group(where *Where_clause) *Where_clause {
 }
 
 func (w *Where_clause) Eq(field string, value any) *Where_clause {
-	w.clause(field, op_eq, value)
+	w.clause(field, Op_eq, value)
 	return w
 }
 
 func (w *Where_clause) Not_eq(field string, value any) *Where_clause {
-	w.clause(field, op_not_eq, value)
+	w.clause(field, Op_not_eq, value)
 	return w
 }
 
@@ -86,63 +86,63 @@ func (w *Where_clause) Eqs(fields map[string]any) *Where_clause {
 	}
 	slices.Sort(keys)
 	for _, k := range keys {
-		w.clause(k, op_eq, fields[k])
+		w.clause(k, Op_eq, fields[k])
 	}
 	return w
 }
 
 func (w *Where_clause) Gt(field string, value any) *Where_clause {
-	w.clause(field, op_gt, value)
+	w.clause(field, Op_gt, value)
 	return w
 }
 
 func (w *Where_clause) Gt_eq(field string, value any) *Where_clause {
-	w.clause(field, op_gteq, value)
+	w.clause(field, Op_gteq, value)
 	return w
 }
 
 func (w *Where_clause) Lt(field string, value any) *Where_clause {
-	w.clause(field, op_lt, value)
+	w.clause(field, Op_lt, value)
 	return w
 }
 
 func (w *Where_clause) Lt_eq(field string, value any) *Where_clause {
-	w.clause(field, op_lteq, value)
+	w.clause(field, Op_lteq, value)
 	return w
 }
 
 func (w *Where_clause) Null(field string) *Where_clause {
-	w.clause(field, op_null, nil)
+	w.clause(field, Op_null, nil)
 	return w
 }
 
 func (w *Where_clause) Not_null(field string) *Where_clause {
-	w.clause(field, op_not_null, nil)
+	w.clause(field, Op_not_null, nil)
 	return w
 }
 
 func (w *Where_clause) Bt(field string, value1, value2 any) *Where_clause {
-	w.clause(field, op_bt, []any{value1, value2})
+	w.clause(field, Op_bt, []any{value1, value2})
 	return w
 }
 
 func (w *Where_clause) Not_bt(field string, value1, value2 any) *Where_clause {
-	w.clause(field, op_not_bt, []any{value1, value2})
+	w.clause(field, Op_not_bt, []any{value1, value2})
 	return w
 }
 
 func (w *Where_clause) In(field string, values []any) *Where_clause {
-	w.clause(field, op_in, values)
+	w.clause(field, Op_in, values)
 	return w
 }
 
 func (w *Where_clause) Not_in(field string, values []any) *Where_clause {
-	w.clause(field, op_not_in, values)
+	w.clause(field, Op_not_in, values)
 	return w
 }
 
 func (w *Where_clause) In_subquery(field string, query *Select_query) *Where_clause {
-	w.clause(field, op_in_subquery, query)
+	w.clause(field, Op_in_subquery, query)
 	return w
 }
 
@@ -150,28 +150,28 @@ func write_operator_condition(sb *sbuilder, operator Operator, value any) ([]any
 	var subquery_data []any
 	
 	switch operator {
-	case op_null:
+	case Op_null:
 		sb.WriteString(" IS NULL")
 		
-	case op_not_null:
+	case Op_not_null:
 		sb.WriteString(" IS NOT NULL")
 		
-	case op_bt, op_not_bt:
-		if operator == op_not_bt {
+	case Op_bt, Op_not_bt:
+		if operator == Op_not_bt {
 			sb.WriteString(" NOT")
 		}
 		sb.WriteByte(' ')
 		sb.WriteString(sql_op_bt)
 		
-	case op_in, op_not_in:
-		if operator == op_not_in {
+	case Op_in, Op_not_in:
+		if operator == Op_not_in {
 			sb.WriteString(" NOT")
 		}
 		sb.WriteString(" IN (")
 		field_placeholder_list(len(value.([]any)), sb)
 		sb.WriteByte(')')
 		
-	case op_in_subquery:
+	case Op_in_subquery:
 		var (
 			err error
 			sql	string
@@ -199,27 +199,27 @@ func (w *Where_clause) clause(field string, operator Operator, value any){
 	)
 	
 	switch operator {
-	case op_null:
+	case Op_null:
 		alloc			= 8
 		
-	case op_not_null:
+	case Op_not_null:
 		alloc			= 12
 		
-	case op_bt, op_not_bt:
+	case Op_bt, Op_not_bt:
 		alloc_data		= 2
 		alloc			= 1 + len(sql_op_bt)
-		if operator == op_not_bt {
+		if operator == Op_not_bt {
 			alloc		+= 4
 		}
 		
-	case op_in, op_not_in:
+	case Op_in, Op_not_in:
 		alloc_data		= len(value.([]any))
 		alloc			= 6 + alloc_field_placeholder_list(alloc_data)
-		if operator == op_not_in {
+		if operator == Op_not_in {
 			alloc		+= 4
 		}
 		
-	case op_in_subquery:
+	case Op_in_subquery:
 		alloc			= 7 + alloc_query
 		
 	default:

@@ -230,7 +230,7 @@ func (q *query_join) compile_joins(ctx *compiler, aliases alias_collect) error {
 					return err
 				}
 				
-				if jf.Operator == op_null || jf.Operator == op_not_null {
+				if jf.Operator == Op_null || jf.Operator == Op_not_null {
 					continue
 				}
 				
