@@ -75,7 +75,7 @@ func (q *Select_query) Select(list []string) *Select_query {
 			f.function = v[:pos]
 			v = v[pos+1:]
 		}
-		if pos := strings.IndexByte(v, ' '); pos != -1 {
+		if pos := strings.IndexByte(v, '='); pos != -1 {
 			f.field = v[:pos]
 			f.alias = v[pos+1:]
 		} else {
