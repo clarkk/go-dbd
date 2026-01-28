@@ -1104,9 +1104,9 @@ LIMIT 0,10`
 func run_select_json(tb testing.TB){
 	subquery := Select("account").
 		Select([]string{
-			"key key",
-			"test_col1 alias1",
-			"l.test_col2 alias2",
+			"key=key",
+			"test_col1=alias1",
+			"l.test_col2=alias2",
 		}).
 		Left_join_multi("language", "l", Join_conditions{{
 			Field:			"id",
@@ -1180,9 +1180,9 @@ LIMIT 0,10`
 func run_select_json_optimize(tb testing.TB){
 	subquery := Select("account").
 		Select([]string{
-			"key key",
-			"test_col1 alias1",
-			"l.test_col2 alias2",
+			"key=key",
+			"test_col1=alias1",
+			"l.test_col2=alias2",
 		}).
 		Left_join_multi("language", "l", Join_conditions{{
 			Field:			"id",

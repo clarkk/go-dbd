@@ -6,6 +6,8 @@ import (
 	"strconv"
 )
 
+const SELECT_RAW = "raw"
+
 type (
 	Select_query struct {
 		query_where
@@ -231,7 +233,11 @@ func (q *Select_query) Compile() (string, []any, error){
 func (q *Select_query) collect_aliases(list alias_collect) error {
 	//	Check SELECT clause
 	for _, f := range q.select_fields {
-		list.apply(f.field)
+		if f.function == SELECT_RAW {
+			list.apply_raw(f.field)
+		} else {
+			list.apply(f.field)
+		}
 	}
 	for _, f := range q.select_jsons {
 		list.apply(f.inner_field)
@@ -272,8 +278,12 @@ func (q *Select_query) compile_select(ctx *compiler) error {
 		switch s.function {
 		case "":
 			ctx.write_field(q.t, s.field)
-		case "raw":
-			ctx.sb.WriteString(s.field)
+		case SELECT_RAW:
+			if strings.Contains(s.field, ROOT_ALIAS) {
+				ctx.sb.WriteString(strings.ReplaceAll(s.field, ROOT_ALIAS+".", q.t+"."))
+			} else {
+				ctx.sb.WriteString(s.field)
+			}
 		case "sum_zero":
 			ctx.sb.WriteString("IFNULL(SUM(")
 			ctx.write_field(q.t, s.field)
