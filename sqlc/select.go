@@ -6,7 +6,10 @@ import (
 	"strconv"
 )
 
-const SELECT_RAW = "raw"
+const (
+	SELECT_RAW		= "raw"
+	SELECT_SUM_ZERO	= "sum_zero"
+)
 
 type (
 	Select_query struct {
@@ -284,7 +287,7 @@ func (q *Select_query) compile_select(ctx *compiler) error {
 			} else {
 				ctx.sb.WriteString(s.field)
 			}
-		case "sum_zero":
+		case SELECT_SUM_ZERO:
 			ctx.sb.WriteString("IFNULL(SUM(")
 			ctx.write_field(q.t, s.field)
 			ctx.sb.WriteString("), 0)")
