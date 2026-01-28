@@ -353,7 +353,15 @@ func (q *Select_query) compile_select_join(ctx *compiler, sj *select_json) error
 			ctx.sb.WriteString(", ")
 		}
 		ctx.sb.WriteByte('\'')
-		ctx.sb.WriteString(field.alias)
+		if field.alias == "" {
+			if pos := strings.IndexByte(field.field, '.'); pos != -1 {
+				ctx.sb.WriteString(field.field[pos+1:])
+			} else {
+				ctx.sb.WriteString(field.field)
+			}
+		} else {
+			ctx.sb.WriteString(field.alias)
+		}
 		ctx.sb.WriteString("', ")
 		ctx.write_field(sj.query.t, field.field)
 	}
