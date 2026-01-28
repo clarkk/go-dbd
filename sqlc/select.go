@@ -269,20 +269,20 @@ func (q *Select_query) compile_select(ctx *compiler) error {
 			ctx.sb.WriteString(", ")
 		}
 		
-		if s.function != "" {
-			switch s.function {
-			case "sum_zero":
-				ctx.sb.WriteString("IFNULL(SUM(")
-				ctx.write_field(q.t, s.field)
-				ctx.sb.WriteString("), 0)")
-			default:
-				ctx.sb.WriteString(strings.ToUpper(s.function))
-				ctx.sb.WriteByte('(')
-				ctx.write_field(q.t, s.field)
-				ctx.sb.WriteByte(')')
-			}
-		} else {
+		switch s.function {
+		case "":
 			ctx.write_field(q.t, s.field)
+		case "raw":
+			ctx.sb.WriteString(s.field)
+		case "sum_zero":
+			ctx.sb.WriteString("IFNULL(SUM(")
+			ctx.write_field(q.t, s.field)
+			ctx.sb.WriteString("), 0)")
+		default:
+			ctx.sb.WriteString(strings.ToUpper(s.function))
+			ctx.sb.WriteByte('(')
+			ctx.write_field(q.t, s.field)
+			ctx.sb.WriteByte(')')
 		}
 		
 		if s.alias != "" {
