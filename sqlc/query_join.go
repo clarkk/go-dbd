@@ -12,6 +12,7 @@ const (
 	
 	join_inner			= "JOIN"
 	join_left			= "LEFT JOIN"
+	join_cross			= "CROSS JOIN"
 	
 	char_table			= "abcdefghijklmnopqrstuvwxyz"
 )
@@ -52,6 +53,15 @@ func (q *query_join) inner_join(table, t, field, field_foreign string){
 
 func (q *query_join) left_join(table, t, field, field_foreign string){
 	q.join(join_left, table, t, field, field_foreign)
+}
+
+func (q *query_join) cross_join(table, t string){
+	q.joined = true
+	q.joins = append(q.joins, join{
+		mode:			join_cross,
+		table:			table,
+		t:				t,
+	})
 }
 
 func (q *query_join) inner_join_fixed(table, t, field, field_foreign, field_fixed string, value_fixed any){
@@ -235,6 +245,12 @@ func (q *query_join) compile_joins(ctx *compiler, aliases alias_collect) error {
 		ctx.sb.WriteString(j.table)
 		ctx.sb.WriteByte(' ')
 		ctx.sb.WriteString(j.t)
+		
+		if j.mode == join_cross {
+			ctx.sb.WriteByte('\n')
+			continue
+		}
+		
 		ctx.sb.WriteString(" ON ")
 		
 		for e, jf := range j.on {

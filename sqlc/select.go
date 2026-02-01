@@ -124,6 +124,11 @@ func (q *Select_query) Left_join(table, t, field, field_foreign string) *Select_
 	return q
 }
 
+func (q *Select_query) Cross_join(table, t string) *Select_query {
+	q.cross_join(table, t)
+	return q
+}
+
 func (q *Select_query) Inner_join_fixed(table, t, field, field_foreign, field_fixed string, value_fixed any) *Select_query {
 	q.inner_join_fixed(table, t, field, field_foreign, field_fixed, value_fixed)
 	return q
