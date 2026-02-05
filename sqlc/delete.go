@@ -1,5 +1,7 @@
 package sqlc
 
+import "fmt"
+
 type Delete_query struct {
 	query_where
 }
@@ -34,6 +36,10 @@ func (q *Delete_query) Where(clause *Where_clause) *Delete_query {
 }
 
 func (q *Delete_query) Compile() (string, []any, error){
+	if !q.use_id && q.where_clause == nil {
+		return "", nil, fmt.Errorf("Delete without where")
+	}
+	
 	ctx := compiler_pool.Get().(*compiler)
 	defer func() {
 		ctx.reset()

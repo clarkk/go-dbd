@@ -68,12 +68,17 @@ func Test_optimize_joins(t *testing.T){
 
 func Benchmark_error(b *testing.B) {
 	for i := 0; i < b.N; i++ {
+		run_require_where(b)
 		run_operator_compatibility(b)
 		run_operator_compatibility_oposite(b)
 	}
 }
 
 func Test_error(t *testing.T){
+	t.Run("require where", func(t *testing.T){
+		run_require_where(t)
+	})
+	
 	t.Run("operator compatability", func(t *testing.T){
 		run_operator_compatibility(t)
 	})
@@ -81,6 +86,36 @@ func Test_error(t *testing.T){
 	t.Run("operator compatability oposite", func(t *testing.T){
 		run_operator_compatibility_oposite(t)
 	})
+}
+
+func run_require_where(tb testing.TB){
+	query_delete := Delete("user")
+	
+	_, _, err := query_delete.Compile()
+	
+	want := "Delete without where"
+	
+	if err == nil {
+		tb.Fatalf("SQL expected error: %v", want)
+	}
+	
+	if err.Error() != want {
+		tb.Fatalf("SQL want:\n%s\nSQL got:\n%v", want, err)
+	}
+	
+	query_update := Update("user")
+	
+	_, _, err = query_update.Compile()
+	
+	want = "Update without where"
+	
+	if err == nil {
+		tb.Fatalf("SQL expected error: %v", want)
+	}
+	
+	if err.Error() != want {
+		tb.Fatalf("SQL want:\n%s\nSQL got:\n%v", want, err)
+	}
 }
 
 func run_operator_compatibility(tb testing.TB){
@@ -1897,13 +1932,15 @@ func run_update(tb testing.TB){
 	query := Update("user").
 		Fields(Map{
 			"time_login": 123,
-		})
+		}).
+		Where(Where().Eq("name", "test"))
 	
 	sql, _, _ := query.Compile()
 	
 	want :=
 `UPDATE .user
-SET time_login=?`
+SET time_login=?
+WHERE name=?`
 	got := strings.TrimSpace(sql)
 	if got != want {
 		tb.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
@@ -1911,7 +1948,8 @@ SET time_login=?`
 	
 	want =
 `UPDATE .user
-SET time_login=123`
+SET time_login=123
+WHERE name=test`
 	got = SQL_debug(query)
 	if got != want {
 		tb.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
@@ -1951,13 +1989,15 @@ func run_update_nil(tb testing.TB){
 		Fields(Map{
 			"time_login":	123,
 			"test":			nil,
-		})
+		}).
+		Where(Where().Eq("name", "test"))
 	
 	sql, _, _ := query.Compile()
 	
 	want :=
 `UPDATE .user
-SET test=?, time_login=?`
+SET test=?, time_login=?
+WHERE name=?`
 	got := strings.TrimSpace(sql)
 	if got != want {
 		tb.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
@@ -1965,7 +2005,8 @@ SET test=?, time_login=?`
 	
 	want =
 `UPDATE .user
-SET test=<nil>, time_login=123`
+SET test=<nil>, time_login=123
+WHERE name=test`
 	got = SQL_debug(query)
 	if got != want {
 		tb.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
@@ -2039,19 +2080,22 @@ WHERE id=100`
 }
 
 func run_delete(tb testing.TB){
-	query := Delete("user")
+	query := Delete("user").
+		Where(Where().Eq("name", "test"))
 	
 	sql, _, _ := query.Compile()
 	
 	want :=
-`DELETE FROM .user`
+`DELETE FROM .user
+WHERE name=?`
 	got := strings.TrimSpace(sql)
 	if got != want {
 		tb.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)
 	}
 	
 	want =
-`DELETE FROM .user`
+`DELETE FROM .user
+WHERE name=test`
 	got = SQL_debug(query)
 	if got != want {
 		tb.Fatalf("SQL want:\n%s\nSQL got:\n%s", want, got)

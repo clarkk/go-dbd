@@ -61,6 +61,10 @@ func (q *Update_query) Where(clause *Where_clause) *Update_query {
 }
 
 func (q *Update_query) Compile() (string, []any, error){
+	if !q.use_id && q.where_clause == nil {
+		return "", nil, fmt.Errorf("Update without where")
+	}
+	
 	ctx := compiler_pool.Get().(*compiler)
 	defer func() {
 		ctx.reset()
