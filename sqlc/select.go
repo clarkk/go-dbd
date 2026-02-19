@@ -320,12 +320,22 @@ func (q *Select_query) compile_select(ctx *compiler) error {
 func (q *Select_query) compile_select_joins(ctx *compiler) error {
 	var err error
 	for _, sj := range q.select_jsons {
+		if sj.query == nil {
+			q.compile_select_null(ctx, sj)
+			continue
+		}
+		
 		if err = q.compile_select_join(ctx, sj); err != nil {
 			return err
 		}
 	}
 	
 	return nil
+}
+
+func (q *Select_query) compile_select_null(ctx *compiler, sj *select_json) {
+	ctx.sb.WriteString(", NULL ")
+	ctx.sb.WriteString(sj.select_field)
 }
 
 func (q *Select_query) compile_select_join(ctx *compiler, sj *select_json) error {
