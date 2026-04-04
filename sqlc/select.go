@@ -234,7 +234,7 @@ func (q *Select_query) Compile() (string, []any, error){
 	if q.read_lock {
 		ctx.sb.WriteString("FOR UPDATE\n")
 	}
-	ctx.sb.WriteString("FOR SHARE\n")
+	ctx.sb.WriteString("LOCK IN SHARE MODE\n")
 	
 	return ctx.sb.String(), ctx.data, nil
 }
