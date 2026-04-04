@@ -16,6 +16,11 @@ func NewTx(ctx context.Context) (*Tx, error){
 	tx := &Tx{
 		ctx: ctx,
 	}
+	
+	if debug_log {
+		log_sql("BEGIN")
+	}
+	
 	var err error
 	if tx.tx, err = db.BeginTx(ctx, nil); err != nil {
 		if ctx_canceled(err) {
@@ -34,6 +39,11 @@ func (t *Tx) Rollback() error {
 	if t.tx == nil {
 		return nil
 	}
+	
+	if debug_log {
+		log_sql("ROLLBACK")
+	}
+	
 	if err := t.tx.Rollback(); err != nil {
 		t.tx = nil
 		if ctx_canceled(err) {
@@ -49,6 +59,11 @@ func (t *Tx) Commit() error {
 	if t.tx == nil {
 		panic("DB transaction commit: No active transaction")
 	}
+	
+	if debug_log {
+		log_sql("COMMIT")
+	}
+	
 	if err := t.tx.Commit(); err != nil {
 		t.tx = nil
 		if ctx_canceled(err) {
@@ -68,6 +83,10 @@ func (t *Tx) Exec(query sqlc.SQL) (sql.Result, error){
 	sql, data, err := query.Compile()
 	if err != nil {
 		return nil, &Error{"DB transaction execute compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
+	}
+	
+	if debug_log {
+		log_sql(sqlc.SQL_debug(query))
 	}
 	
 	result, err := t.tx.ExecContext(t.ctx, sql, data...)
@@ -90,6 +109,10 @@ func (t *Tx) Query_row(query sqlc.SQL, scan []any) (bool, error){
 	sql, data, err := query.Compile()
 	if err != nil {
 		return false, &Error{"DB transaction query row compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
+	}
+	
+	if debug_log {
+		log_sql(sqlc.SQL_debug(query))
 	}
 	
 	if err := t.tx.QueryRowContext(t.ctx, sql, data...).Scan(scan...); err != nil {
@@ -116,6 +139,10 @@ func (t *Tx) Query(query sqlc.SQL) (*sql.Rows, error){
 		return nil, &Error{"DB transaction query compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
+	if debug_log {
+		log_sql(sqlc.SQL_debug(query))
+	}
+	
 	rows, err := t.tx.QueryContext(t.ctx, sql, data...)
 	if err != nil {
 		msg 	:= sqlc.SQL_error("DB transaction query", query, err)
@@ -139,6 +166,10 @@ func (t *Tx) Insert(query sqlc.SQL) (uint64, error){
 		return id, &Error{"DB transaction insert compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
+	if debug_log {
+		log_sql(sqlc.SQL_debug(query))
+	}
+	
 	if err := t.tx.QueryRowContext(t.ctx, sql+"RETURNING id", data...).Scan(&id); err != nil {
 		msg 	:= sqlc.SQL_error("DB transaction insert", query, err)
 		stack 	:= errors.Wrap(err, 0).ErrorStack()
@@ -158,6 +189,10 @@ func (t *Tx) Insert_no_return(query sqlc.SQL) error {
 	sql, data, err := query.Compile()
 	if err != nil {
 		return &Error{"DB transaction insert no return compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
+	}
+	
+	if debug_log {
+		log_sql(sqlc.SQL_debug(query))
 	}
 	
 	_, err = t.tx.ExecContext(t.ctx, sql, data...)
@@ -182,6 +217,10 @@ func (t *Tx) Update(query sqlc.SQL) error {
 		return &Error{"DB transaction update compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
+	if debug_log {
+		log_sql(sqlc.SQL_debug(query))
+	}
+	
 	if _, err := t.tx.ExecContext(t.ctx, sql, data...); err != nil {
 		msg 	:= sqlc.SQL_error("DB transaction update", query, err)
 		stack 	:= errors.Wrap(err, 0).ErrorStack()
@@ -201,6 +240,10 @@ func (t *Tx) Delete(query sqlc.SQL) (bool, error){
 	sql, data, err := query.Compile()
 	if err != nil {
 		return false, &Error{"DB transaction delete compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
+	}
+	
+	if debug_log {
+		log_sql(sqlc.SQL_debug(query))
 	}
 	
 	var id uint64

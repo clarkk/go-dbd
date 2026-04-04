@@ -51,6 +51,10 @@ func Exec(ctx context.Context, query sqlc.SQL) (sql.Result, error){
 		return nil, &Error{"DB execute compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
+	if debug_log {
+		log_sql(sqlc.SQL_debug(query))
+	}
+	
 	result, err := db.ExecContext(ctx, sql, data...)
 	if err != nil {
 		msg 	:= sqlc.SQL_error("DB execute", query, err)
@@ -67,6 +71,10 @@ func Query_row(ctx context.Context, query sqlc.SQL, scan []any) (bool, error){
 	sql, data, err := query.Compile()
 	if err != nil {
 		return false, &Error{"DB query row compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
+	}
+	
+	if debug_log {
+		log_sql(sqlc.SQL_debug(query))
 	}
 	
 	if err := db.QueryRowContext(ctx, sql, data...).Scan(scan...); err != nil {
@@ -89,6 +97,10 @@ func Query(ctx context.Context, query sqlc.SQL) (*sql.Rows, error){
 		return nil, &Error{"DB query compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
+	if debug_log {
+		log_sql(sqlc.SQL_debug(query))
+	}
+	
 	rows, err := db.QueryContext(ctx, sql, data...)
 	if err != nil {
 		msg := sqlc.SQL_error("DB query", query, err)
@@ -108,6 +120,10 @@ func Insert(ctx context.Context, query sqlc.SQL) (uint64, error){
 		return id, &Error{"DB insert compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 	}
 	
+	if debug_log {
+		log_sql(sqlc.SQL_debug(query))
+	}
+	
 	if err := db.QueryRowContext(ctx, sql+"RETURNING id", data...).Scan(&id); err != nil {
 		msg := sqlc.SQL_error("DB insert", query, err)
 		stack := errors.Wrap(err, 0).ErrorStack()
@@ -123,6 +139,10 @@ func Update(ctx context.Context, query sqlc.SQL) (sql.Result, error){
 	sql, data, err := query.Compile()
 	if err != nil {
 		return nil, &Error{"DB update compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
+	}
+	
+	if debug_log {
+		log_sql(sqlc.SQL_debug(query))
 	}
 	
 	result, err := db.ExecContext(ctx, sql, data...)
@@ -141,6 +161,10 @@ func Delete(ctx context.Context, query sqlc.SQL) (bool, error){
 	sql, data, err := query.Compile()
 	if err != nil {
 		return false, &Error{"DB delete compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
+	}
+	
+	if debug_log {
+		log_sql(sqlc.SQL_debug(query))
 	}
 	
 	var id uint64
