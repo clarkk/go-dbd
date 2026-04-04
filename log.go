@@ -12,6 +12,5 @@ func Debug_log(){
 }
 
 func log_sql(sql string){
-	indented := strings.ReplaceAll(sql, "\n", "\n\t")
-	log.Printf("[DB LOG] %s", indented)
+	log.Printf("[DB LOG] %s", strings.ReplaceAll(sql, "\n", "\n\t"))
 }
