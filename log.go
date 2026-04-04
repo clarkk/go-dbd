@@ -1,6 +1,9 @@
 package dbd
 
-import "log"
+import (
+	"log"
+	"strings"
+)
 
 var debug_log bool
 
@@ -9,5 +12,6 @@ func Debug_log(){
 }
 
 func log_sql(sql string){
-	log.Printf("[DB LOG] %s", sql)
+	indented := strings.ReplaceAll(sql, "\n", "\n\t")
+	log.Printf("[DB LOG] %s", indented)
 }
