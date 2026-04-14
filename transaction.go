@@ -49,7 +49,7 @@ func (t *Tx) Rollback() error {
 		if ctx_canceled(err) {
 			return &Timeout_error{"DB transaction rollback: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 		}
-		panic("DB transaction rollback: "+err.Error())
+		return &Error{"DB transaction rollback: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 	}
 	t.tx = nil
 	return nil
