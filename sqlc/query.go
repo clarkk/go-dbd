@@ -1,10 +1,6 @@
 package sqlc
 
-import (
-	"fmt"
-	"sync"
-	"strings"
-)
+import "sync"
 
 const (
 	alloc_field			= 15
