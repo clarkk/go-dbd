@@ -30,10 +30,6 @@ type (
 	}
 )
 
-func SQL_error(msg string, q SQL, err error) string {
-	return msg+"\n"+err.Error()+"\n"+SQL_debug(q)
-}
-
 func field_placeholder_list(count int, sb *sbuilder){
 	if count == 0 {
 		return

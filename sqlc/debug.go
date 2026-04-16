@@ -5,6 +5,10 @@ import (
 	"strings"
 )
 
+func SQL_error(msg string, q SQL, err error) string {
+	return msg+"\n"+err.Error()+"\n"+SQL_debug(q)
+}
+
 func SQL_debug(q SQL) string {
 	sql, data, err := q.Compile()
 	if err != nil {
