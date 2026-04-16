@@ -34,17 +34,6 @@ type (
 	}
 )
 
-func SQL_debug(q SQL) string {
-	sql, data, err := q.Compile()
-	if err != nil {
-		return "Error compiling SQL: "+err.Error()
-	}
-	for _, value := range data {
-		sql = strings.Replace(sql, "?", fmt.Sprintf("%v", value), 1)
-	}
-	return strings.TrimSpace(sql)
-}
-
 func SQL_error(msg string, q SQL, err error) string {
 	return msg+"\n"+err.Error()+"\n"+SQL_debug(q)
 }
