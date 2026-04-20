@@ -1422,7 +1422,7 @@ func run_select_for_update(tb testing.TB){
 			"id",
 			"email",
 		}).
-		Read_lock()
+		Lock_for_update()
 	
 	/*aliases := alias_collect{}
 	query.collect_aliases(aliases)

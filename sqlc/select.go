@@ -20,7 +20,7 @@ type (
 		group			[]string
 		order 			[]string
 		limit 			select_limit
-		read_lock		bool
+		lock_for_update		bool
 	}
 	
 	select_field struct {
@@ -61,8 +61,8 @@ func Select(table string) *Select_query {
 	}
 }
 
-func (q *Select_query) Read_lock() *Select_query {
-	q.read_lock = true
+func (q *Select_query) Lock_for_update() *Select_query {
+	q.lock_for_update = true
 	return q
 }
 
@@ -231,7 +231,7 @@ func (q *Select_query) Compile() (string, []any, error){
 	q.compile_group(ctx)
 	q.compile_order(ctx)
 	q.compile_limit(ctx)
-	if q.read_lock {
+	if q.lock_for_update {
 		ctx.sb.WriteString("FOR UPDATE\n")
 	}
 	
