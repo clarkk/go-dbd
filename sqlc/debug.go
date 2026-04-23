@@ -2,6 +2,7 @@ package sqlc
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 )
 
@@ -14,86 +15,30 @@ func SQL_debug(q SQL) string {
 	if err != nil {
 		return "Error compiling SQL: "+err.Error()
 	}
-	for _, value := range data {
-		var actual any = value
-		switch t := value.(type) {
-		case *int:
-			if t != nil {
-				actual = *t
-			} else {
-				actual = "<nil>"
-			}
-		case *uint:
-			if t != nil {
-				actual = *t
-			} else {
-				actual = "<nil>"
-			}
-		case *int8:
-			if t != nil {
-				actual = *t
-			} else {
-				actual = "<nil>"
-			}
-		case *uint8:
-			if t != nil {
-				actual = *t
-			} else {
-				actual = "<nil>"
-			}
-		case *int32:
-			if t != nil {
-				actual = *t
-			} else {
-				actual = "<nil>"
-			}
-		case *uint32:
-			if t != nil {
-				actual = *t
-			} else {
-				actual = "<nil>"
-			}
-		case *int64:
-			if t != nil {
-				actual = *t
-			} else {
-				actual = "<nil>"
-			}
-		case *uint64:
-			if t != nil {
-				actual = *t
-			} else {
-				actual = "<nil>"
-			}
-		case *float32:
-			if t != nil {
-				actual = *t
-			} else {
-				actual = "<nil>"
-			}
-		case *float64:
-			if t != nil {
-				actual = *t
-			} else {
-				actual = "<nil>"
-			}
-		case *string:
-			if t != nil {
-				actual = *t
-			} else {
-				actual = "<nil>"
-			}
-		case *bool:
-			if t != nil {
-				actual = *t
-			} else {
-				actual = "<nil>"
-			}
-		case nil:
-			actual = "<nil>"
-		}
+	
+	parts := strings.Split(sql, "?")
+	var builder strings.Builder
+	
+	for i := range len(parts) {
+		builder.WriteString(parts[i])
 		
-		sql = strings.Replace(sql, "?", fmt.Sprintf("%v", actual), 1)
+		if i < len(data) {
+			value	:= data[i]
+			s		:= "<nil>"
+			
+			if value != nil {
+				val := reflect.ValueOf(value)
+				if val.Kind() == reflect.Ptr {
+					if !val.IsNil() {
+						s = fmt.Sprintf("%v", val.Elem().Interface())
+					}
+				} else {
+					s = fmt.Sprintf("%v", value)
+				}
+			}
+			builder.WriteString(s)
+		}
 	}
-	return strings.TrimSpace(sql)
+	
+	return strings.TrimSpace(builder.String())
 }

@@ -1,15 +1,20 @@
 package dbd
 
 import (
+	"fmt"
 	"context"
+	"sync/atomic"
 	"database/sql"
 	"github.com/go-errors/errors"
 	"github.com/clarkk/go-dbd/sqlc"
 )
 
+var log_id uint64
+
 type Tx struct {
 	ctx		context.Context
 	tx		*sql.Tx
+	log_id	uint64
 }
 
 func NewTx(ctx context.Context) (*Tx, error){
@@ -18,7 +23,8 @@ func NewTx(ctx context.Context) (*Tx, error){
 	}
 	
 	if debug_log {
-		log_sql("BEGIN")
+		tx.log_id = atomic.AddUint64(&log_id, 1)
+		tx.log("BEGIN")
 	}
 	
 	var err error
@@ -41,7 +47,7 @@ func (t *Tx) Rollback() error {
 	}
 	
 	if debug_log {
-		log_sql("ROLLBACK")
+		t.log("ROLLBACK")
 	}
 	
 	if err := t.tx.Rollback(); err != nil {
@@ -61,7 +67,7 @@ func (t *Tx) Commit() error {
 	}
 	
 	if debug_log {
-		log_sql("COMMIT")
+		t.log("COMMIT")
 	}
 	
 	if err := t.tx.Commit(); err != nil {
@@ -86,7 +92,7 @@ func (t *Tx) Exec(query sqlc.SQL) (sql.Result, error){
 	}
 	
 	if debug_log {
-		log_sql(sqlc.SQL_debug(query))
+		t.log(sqlc.SQL_debug(query))
 	}
 	
 	result, err := t.tx.ExecContext(t.ctx, sql, data...)
@@ -112,7 +118,7 @@ func (t *Tx) Query_row(query sqlc.SQL, scan []any) (bool, error){
 	}
 	
 	if debug_log {
-		log_sql(sqlc.SQL_debug(query))
+		t.log(sqlc.SQL_debug(query))
 	}
 	
 	if err := t.tx.QueryRowContext(t.ctx, sql, data...).Scan(scan...); err != nil {
@@ -140,7 +146,7 @@ func (t *Tx) Query(query sqlc.SQL) (*sql.Rows, error){
 	}
 	
 	if debug_log {
-		log_sql(sqlc.SQL_debug(query))
+		t.log(sqlc.SQL_debug(query))
 	}
 	
 	rows, err := t.tx.QueryContext(t.ctx, sql, data...)
@@ -167,7 +173,7 @@ func (t *Tx) Insert(query sqlc.SQL) (uint64, error){
 	}
 	
 	if debug_log {
-		log_sql(sqlc.SQL_debug(query))
+		t.log(sqlc.SQL_debug(query))
 	}
 	
 	if err := t.tx.QueryRowContext(t.ctx, sql+"RETURNING id", data...).Scan(&id); err != nil {
@@ -192,7 +198,7 @@ func (t *Tx) Insert_no_return(query sqlc.SQL) error {
 	}
 	
 	if debug_log {
-		log_sql(sqlc.SQL_debug(query))
+		t.log(sqlc.SQL_debug(query))
 	}
 	
 	_, err = t.tx.ExecContext(t.ctx, sql, data...)
@@ -218,7 +224,7 @@ func (t *Tx) Update(query sqlc.SQL) error {
 	}
 	
 	if debug_log {
-		log_sql(sqlc.SQL_debug(query))
+		t.log(sqlc.SQL_debug(query))
 	}
 	
 	if _, err := t.tx.ExecContext(t.ctx, sql, data...); err != nil {
@@ -243,7 +249,7 @@ func (t *Tx) Delete(query sqlc.SQL) (bool, error){
 	}
 	
 	if debug_log {
-		log_sql(sqlc.SQL_debug(query))
+		t.log(sqlc.SQL_debug(query))
 	}
 	
 	var id uint64
@@ -259,4 +265,8 @@ func (t *Tx) Delete(query sqlc.SQL) (bool, error){
 		return false, &Error{msg, stack}
 	}
 	return false, nil
+}
+
+func (t *Tx) log(msg string){
+	log_sql(fmt.Sprintf("[TX #%d] %s", t.log_id, msg))
 }
