@@ -77,6 +77,5 @@ func (q *Delete_query) Compile() (string, []any, error){
 		return "", nil, err
 	}
 	
-	data := append([]any(nil), ctx.data...)
-	return ctx.sb.String(), data, nil
+	return ctx.sb.String(), ctx.data_copy(), nil
 }

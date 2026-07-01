@@ -10,6 +10,10 @@ type compiler struct {
 	data		[]any
 }
 
+func (c *compiler) data_copy() []any {
+	return append([]any(nil), c.data...)
+}
+
 func (c *compiler) reset(){
 	c.sb.Reset()
 	c.use_alias	= false

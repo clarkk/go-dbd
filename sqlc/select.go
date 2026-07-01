@@ -235,8 +235,7 @@ func (q *Select_query) Compile() (string, []any, error){
 		ctx.sb.WriteString("FOR UPDATE\n")
 	}
 	
-	data := append([]any(nil), ctx.data...)
-	return ctx.sb.String(), data, nil
+	return ctx.sb.String(), ctx.data_copy(), nil
 }
 
 func (q *Select_query) collect_aliases(list alias_collect) error {
