@@ -114,7 +114,8 @@ func (q *Update_query) Compile() (string, []any, error){
 		return "", nil, err
 	}
 	
-	return ctx.sb.String(), ctx.data, nil
+	data := append([]any(nil), ctx.data...)
+	return ctx.sb.String(), data, nil
 }
 
 func (q *Update_query) compile_fields(ctx *compiler) error {

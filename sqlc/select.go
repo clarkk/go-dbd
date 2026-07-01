@@ -20,7 +20,7 @@ type (
 		group			[]string
 		order 			[]string
 		limit 			select_limit
-		lock_for_update		bool
+		lock_for_update	bool
 	}
 	
 	select_field struct {
@@ -235,7 +235,8 @@ func (q *Select_query) Compile() (string, []any, error){
 		ctx.sb.WriteString("FOR UPDATE\n")
 	}
 	
-	return ctx.sb.String(), ctx.data, nil
+	data := append([]any(nil), ctx.data...)
+	return ctx.sb.String(), data, nil
 }
 
 func (q *Select_query) collect_aliases(list alias_collect) error {

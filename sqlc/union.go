@@ -96,7 +96,8 @@ func (q *Union_query) Compile() (string, []any, error){
 	q.compile_limit(ctx)
 	ctx.sb.WriteByte('\n')
 	
-	return ctx.sb.String(), ctx.data, nil
+	data := append([]any(nil), ctx.data...)
+	return ctx.sb.String(), data, nil
 }
 
 func (q *Union_query) compile_from(ctx *compiler) error {

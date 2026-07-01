@@ -129,7 +129,8 @@ func (q *Inserts_query) Compile() (string, []any, error){
 	}
 	//audit.Audit()
 	
-	return ctx.sb.String(), ctx.data, nil
+	data := append([]any(nil), ctx.data...)
+	return ctx.sb.String(), data, nil
 }
 
 func (q *Inserts_query) compile_inserts(ctx *compiler){
