@@ -2,8 +2,8 @@ package dbd
 
 import (
 	"log"
-	//"maps"
-	//"slices"
+	"maps"
+	"slices"
 	"context"
 	"regexp"
 	"strconv"
@@ -26,12 +26,32 @@ const (
 var (
 	db_tables schema_tables
 	
-	integers = map[string]int{
-		TYPE_TINYINT:		int_pow(2, 8),
-		TYPE_SMALLINT:		int_pow(2, 16),
-		TYPE_MEDIUMINT:		int_pow(2, 24),
-		TYPE_INT:			int_pow(2, 32),
-		TYPE_BIGINT:		int_pow(2, 64),
+	integers = map[string]integer_range{
+		TYPE_TINYINT: {
+			min_signed:		-128,
+			max_signed:		127,
+			max_unsigned:	255,
+		},
+		TYPE_SMALLINT: {
+			min_signed:		-32768,
+			max_signed:		32767,
+			max_unsigned:	65535,
+		},
+		TYPE_MEDIUMINT: {
+			min_signed:		-8388608,
+			max_signed:		8388607,
+			max_unsigned:	16777215,
+		},
+		TYPE_INT: {
+			min_signed:		-2147483648,
+			max_signed:		2147483647,
+			max_unsigned:	4294967295,
+		},
+		TYPE_BIGINT: {
+			min_signed:		-9223372036854775808,
+			max_signed:		9223372036854775807,
+			max_unsigned:	18446744073709551615,
+		},
 	}
 	
 	schema_int 		= regexp.MustCompile(`^(`+TYPE_TINYINT+`|`+TYPE_SMALLINT+`|`+TYPE_MEDIUMINT+`|`+TYPE_INT+`|`+TYPE_BIGINT+`)\((\d+)\)(?: (.*))?`)
@@ -56,9 +76,15 @@ type (
 		range_dec 		length_range_dec
 	}
 	
+	integer_range struct {
+		min_signed		int64
+		max_signed		uint64
+		max_unsigned	uint64
+	}
+	
 	length_range_int struct {
 		Min 	int64
-		Max		int64
+		Max		uint64
 	}
 	
 	length_range_dec struct {
@@ -100,7 +126,7 @@ func Schema(table, column string) schema_column {
 	return col_schema
 }
 
-/*func Schema_tables() []string {
+func Schema_tables() []string {
 	return slices.Sorted(maps.Keys(db_tables))
 }
 
@@ -109,18 +135,8 @@ func Schema_table_columns(table string) []string {
 	if !found {
 		panic("Unable to lookup table schema: "+table)
 	}
-	s := make([]string, len(table_schema))
-	i := 0
-	for column := range table_schema {
-		s[i] = column
-		i++
-	}
-	return s
+	return slices.Collect(maps.Keys(table_schema))
 }
-
-func (s schema_column) Type() string {
-	return s.data_type
-}*/
 
 func (s schema_column) Length() int {
 	return s.length
@@ -164,12 +180,19 @@ func fetch_schema_table(table string){
 			length, _		:= strconv.Atoi(matches[2])
 			is_unsigned 	= check_unsigned(matches[3])
 			
-			var (
-				min int
-				int_range = integers[matches[1]]
-			)
-			if !is_unsigned {
-				min = int_range / -2
+			definition, found := integers[matches[1]]
+			if !found {
+				log.Fatal("Unknown integer type: " + matches[1])
+			}
+			
+			int_range := length_range_int{
+				Min: definition.min_signed,
+				Max: definition.max_signed,
+			}
+			
+			if is_unsigned {
+				int_range.Min = 0
+				int_range.Max = definition.max_unsigned
 			}
 			
 			table_cols[column] = schema_column{
@@ -178,7 +201,7 @@ func fetch_schema_table(table string){
 				length:			length,
 				unsigned:		is_unsigned,
 				null:			is_null,
-				range_int:		length_range_int{int64(min), int64(min + int_range - 1)},
+				range_int:		int_range,
 			}
 			continue
 		}
@@ -208,7 +231,10 @@ func fetch_schema_table(table string){
 				length_dec:		dec,
 				unsigned:		is_unsigned,
 				null:			is_null,
-				range_dec:		length_range_dec{min, max},
+				range_dec: length_range_dec{
+					Min: min,
+					Max: max,
+				},
 			}
 			continue
 		}
@@ -240,7 +266,7 @@ func fetch_schema_table(table string){
 	db_tables[table] = table_cols
 }
 
-func decimal_range(length int, dec int, unsigned bool) (float64, float64){
+func decimal_range(length, dec int, unsigned bool) (float64, float64){
 	l, _ := strconv.ParseFloat(strings.Repeat("9", length), 64)
 	d, _ := strconv.ParseFloat("1"+strings.Repeat("0", dec), 64)
 	
@@ -249,20 +275,9 @@ func decimal_range(length int, dec int, unsigned bool) (float64, float64){
 		max = l / d
 	)
 	if !unsigned {
-		min = max * -1
+		min = -max
 	}
 	return min, max
-}
-
-func int_pow(n, m int) int {
-	if m == 0 {
-		return 1
-	}
-	result := n
-	for i := 2; i <= m; i++ {
-		result *= n
-	}
-	return result
 }
 
 func check_unsigned(s string) bool {
