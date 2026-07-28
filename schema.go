@@ -54,7 +54,7 @@ var (
 		},
 	}
 	
-	schema_int 		= regexp.MustCompile(`^(`+TYPE_TINYINT+`|`+TYPE_SMALLINT+`|`+TYPE_MEDIUMINT+`|`+TYPE_INT+`|`+TYPE_BIGINT+`)(?:\((\d+)\))?(?: (.*))?$`)
+	schema_int 		= regexp.MustCompile(`^(`+TYPE_TINYINT+`|`+TYPE_SMALLINT+`|`+TYPE_MEDIUMINT+`|`+TYPE_INT+`|`+TYPE_BIGINT+`)(?:\(\d+\))?(?: (.*))?$`)
 	schema_char 	= regexp.MustCompile(`^(varchar|char)\((\d+)\)`)
 	schema_decimal 	= regexp.MustCompile(`^(decimal)\((\d+),(\d+)\)(?: (.*))?`)
 	schema_enum 	= regexp.MustCompile(`^(enum)\((.*)\)`)
@@ -177,12 +177,7 @@ func fetch_schema_table(table string){
 		)
 		
 		if matches := schema_int.FindStringSubmatch(format); len(matches) != 0 {
-			length := 0
-			if matches[2] != "" {
-				length, _ = strconv.Atoi(matches[2])
-			}
-			
-			is_unsigned 	= check_unsigned(matches[3])
+			is_unsigned = check_unsigned(matches[2])
 			
 			definition, found := integers[matches[1]]
 			if !found {
@@ -202,7 +197,6 @@ func fetch_schema_table(table string){
 			table_cols[column] = schema_column{
 				data_type:		SCHEMA_INT,
 				data_subtype:	matches[1],
-				length:			length,
 				unsigned:		is_unsigned,
 				null:			is_null,
 				range_int:		int_range,
