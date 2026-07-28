@@ -54,7 +54,7 @@ var (
 		},
 	}
 	
-	schema_int 		= regexp.MustCompile(`^(`+TYPE_TINYINT+`|`+TYPE_SMALLINT+`|`+TYPE_MEDIUMINT+`|`+TYPE_INT+`|`+TYPE_BIGINT+`)\((\d+)\)(?: (.*))?`)
+	schema_int 		= regexp.MustCompile(`^(`+TYPE_TINYINT+`|`+TYPE_SMALLINT+`|`+TYPE_MEDIUMINT+`|`+TYPE_INT+`|`+TYPE_BIGINT+`)(?:\((\d+)\))?(?: (.*))?$`)
 	schema_char 	= regexp.MustCompile(`^(varchar|char)\((\d+)\)`)
 	schema_decimal 	= regexp.MustCompile(`^(decimal)\((\d+),(\d+)\)(?: (.*))?`)
 	schema_enum 	= regexp.MustCompile(`^(enum)\((.*)\)`)
@@ -83,13 +83,14 @@ type (
 	}
 	
 	length_range_int struct {
-		Min 	int64
-		Max		uint64
+		Min 		int64
+		Max			uint64
+		Unsigned	bool
 	}
 	
 	length_range_dec struct {
-		Min 	float64
-		Max		float64
+		Min 		float64
+		Max			float64
 	}
 )
 
@@ -177,7 +178,11 @@ func fetch_schema_table(table string){
 		)
 		
 		if matches := schema_int.FindStringSubmatch(format); len(matches) != 0 {
-			length, _		:= strconv.Atoi(matches[2])
+			length := 0
+			if matches[2] != "" {
+				length, _ = strconv.Atoi(matches[2])
+			}
+			
 			is_unsigned 	= check_unsigned(matches[3])
 			
 			definition, found := integers[matches[1]]
@@ -186,8 +191,9 @@ func fetch_schema_table(table string){
 			}
 			
 			int_range := length_range_int{
-				Min: definition.min_signed,
-				Max: definition.max_signed,
+				Min:		definition.min_signed,
+				Max:		definition.max_signed,
+				Unsigned:	is_unsigned,
 			}
 			
 			if is_unsigned {
@@ -281,5 +287,5 @@ func decimal_range(length, dec int, unsigned bool) (float64, float64){
 }
 
 func check_unsigned(s string) bool {
-	return s == "unsigned"
+	return slices.Contains(strings.Fields(s), "unsigned")
 }
