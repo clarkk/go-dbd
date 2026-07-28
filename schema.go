@@ -85,7 +85,6 @@ type (
 	length_range_int struct {
 		Min 		int64
 		Max			uint64
-		Unsigned	bool
 	}
 	
 	length_range_dec struct {
@@ -191,9 +190,8 @@ func fetch_schema_table(table string){
 			}
 			
 			int_range := length_range_int{
-				Min:		definition.min_signed,
-				Max:		definition.max_signed,
-				Unsigned:	is_unsigned,
+				Min: definition.min_signed,
+				Max: definition.max_signed,
 			}
 			
 			if is_unsigned {
