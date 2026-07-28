@@ -138,6 +138,10 @@ func Schema_table_columns(table string) []string {
 	return slices.Collect(maps.Keys(table_schema))
 }
 
+func (s schema_column) Type() string {
+	return s.data_type
+}
+
 func (s schema_column) Length() int {
 	return s.length
 }
