@@ -54,11 +54,11 @@ var (
 		},
 	}
 	
-	schema_int 		= regexp.MustCompile(`^(`+TYPE_TINYINT+`|`+TYPE_SMALLINT+`|`+TYPE_MEDIUMINT+`|`+TYPE_INT+`|`+TYPE_BIGINT+`)(?:\(\d+\))?(?: (.*))?$`)
-	schema_char 	= regexp.MustCompile(`^(varchar|char)\((\d+)\)`)
-	schema_decimal 	= regexp.MustCompile(`^(decimal)\((\d+),(\d+)\)(?: (.*))?`)
-	schema_enum 	= regexp.MustCompile(`^(enum)\((.*)\)`)
-	schema_text 	= regexp.MustCompile(`^(tinytext|text|mediumtext|longtext)$`)
+	re_schema_int 		= regexp.MustCompile(`^(`+TYPE_TINYINT+`|`+TYPE_SMALLINT+`|`+TYPE_MEDIUMINT+`|`+TYPE_INT+`|`+TYPE_BIGINT+`)(?:\(\d+\))?(?: (.*))?$`)
+	re_schema_char 		= regexp.MustCompile(`^(varchar|char)\((\d+)\)`)
+	re_schema_decimal 	= regexp.MustCompile(`^(decimal)\((\d+),(\d+)\)(?: (.*))?`)
+	re_schema_enum 		= regexp.MustCompile(`^(enum)\((.*)\)`)
+	re_schema_text 		= regexp.MustCompile(`^(tinytext|text|mediumtext|longtext)$`)
 )
 
 type (
@@ -94,22 +94,10 @@ type (
 )
 
 func Fetch_schema(){
-	db_tables = schema_tables{}
-	
-	rows, err := db.QueryContext(context.Background(), "SHOW TABLES")
-	if err != nil {
-		log.Fatalf("Unable to fetch DB schema: %v", err)
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var table string
-		if err := rows.Scan(&table); err != nil {
-			log.Fatalf("Unable to fetch DB schema tables: %v", err)
-		}
-		fetch_schema_table(table)
-	}
-	if err := rows.Err(); err != nil {
-		log.Fatalf("Unable to fetch DB schema tables: %v", err)
+	tables := fetch_tables()
+	db_tables = make(schema_tables, len(tables))
+	for _, table := range tables {
+		db_tables[table] = fetch_schema_table(table)
 	}
 }
 
@@ -154,12 +142,32 @@ func (s schema_column) Range_dec() length_range_dec {
 	return s.range_dec
 }
 
-func fetch_schema_table(table string){
+func fetch_tables() (tables []string){
+	rows, err := db.QueryContext(context.Background(), "SHOW TABLES")
+	if err != nil {
+		log.Fatalf("Unable to fetch DB schema tables: %v", err)
+	}
+	defer rows.Close()
+	
+	for rows.Next() {
+		var table string
+		if err := rows.Scan(&table); err != nil {
+			log.Fatalf("Unable to scan DB schema table: %v", err)
+		}
+		tables = append(tables, table)
+	}
+	if err := rows.Err(); err != nil {
+		log.Fatalf("Unable to fetch DB schema tables: %v", err)
+	}
+	return
+}
+
+func fetch_schema_table(table string) schema_table {
 	table_cols := schema_table{}
 	
 	rows, err := db.QueryContext(context.Background(), "SHOW COLUMNS FROM ."+table)
 	if err != nil {
-		log.Fatalf("Unable to fetch DB schema table: %v", err)
+		log.Fatalf("Unable to fetch DB schema column for table %s: %v", table, err)
 	}
 	defer rows.Close()
 	for rows.Next() {
@@ -172,7 +180,7 @@ func fetch_schema_table(table string){
 			extra 	string
 		)
 		if err := rows.Scan(&column, &format, &null, &key, &def, &extra); err != nil {
-			log.Fatalf("Unable to fetch DB schema table column: %v", err)
+			log.Fatalf("Unable to fetch DB schema column for table %s: %v", table, err)
 		}
 		
 		var (
@@ -180,8 +188,8 @@ func fetch_schema_table(table string){
 			is_unsigned 	bool
 		)
 		
-		if matches := schema_int.FindStringSubmatch(format); len(matches) != 0 {
-			is_unsigned = check_unsigned(matches[2])
+		if matches := re_schema_int.FindStringSubmatch(format); len(matches) != 0 {
+			is_unsigned = column_unsigned(matches[2])
 			
 			definition, found := integers[matches[1]]
 			if !found {
@@ -208,8 +216,8 @@ func fetch_schema_table(table string){
 			continue
 		}
 		
-		if matches := schema_char.FindStringSubmatch(format); len(matches) != 0 {
-			length, _ := strconv.Atoi(matches[2])
+		if matches := re_schema_char.FindStringSubmatch(format); len(matches) != 0 {
+			length	:= parse_int(matches[2], "length")
 			
 			table_cols[column] = schema_column{
 				data_type:		SCHEMA_CHAR,
@@ -220,10 +228,11 @@ func fetch_schema_table(table string){
 			continue
 		}
 		
-		if matches := schema_decimal.FindStringSubmatch(format); len(matches) != 0 {
-			length, _		:= strconv.Atoi(matches[2])
-			dec, _			:= strconv.Atoi(matches[3])
-			is_unsigned 	= check_unsigned(matches[4])
+		if matches := re_schema_decimal.FindStringSubmatch(format); len(matches) != 0 {
+			length	:= parse_int(matches[2], "length")
+			dec		:= parse_int(matches[3], "decimal length")
+			
+			is_unsigned 	= column_unsigned(matches[4])
 			min, max		:= decimal_range(length, dec, is_unsigned)
 			
 			table_cols[column] = schema_column{
@@ -241,7 +250,7 @@ func fetch_schema_table(table string){
 			continue
 		}
 		
-		if matches := schema_enum.FindStringSubmatch(format); len(matches) != 0 {
+		if matches := re_schema_enum.FindStringSubmatch(format); len(matches) != 0 {
 			table_cols[column] = schema_column{
 				data_type:		SCHEMA_CHAR,
 				data_subtype:	matches[1],
@@ -250,7 +259,7 @@ func fetch_schema_table(table string){
 			continue
 		}
 		
-		if matches := schema_text.FindStringSubmatch(format); len(matches) != 0 {
+		if matches := re_schema_text.FindStringSubmatch(format); len(matches) != 0 {
 			table_cols[column] = schema_column{
 				data_type:		SCHEMA_TEXT,
 				data_subtype:	matches[1],
@@ -259,18 +268,18 @@ func fetch_schema_table(table string){
 			continue
 		}
 		
-		log.Fatal("Unknown column: "+column+" "+format)
+		log.Fatalf("Unknown column type: %s.%s %s", table, column, format)
 	}
 	if err := rows.Err(); err != nil {
-		log.Fatalf("Unable to fetch DB schema table column: %v", err)
+		log.Fatalf("Unable to fetch DB schema column for table %s: %v", table, err)
 	}
 	
-	db_tables[table] = table_cols
+	return table_cols
 }
 
 func decimal_range(length, dec int, unsigned bool) (float64, float64){
-	l, _ := strconv.ParseFloat(strings.Repeat("9", length), 64)
-	d, _ := strconv.ParseFloat("1"+strings.Repeat("0", dec), 64)
+	l := parse_float(strings.Repeat("9", length), "decimal length")
+	d := parse_float("1"+strings.Repeat("0", dec), "decimal scale")
 	
 	var (
 		min float64
@@ -282,6 +291,22 @@ func decimal_range(length, dec int, unsigned bool) (float64, float64){
 	return min, max
 }
 
-func check_unsigned(s string) bool {
+func parse_int(s, field string) int {
+	n, err := strconv.Atoi(s)
+	if err != nil {
+		log.Fatalf("Unable to parse schema %s %q: %v", field, s, err)
+	}
+	return n
+}
+
+func parse_float(s, field string) float64 {
+	n, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		log.Fatalf("Unable to parse schema %s %q: %v", field, s, err)
+	}
+	return n
+}
+
+func column_unsigned(s string) bool {
 	return slices.Contains(strings.Fields(s), "unsigned")
 }
