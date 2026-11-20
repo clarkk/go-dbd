@@ -33,7 +33,7 @@ type (
 		query
 		t 				string		//	Base table alias
 		joined 			bool
-		joined_other	bool		//	Joined on a non-base (pre-defined) table
+		joined_t		bool		//	Joined on a non-base (pre-defined) table
 		joins 			[]join
 		optimize_joins	bool
 	}
@@ -124,8 +124,8 @@ func (q *query_join) join_condition_foreign(fields Join_conditions) []string {
 		if i := strings.IndexByte(f.Field_foreign, '.'); i != -1 {
 			alias := f.Field_foreign[:i]
 			if alias != ROOT_ALIAS {
-				q.joined_other	= true
-				join_t			= append(join_t, alias)
+				q.joined_t	= true
+				join_t		= append(join_t, alias)
 			}
 		}
 	}
