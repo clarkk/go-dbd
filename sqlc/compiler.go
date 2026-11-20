@@ -15,12 +15,20 @@ func (c *compiler) data_copy() []any {
 }
 
 func (c *compiler) reset(){
-	c.sb.Reset()
+	if c.sb.Cap() > 2*1024 {
+		c.sb = sbuilder{}
+	} else {
+		c.sb.Reset()
+	}
+	
 	c.use_alias	= false
 	c.root_t	= ""
+	
 	if c.tables != nil {
 		clear(c.tables)
 	}
+	
+	clear(c.data)
 	c.data = c.data[:0]
 }
 
@@ -30,18 +38,23 @@ func (c *compiler) write_field(t, field string){
 		return
 	}
 	
-	if pos := strings.IndexByte(field, '.'); pos != -1 {
-		if pos == root_alias_len && field[:root_alias_len] == ROOT_ALIAS {
-			c.sb.WriteString(c.root_t)
-			c.sb.WriteString(field[pos:])
-			return
-		}
+	pos := strings.IndexByte(field, '.')
+	
+	//	Apply base table
+	if pos == -1 {
+		c.sb.WriteString(t)
+		c.sb.WriteByte('.')
 		c.sb.WriteString(field)
 		return
 	}
 	
-	c.sb.WriteString(t)
-	c.sb.WriteByte('.')
+	//	Apply root table
+	if pos == root_alias_len && field[:root_alias_len] == ROOT_ALIAS {
+		c.sb.WriteString(c.root_t)
+		c.sb.WriteString(field[pos:])
+		return
+	}
+	
 	c.sb.WriteString(field)
 }
 
@@ -63,8 +76,6 @@ func (c *compiler) append_data(val any){
 
 func (c *compiler) alloc_data_capacity(total int){
 	if cap(c.data) < total {
-		new_data := make([]any, len(c.data), total)
-		copy(new_data, c.data)
-		c.data = new_data
+		c.data = append(make([]any, 0, total), c.data...)
 	}
 }

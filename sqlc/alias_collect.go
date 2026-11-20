@@ -16,13 +16,19 @@ var alias_collect_pool = sync.Pool{
 type alias_collect map[string]struct{}
 
 func (m alias_collect) apply(field string){
-	if pos := strings.IndexByte(field, '.'); pos != -1 {
-		alias := field[:pos]
-		if alias == ROOT_ALIAS {
-			return
-		}
-		m[alias] = struct{}{}
+	pos := strings.IndexByte(field, '.')
+	
+	//	Base table
+	if pos == -1 {
+		return
 	}
+	
+	//	Joined table
+	alias := field[:pos]
+	if alias == ROOT_ALIAS {
+		return
+	}
+	m[alias] = struct{}{}
 }
 
 func (m alias_collect) apply_raw(field string){
@@ -56,7 +62,7 @@ func (m alias_collect) apply_raw(field string){
 }
 
 func (m alias_collect) filter(joins []join) []join {
-	filtered := make([]join, 0, len(joins)) 
+	filtered := make([]join, 0, len(joins))
 	for _, j := range joins {
 		if _, ok := m[j.t]; ok {
 			filtered = append(filtered, j)

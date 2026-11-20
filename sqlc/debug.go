@@ -17,10 +17,10 @@ func SQL_debug(q SQL) string {
 	}
 	
 	parts := strings.Split(sql, "?")
-	var builder strings.Builder
+	var sb strings.Builder
 	
 	for i := range len(parts) {
-		builder.WriteString(parts[i])
+		sb.WriteString(parts[i])
 		
 		if i < len(data) {
 			value	:= data[i]
@@ -36,9 +36,9 @@ func SQL_debug(q SQL) string {
 					s = fmt.Sprintf("%v", value)
 				}
 			}
-			builder.WriteString(s)
+			sb.WriteString(s)
 		}
 	}
 	
-	return strings.TrimSpace(builder.String())
+	return strings.TrimSpace(sb.String())
 }

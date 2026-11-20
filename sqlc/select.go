@@ -383,7 +383,9 @@ func (q *Select_query) compile_select_join(ctx *compiler, sj *select_json) error
 	ctx.sb.WriteString("))\n")
 	
 	sj.query.compile_from(ctx)
-	sj.query.compile_joins(ctx, sub_aliases)
+	if err := sj.query.compile_joins(ctx, sub_aliases); err != nil {
+		return err
+	}
 	
 	if err := sj.query.compile_where(ctx, func(ctx *compiler, first *bool){
 		if sj.inner_field == "" {

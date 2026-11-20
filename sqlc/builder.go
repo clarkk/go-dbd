@@ -21,11 +21,9 @@ type (
 
 //	Only grow if necessary
 func (s *sbuilder) Alloc(n int){
-	free	:= s.Cap() - s.Len()
-	alloc	:= n - free
-	if alloc > 0 {
-		s.Grow(alloc)
-	}
+	if free := s.Cap() - s.Len(); n > free {
+        s.Grow(n - free)
+    }
 }
 
 //	Debug

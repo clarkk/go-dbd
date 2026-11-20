@@ -58,9 +58,9 @@ func (q *query_join) left_join(table, t, field, field_foreign string){
 func (q *query_join) cross_join(table, t string){
 	q.joined = true
 	q.joins = append(q.joins, join{
-		mode:			join_cross,
-		table:			table,
-		t:				t,
+		mode:		join_cross,
+		table:		table,
+		t:			t,
 	})
 }
 
@@ -104,11 +104,11 @@ func (q *query_join) join_fixed(mode, table, t, field, field_foreign, field_fixe
 func (q *query_join) join_multi(mode, table, t string, fields Join_conditions){
 	q.joined = true
 	q.joins = append(q.joins, join{
-		mode:			mode,
-		table:			table,
-		t:				t,
-		join_t:			q.join_condition_foreign(fields),
-		on:				fields,
+		mode:		mode,
+		table:		table,
+		t:			t,
+		join_t:		q.join_condition_foreign(fields),
+		on:			fields,
 	})
 }
 
