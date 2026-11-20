@@ -21,6 +21,7 @@ type (
 	Join_conditions		[]Join_condition
 	Join_condition struct {
 		Field 			string
+		
 		Field_foreign 	string
 		
 		Fixed_value		bool
@@ -30,9 +31,9 @@ type (
 	
 	query_join struct {
 		query
-		t 				string
+		t 				string		//	Base table alias
 		joined 			bool
-		joined_t		bool		//	Joined on a non-base (pre-defined) table
+		joined_other	bool		//	Joined on a non-base (pre-defined) table
 		joins 			[]join
 		optimize_joins	bool
 	}
@@ -119,16 +120,24 @@ func (q *query_join) join_condition_foreign(fields Join_conditions) []string {
 			continue
 		}
 		
-		// Join on a non-base (pre-defined) table
+		//	Join on a non-base (pre-defined) table
 		if i := strings.IndexByte(f.Field_foreign, '.'); i != -1 {
-			q.joined_t	= true
-			join_t		= append(join_t, f.Field_foreign[:i])
+			alias := f.Field_foreign[:i]
+			if alias != ROOT_ALIAS {
+				q.joined_other	= true
+				join_t			= append(join_t, alias)
+			}
 		}
 	}
 	return join_t
 }
 
 func (q *query_join) resolve_alias_join_dependencies(list alias_collect) error {
+	join_map := make(map[string]*join, len(q.joins))
+	for i := range q.joins {
+		join_map[q.joins[i].t] = &q.joins[i]
+	}
+	
 	changed			:= true
 	max_iterations	:= len(q.joins) + 1
 	
@@ -143,35 +152,31 @@ func (q *query_join) resolve_alias_join_dependencies(list alias_collect) error {
 		
 		for i := range q.joins {
 			j := &q.joins[i]	//	Avoid copying data
-			if _, ok := list[j.t]; ok {
-				//	Check if joined on base table
-				if len(j.join_t) == 0 {
-					continue
-				}
-				
-				var max_depth int
-				for _, alias := range j.join_t {
-					//	Collect dependency alias
-					if _, exists := list[alias]; !exists {
-						list[alias] = struct{}{}
-						changed = true
-					}
-					
-					for _, parent := range q.joins {
-						if parent.t == alias {
-							depth := parent.depth + 1
-							if depth > max_depth {
-								max_depth = depth
-							}
-							break
-						}
-					}
-				}
-				
-				if j.depth != max_depth {
-					j.depth = max_depth
+			
+			//	Check if joined on base table
+			if _, ok := list[j.t]; !ok {
+				continue
+			}
+			
+			var max_depth int
+			for _, alias := range j.join_t {
+				//	Collect dependency alias
+				if _, exists := list[alias]; !exists {
+					list[alias] = struct{}{}
 					changed = true
 				}
+				
+				if parent := join_map[alias]; parent != nil {
+					depth := parent.depth + 1
+					if depth > max_depth {
+						max_depth = depth
+					}
+				}
+			}
+			
+			if j.depth != max_depth {
+				j.depth = max_depth
+				changed = true
 			}
 		}
 	}

@@ -40,7 +40,7 @@ func (c *compiler) write_field(t, field string){
 	
 	pos := strings.IndexByte(field, '.')
 	
-	//	Apply base table
+	//	Base table
 	if pos == -1 {
 		c.sb.WriteString(t)
 		c.sb.WriteByte('.')
@@ -48,13 +48,14 @@ func (c *compiler) write_field(t, field string){
 		return
 	}
 	
-	//	Apply root table
+	//	Root table
 	if pos == root_alias_len && field[:root_alias_len] == ROOT_ALIAS {
 		c.sb.WriteString(c.root_t)
 		c.sb.WriteString(field[pos:])
 		return
 	}
 	
+	//	Joined table
 	c.sb.WriteString(field)
 }
 

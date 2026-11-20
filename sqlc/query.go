@@ -26,7 +26,7 @@ type (
 	Map map[string]any
 	
 	query struct {
-		table	string
+		table	string	//	Base table
 	}
 )
 
