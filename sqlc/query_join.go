@@ -114,7 +114,7 @@ func (q *query_join) join_multi(mode, table, t string, fields Join_conditions){
 }
 
 func (q *query_join) join_condition_foreign(fields Join_conditions) []string {
-	join_t := make([]string, 0, len(fields))
+	var join_t []string
 	for _, f := range fields {
 		if f.Fixed_value {
 			continue
@@ -188,11 +188,16 @@ func (q *query_join) compile_tables(ctx *compiler, t string) error {
 	if ctx.use_alias {
 		//	Check for char collisions in joined tables
 		for i := range q.joins {
-			alias := q.joins[i].t
-			if _, ok := ctx.tables[alias]; ok {
-				return fmt.Errorf("Join table short already used: %s (%s)", alias, q.joins[i].table)
+			j := &q.joins[i]
+			
+			if j.mode != join_cross && len(j.on) == 0 {
+				return fmt.Errorf("%s %s requires at least one ON condition", j.mode, j.table)
 			}
-			ctx.tables[alias] = q.joins[i].table
+			
+			if _, ok := ctx.tables[j.t]; ok {
+				return fmt.Errorf("Join table short already used: %s (%s)", j.t, j.table)
+			}
+			ctx.tables[j.t] = j.table
 		}
 	}
 	

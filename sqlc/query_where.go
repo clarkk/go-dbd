@@ -194,5 +194,8 @@ func check_operator_compatibility(current_operator, new_operator Operator, field
 }
 
 func where_operator_error(field string, current_operator, new_operator Operator) error {
-	return fmt.Errorf("Where clause operator incompatable on same field (%s): %s %s", field, sql_ops[current_operator], sql_ops[new_operator])
+	if int(current_operator) < len(sql_ops) && int(new_operator) < len(sql_ops) {
+		return fmt.Errorf("Where clause operator incompatable on same field (%s): %s %s", field, sql_ops[current_operator], sql_ops[new_operator])
+	}
+	return fmt.Errorf("incompatible WHERE conditions on field %q", field)
 }

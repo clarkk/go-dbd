@@ -24,9 +24,7 @@ func (c *compiler) reset(){
 	c.use_alias	= false
 	c.root_t	= ""
 	
-	if c.tables != nil {
-		clear(c.tables)
-	}
+	clear(c.tables)
 	
 	clear(c.data)
 	c.data = c.data[:0]

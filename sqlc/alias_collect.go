@@ -39,25 +39,24 @@ func (m alias_collect) apply_raw(field string){
 		if pos == -1 {
 			break
 		}
-		abs_pos		:= start + pos
-		word_start	:= abs_pos
+		
+		abs_pos	:= start + pos
+		start	= abs_pos + 1
+		
+		word_start := abs_pos
 		//	Move backwards to find the whole alias
 		for word_start > 0 {
 			char := field[word_start-1]
 			//	Valid char in alias/table name
-			if !((char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z') || (char >= '0' && char <= '9') || char == '_' || char == '<' || char == '>') {
+			if !((char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z') || (char >= '0' && char <= '9') || char == '_') {
 				break
 			}
 			word_start--
 		}
+		
 		if word_start < abs_pos {
-			alias := field[word_start:abs_pos]
-			if alias != ROOT_ALIAS {
-				m[alias] = struct{}{}
-			}
+			m[field[word_start:abs_pos]] = struct{}{}
 		}
-		//	Move cursor to after the "." just found
-		start = abs_pos + 1
 	}
 }
 
