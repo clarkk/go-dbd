@@ -45,11 +45,16 @@ type (
 		join_t			[]string	//	Join on a non-base (pre-defined) table (table alias)
 		on				Join_conditions
 		depth			int
+		force			bool
 	}
 )
 
 func (q *query_join) inner_join(table, t, field, field_foreign string){
 	q.join(join_inner, table, t, field, field_foreign)
+}
+
+func (q *query_join) inner_join_force(table, t, field, field_foreign string){
+	q.join_force(join_inner, table, t, field, field_foreign)
 }
 
 func (q *query_join) left_join(table, t, field, field_foreign string){
@@ -69,28 +74,38 @@ func (q *query_join) inner_join_fixed(table, t, field, field_foreign, field_fixe
 	q.join_fixed(join_inner, table, t, field, field_foreign, field_fixed, value_fixed)
 }
 
+func (q *query_join) inner_join_fixed_force(table, t, field, field_foreign, field_fixed string, value_fixed any){
+	q.join_fixed_force(join_inner, table, t, field, field_foreign, field_fixed, value_fixed)
+}
+
 func (q *query_join) left_join_fixed(table, t, field, field_foreign, field_fixed string, value_fixed any){
 	q.join_fixed(join_left, table, t, field, field_foreign, field_fixed, value_fixed)
 }
 
-func (q *query_join) inner_join_multi(table, t string, fields Join_conditions){
-	q.join_multi(join_inner, table, t, fields)
+func (q *query_join) inner_join_multi(table, t string, conditions Join_conditions){
+	q.join_multi(join_inner, table, t, conditions)
 }
 
-func (q *query_join) left_join_multi(table, t string, fields Join_conditions){
-	q.join_multi(join_left, table, t, fields)
+func (q *query_join) left_join_multi(table, t string, conditions Join_conditions){
+	q.join_multi(join_left, table, t, conditions)
 }
 
 func (q *query_join) join(mode, table, t, field, field_foreign string){
-	fields := Join_conditions{{
+	q.join_multi(mode, table, t, Join_conditions{{
 		Field:			field,
 		Field_foreign:	field_foreign,
-	}}
-	q.join_multi(mode, table, t, fields)
+	}})
+}
+
+func (q *query_join) join_force(mode, table, t, field, field_foreign string){
+	q.join_multi_force(mode, table, t, Join_conditions{{
+		Field:			field,
+		Field_foreign:	field_foreign,
+	}})
 }
 
 func (q *query_join) join_fixed(mode, table, t, field, field_foreign, field_fixed string, value_fixed any){
-	fields := Join_conditions{{
+	q.join_multi(mode, table, t, Join_conditions{{
 		Field:			field,
 		Field_foreign:	field_foreign,
 	},{
@@ -98,24 +113,47 @@ func (q *query_join) join_fixed(mode, table, t, field, field_foreign, field_fixe
 		Fixed_value:	true,
 		Operator:		Op_eq,
 		Field_value:	value_fixed,
-	}}
-	q.join_multi(mode, table, t, fields)
+	}})
 }
 
-func (q *query_join) join_multi(mode, table, t string, fields Join_conditions){
+func (q *query_join) join_fixed_force(mode, table, t, field, field_foreign, field_fixed string, value_fixed any){
+	q.join_multi_force(mode, table, t, Join_conditions{{
+		Field:			field,
+		Field_foreign:	field_foreign,
+	},{
+		Field:			field_fixed,
+		Fixed_value:	true,
+		Operator:		Op_eq,
+		Field_value:	value_fixed,
+	}})
+}
+
+func (q *query_join) join_multi(mode, table, t string, conditions Join_conditions){
 	q.joined = true
 	q.joins = append(q.joins, join{
 		mode:		mode,
 		table:		table,
 		t:			t,
-		join_t:		q.join_condition_foreign(fields),
-		on:			fields,
+		join_t:		q.join_condition_foreign(conditions),
+		on:			conditions,
 	})
 }
 
-func (q *query_join) join_condition_foreign(fields Join_conditions) []string {
+func (q *query_join) join_multi_force(mode, table, t string, conditions Join_conditions){
+	q.joined = true
+	q.joins = append(q.joins, join{
+		mode:		mode,
+		table:		table,
+		t:			t,
+		join_t:		q.join_condition_foreign(conditions),
+		on:			conditions,
+		force:		true,
+	})
+}
+
+func (q *query_join) join_condition_foreign(conditions Join_conditions) []string {
 	var join_t []string
-	for _, f := range fields {
+	for _, f := range conditions {
 		if f.Fixed_value {
 			continue
 		}
@@ -135,7 +173,12 @@ func (q *query_join) join_condition_foreign(fields Join_conditions) []string {
 func (q *query_join) resolve_alias_join_dependencies(list alias_collect) error {
 	join_map := make(map[string]*join, len(q.joins))
 	for i := range q.joins {
-		join_map[q.joins[i].t] = &q.joins[i]
+		j := &q.joins[i]
+		join_map[j.t] = j
+		
+		if j.force || j.mode == join_cross {
+			list[j.t] = struct{}{}
+		}
 	}
 	
 	changed			:= true

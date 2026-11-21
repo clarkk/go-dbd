@@ -205,4 +205,155 @@ func Test_optimize_joins(t *testing.T){
 			t.Fatalf("Joins want:\n%v\nJoins got:\n%v", want_joins, got_joins)
 		}
 	})
+	
+	t.Run("dependency_chain", func(t *testing.T){
+		q := Query_join_test("table")
+		
+		//	Register joins in reverse dependency order
+		q.left_join("bank", "b", "id", "a.bank_id")
+		q.left_join("account", "a", "id", "i.account_id")
+		q.left_join("invoice", "i", "id", "invoice_id")
+		
+		q.aliases_apply("b.name")
+		
+		if err := q.resolve_alias_join_dependencies(); err != nil {
+			t.Fatal(err)
+		}
+		
+		want_alias	:= []string{"a", "b", "i"}
+		got_alias	:= q.aliases_sorted()
+		if !slices.Equal(want_alias, got_alias) {
+			t.Fatalf("Alias want:\n%s\nAlias got:\n%s", want_alias, got_alias)
+		}
+		
+		want_joins := []join{{
+			mode:			join_left,
+			table:			"invoice",
+			t:				"i",
+			join_t:			nil,
+			on: Join_conditions{{
+				Field:			"id",
+				Field_foreign:	"invoice_id",
+			}},
+			depth:			0,
+		},{
+			mode:			join_left,
+			table:			"account",
+			t:				"a",
+			join_t:			[]string{"i"},
+			on: Join_conditions{{
+				Field:			"id",
+				Field_foreign:	"i.account_id",
+			}},
+			depth:			1,
+		},{
+			mode:			join_left,
+			table:			"bank",
+			t:				"b",
+			join_t:			[]string{"a"},
+			on: Join_conditions{{
+				Field:			"id",
+				Field_foreign:	"a.bank_id",
+			}},
+			depth:			2,
+		}}
+		got_joins := q.compile_optimize_joins()
+		if !reflect.DeepEqual(want_joins, got_joins) {
+			t.Fatalf("Joins want:\n%v\nJoins got:\n%v", want_joins, got_joins)
+		}
+	})
+	
+	t.Run("circular_dependency", func(t *testing.T){
+		q := Query_join_test("table")
+		
+		q.left_join("bank", "b", "id", "a.bank_id")
+		q.left_join("account", "a", "id", "b.account_id")
+		
+		q.aliases_apply("b.name")
+		
+		if err := q.resolve_alias_join_dependencies(); err == nil {
+			t.Fatal("expected an error for circular dependency b -> a -> b")
+		}
+	})
+	
+	t.Run("inner_join_first_at_same_depth", func(t *testing.T){
+		q := Query_join_test("table")
+		
+		q.left_join("account", "a", "id", "account_id")
+		q.inner_join("zone", "z", "id", "zone_id")
+		
+		q.aliases_apply("a.name")
+		
+		if err := q.resolve_alias_join_dependencies(); err != nil {
+			t.Fatal(err)
+		}
+		
+		want_alias	:= []string{"a"}
+		got_alias	:= q.aliases_sorted()
+		if !slices.Equal(want_alias, got_alias) {
+			t.Fatalf("Alias want:\n%s\nAlias got:\n%s", want_alias, got_alias)
+		}
+		
+		want_joins := []join{{
+			mode:			join_left,
+			table:			"account",
+			t:				"a",
+			join_t:			nil,
+			on: Join_conditions{{
+				Field:			"id",
+				Field_foreign:	"account_id",
+			}},
+			depth:			0,
+		}}
+		got_joins := q.compile_optimize_joins()
+		if !reflect.DeepEqual(want_joins, got_joins) {
+			t.Fatalf("Joins want:\n%v\nJoins got:\n%v", want_joins, got_joins)
+		}
+	})
+	
+	t.Run("inner_join_first_at_same_depth_force", func(t *testing.T){
+		q := Query_join_test("table")
+		
+		q.left_join("account", "a", "id", "account_id")
+		q.inner_join_force("zone", "z", "id", "zone_id")
+		
+		q.aliases_apply("a.name")
+		
+		if err := q.resolve_alias_join_dependencies(); err != nil {
+			t.Fatal(err)
+		}
+		
+		want_alias	:= []string{"a", "z"}
+		got_alias	:= q.aliases_sorted()
+		if !slices.Equal(want_alias, got_alias) {
+			t.Fatalf("Alias want:\n%s\nAlias got:\n%s", want_alias, got_alias)
+		}
+		
+		want_joins := []join{{
+			mode:			join_inner,
+			table:			"zone",
+			t:				"z",
+			join_t:			nil,
+			on: Join_conditions{{
+				Field:			"id",
+				Field_foreign:	"zone_id",
+			}},
+			depth:			0,
+			force:			true,
+		},{
+			mode:			join_left,
+			table:			"account",
+			t:				"a",
+			join_t:			nil,
+			on: Join_conditions{{
+				Field:			"id",
+				Field_foreign:	"account_id",
+			}},
+			depth:			0,
+		}}
+		got_joins := q.compile_optimize_joins()
+		if !reflect.DeepEqual(want_joins, got_joins) {
+			t.Fatalf("Joins want:\n%v\nJoins got:\n%v", want_joins, got_joins)
+		}
+	})
 }
