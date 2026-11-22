@@ -1088,10 +1088,19 @@ func run_select_in_subquery(tb testing.TB){
 	
 	if is_test(tb) {
 		aliases := alias_collect{}
-		query.collect_aliases(aliases)
+		subquery.collect_aliases(aliases)
 		
 		want_alias	:= []string{}
 		got_alias	:= aliases.sorted()
+		if !slices.Equal(want_alias, got_alias) {
+			tb.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
+		}
+		
+		aliases = alias_collect{}
+		query.collect_aliases(aliases)
+		
+		want_alias	= []string{}
+		got_alias	= aliases.sorted()
 		if !slices.Equal(want_alias, got_alias) {
 			tb.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
 		}
@@ -1239,10 +1248,19 @@ func run_select_json(tb testing.TB){
 	
 	if is_test(tb) {
 		aliases := alias_collect{}
+		subquery.collect_aliases(aliases)
+		
+		want_alias	:= []string{"l"}
+		got_alias	:= aliases.sorted()
+		if !slices.Equal(want_alias, got_alias) {
+			tb.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
+		}
+		
+		aliases = alias_collect{}
 		query.collect_aliases(aliases)
 		
-		want_alias	:= []string{}
-		got_alias	:= aliases.sorted()
+		want_alias	= []string{}
+		got_alias	= aliases.sorted()
 		if !slices.Equal(want_alias, got_alias) {
 			tb.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
 		}
@@ -1319,10 +1337,19 @@ func run_select_json_optimize(tb testing.TB){
 	
 	if is_test(tb) {
 		aliases := alias_collect{}
+		subquery.collect_aliases(aliases)
+		
+		want_alias	:= []string{"l"}
+		got_alias	:= aliases.sorted()
+		if !slices.Equal(want_alias, got_alias) {
+			tb.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
+		}
+		
+		aliases = alias_collect{}
 		query.collect_aliases(aliases)
 		
-		want_alias	:= []string{}
-		got_alias	:= aliases.sorted()
+		want_alias	= []string{}
+		got_alias	= aliases.sorted()
 		if !slices.Equal(want_alias, got_alias) {
 			tb.Fatalf("Alias want:\n%s\nAlias got:\n%s\nSQL: %s", want_alias, got_alias, SQL_debug(query))
 		}
@@ -1385,10 +1412,19 @@ func run_select_json_condition_optimize(tb testing.TB) {
 		
 	if is_test(tb) {
 		aliases := alias_collect{}
-		query.collect_aliases(aliases)
+		subquery.collect_aliases(aliases)
 		
 		want_alias := []string{}
 		got_alias := aliases.sorted()
+		if !slices.Equal(want_alias, got_alias) {
+			tb.Fatalf("Alias want:\n%v\nAlias got:\n%v", want_alias, got_alias)
+		}
+		
+		aliases = alias_collect{}
+		query.collect_aliases(aliases)
+		
+		want_alias = []string{}
+		got_alias = aliases.sorted()
 		if !slices.Equal(want_alias, got_alias) {
 			tb.Fatalf("Alias want:\n%v\nAlias got:\n%v", want_alias, got_alias)
 		}
