@@ -1414,7 +1414,7 @@ func run_select_json_condition_optimize(tb testing.TB) {
 		aliases := alias_collect{}
 		subquery.collect_aliases(aliases)
 		
-		want_alias := []string{}
+		want_alias := []string{"l"}
 		got_alias := aliases.sorted()
 		if !slices.Equal(want_alias, got_alias) {
 			tb.Fatalf("Alias want:\n%v\nAlias got:\n%v", want_alias, got_alias)
