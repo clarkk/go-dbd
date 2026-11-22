@@ -248,7 +248,6 @@ func (q *Select_query) collect_aliases(list alias_collect) error {
 		}
 	}
 	for _, f := range q.select_jsons {
-		list.apply(f.inner_field)
 		list.apply(f.outer_field)
 	}
 	
@@ -343,15 +342,16 @@ func (q *Select_query) compile_select_join(c *compiler, sj *select_json) error {
 		return fmt.Errorf("Minimum 2 fields in select json")
 	}
 	
-	var sub_aliases alias_collect
+	var sub_list alias_collect
 	
 	if sj.query.joined && sj.query.optimize_joins {
-		sub_aliases = alias_collect_pool.Get().(alias_collect)
+		sub_list = alias_collect_pool.Get().(alias_collect)
 		defer func() {
-			sub_aliases.reset()
-			alias_collect_pool.Put(sub_aliases)
+			sub_list.reset()
+			alias_collect_pool.Put(sub_list)
 		}()
-		if err := sj.query.collect_aliases(sub_aliases); err != nil {
+		sub_list.apply(sj.inner_field)
+		if err := sj.query.collect_aliases(sub_list); err != nil {
 			return err
 		}
 	}
@@ -383,7 +383,7 @@ func (q *Select_query) compile_select_join(c *compiler, sj *select_json) error {
 	c.sb.WriteString("))\n")
 	
 	sj.query.compile_from(c)
-	if err := sj.query.compile_joins(c, sub_aliases); err != nil {
+	if err := sj.query.compile_joins(c, sub_list); err != nil {
 		return err
 	}
 	
