@@ -227,8 +227,8 @@ func (q *query_join) resolve_alias_join_dependencies(list alias_collect) error {
 	return nil
 }
 
-func (q *query_join) compile_tables(ctx *compiler, t string) error {
-	if ctx.use_alias {
+func (q *query_join) compile_tables(c *compiler, t string) error {
+	if c.use_alias {
 		//	Check for char collisions in joined tables
 		for i := range q.joins {
 			j := &q.joins[i]
@@ -237,19 +237,19 @@ func (q *query_join) compile_tables(ctx *compiler, t string) error {
 				return fmt.Errorf("%s %s requires at least one ON condition", j.mode, j.table)
 			}
 			
-			if _, ok := ctx.tables[j.t]; ok {
+			if _, ok := c.tables[j.t]; ok {
 				return fmt.Errorf("Join table short already used: %s (%s)", j.t, j.table)
 			}
-			ctx.tables[j.t] = j.table
+			c.tables[j.t] = j.table
 		}
 	}
 	
 	//	Get available char for base table (a-z)
-	if _, ok := ctx.tables[t]; ok {
+	if _, ok := c.tables[t]; ok {
 		var found bool
 		for i := range len(char_table) {
 			char := char_table[i : i+1]
-			if _, ok := ctx.tables[char]; !ok {
+			if _, ok := c.tables[char]; !ok {
 				t = char
 				found = true
 				break
@@ -260,22 +260,22 @@ func (q *query_join) compile_tables(ctx *compiler, t string) error {
 		}
 	}
 	
-	q.t 			= t
-	ctx.tables[t]	= q.table
+	q.t 		= t
+	c.tables[t]	= q.table
 	return nil
 }
 
-func (q *query_join) compile_from(ctx *compiler){
-	ctx.sb.WriteString("FROM .")
-	ctx.sb.WriteString(q.table)
-	if ctx.use_alias {
-		ctx.sb.WriteByte(' ')
-		ctx.sb.WriteString(q.t)
+func (q *query_join) compile_from(c *compiler){
+	c.sb.WriteString("FROM .")
+	c.sb.WriteString(q.table)
+	if c.use_alias {
+		c.sb.WriteByte(' ')
+		c.sb.WriteString(q.t)
 	}
-	ctx.sb.WriteByte('\n')
+	c.sb.WriteByte('\n')
 }
 
-func (q *query_join) compile_joins(ctx *compiler, aliases alias_collect) error {
+func (q *query_join) compile_joins(c *compiler, aliases alias_collect) error {
 	if !q.joined {
 		return nil
 	}
@@ -288,54 +288,53 @@ func (q *query_join) compile_joins(ctx *compiler, aliases alias_collect) error {
 	}
 	
 	//	Pre-allocation
-	ctx.sb.Alloc((20 + alloc_join_clause) * len(joins_compile))
+	c.sb.Alloc((20 + alloc_join_clause) * len(joins_compile))
 	
 	for i := range joins_compile {
 		j := &joins_compile[i]	//	Avoid copying struct
 		
-		ctx.sb.WriteString(j.mode)
-		ctx.sb.WriteString(" .")
-		ctx.sb.WriteString(j.table)
-		ctx.sb.WriteByte(' ')
-		ctx.sb.WriteString(j.t)
+		c.sb.WriteString(j.mode)
+		c.sb.WriteString(" .")
+		c.sb.WriteString(j.table)
+		c.sb.WriteByte(' ')
+		c.sb.WriteString(j.t)
 		
 		if j.mode == join_cross {
-			ctx.sb.WriteByte('\n')
+			c.sb.WriteByte('\n')
 			continue
 		}
 		
-		ctx.sb.WriteString(" ON ")
+		c.sb.WriteString(" ON ")
 		
 		for e, jf := range j.on {
 			if e > 0 {
-				ctx.sb.WriteString(" AND ")
+				c.sb.WriteString(" AND ")
 			}
-			ctx.sb.WriteString(j.t)
-			ctx.sb.WriteByte('.')
-			ctx.sb.WriteString(jf.Field)
+			c.sb.WriteString(j.t)
+			c.sb.WriteByte('.')
+			c.sb.WriteString(jf.Field)
 			
 			if jf.Fixed_value {
-				sub_data, err := write_operator_condition(&ctx.sb, jf.Operator, jf.Field_value)
+				sub_data, err := write_operator_condition(&c.sb, jf.Operator, jf.Field_value)
 				if err != nil {
 					return err
 				}
 				
-				if jf.Operator == Op_null || jf.Operator == Op_not_null {
-					continue
-				}
-				
-				if sub_data != nil {
-					ctx.append_data(sub_data)
-				} else {
-					ctx.append_data(jf.Field_value)
+				//	Apply data
+				switch jf.Operator {
+				case Op_null, Op_not_null:
+				case Op_in_subquery:
+					c.append_data(sub_data)
+				default:
+					c.append_data(jf.Field_value)
 				}
 			} else {
-				ctx.sb.WriteByte('=')
-				ctx.write_field(q.t, jf.Field_foreign)
+				c.sb.WriteByte('=')
+				c.write_field(q.t, jf.Field_foreign)
 			}
 		}
 		
-		ctx.sb.WriteByte('\n')
+		c.sb.WriteByte('\n')
 	}
 	return nil
 }
@@ -367,16 +366,16 @@ func (q *query_join) compile_optimize_joins(aliases alias_collect) []join {
 	return joins_compile
 }
 
-func (q *query_join) write_update_field(ctx *compiler, field, operator string){
+func (q *query_join) write_update_field(c *compiler, field, operator string){
 	switch operator {
 	case op_update_add:
-		ctx.write_field(q.t, field)
-		ctx.sb.WriteByte('=')
-		ctx.write_field(q.t, field)
-		ctx.sb.WriteString("+?")
+		c.write_field(q.t, field)
+		c.sb.WriteByte('=')
+		c.write_field(q.t, field)
+		c.sb.WriteString("+?")
 	default:
-		ctx.write_field(q.t, field)
-		ctx.sb.WriteString("=?")
+		c.write_field(q.t, field)
+		c.sb.WriteString("=?")
 	}
 }
 

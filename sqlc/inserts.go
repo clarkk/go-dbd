@@ -72,38 +72,38 @@ func (q *Inserts_query) Left_join(table, t, field, field_foreign string) *Insert
 }
 
 func (q *Inserts_query) Compile() (string, []any, error){
-	ctx := compiler_pool.Get().(*compiler)
+	c := compiler_pool.Get().(*compiler)
 	defer func() {
-		ctx.reset()
-		compiler_pool.Put(ctx)
+		c.reset()
+		compiler_pool.Put(c)
 	}()
 	
 	t := q.base_table_short()
-	if err := q.compile_tables(ctx, t); err != nil {
+	if err := q.compile_tables(c, t); err != nil {
 		return "", nil, err
 	}
-	ctx.root_t = q.t
+	c.root_t = q.t
 	
 	//audit := Audit(sb, "inserts")
 	
 	//	Pre-allocation
-	alloc := 20 + len(q.table) + q.alloc_field_list(q.col_count, ctx.use_alias)	//	"INSERT ." + " ()\nVALUES \n"
+	alloc := 20 + len(q.table) + q.alloc_field_list(q.col_count, c.use_alias)	//	"INSERT ." + " ()\nVALUES \n"
 	alloc += len(q.fields) * (3 + alloc_field_placeholder_list(q.col_count))	//	"(),"
 	if q.update_duplicate {
 		alloc += 25										//	"ON DUPLICATE KEY UPDATE \n"
 		alloc += q.col_count * (9 + 2 * alloc_field)	//	"=VALUES()"
 	}
-	ctx.sb.Alloc(alloc)
+	c.sb.Alloc(alloc)
 	//audit.Grow(alloc)
-	q.compile_inserts(ctx)
-	ctx.sb.WriteString("VALUES ")
-	if err := q.compile_fields(ctx); err != nil {
+	q.compile_inserts(c)
+	c.sb.WriteString("VALUES ")
+	if err := q.compile_fields(c); err != nil {
 		return "", nil, err
 	}
-	ctx.sb.WriteByte('\n')
+	c.sb.WriteByte('\n')
 	
 	if q.update_duplicate {
-		ctx.sb.WriteString("ON DUPLICATE KEY UPDATE ")
+		c.sb.WriteString("ON DUPLICATE KEY UPDATE ")
 		
 		if q.update_dublicate_fields != nil {
 			var found bool
@@ -112,64 +112,64 @@ func (q *Inserts_query) Compile() (string, []any, error){
 					return "", nil, fmt.Errorf("Invalid update duplicate field: %s", field)
 				}
 				if i > 0 {
-					ctx.sb.WriteByte(',')
+					c.sb.WriteByte(',')
 				}
-				q.write_update_duplicate_field(ctx, field)
+				q.write_update_duplicate_field(c, field)
 			}
 		} else {
 			for i, field := range q.col_keys {
 				if i > 0 {
-					ctx.sb.WriteByte(',')
+					c.sb.WriteByte(',')
 				}
-				q.write_update_duplicate_field(ctx, field)
+				q.write_update_duplicate_field(c, field)
 			}
 		}
 		
-		ctx.sb.WriteByte('\n')
+		c.sb.WriteByte('\n')
 	}
 	//audit.Audit()
 	
-	return ctx.sb.String(), ctx.data_copy(), nil
+	return c.sb.String(), c.data_copy(), nil
 }
 
-func (q *Inserts_query) compile_inserts(ctx *compiler){
-	ctx.sb.WriteString("INSERT .")
-	ctx.sb.WriteString(q.table)
-	ctx.sb.WriteString(" (")
+func (q *Inserts_query) compile_inserts(c *compiler){
+	c.sb.WriteString("INSERT .")
+	c.sb.WriteString(q.table)
+	c.sb.WriteString(" (")
 	for i, k := range q.col_keys {
 		if i > 0 {
-			ctx.sb.WriteString(",")
+			c.sb.WriteString(",")
 		}
-		ctx.write_field(q.t, k)
+		c.write_field(q.t, k)
 	}
-	ctx.sb.WriteString(")\n")
+	c.sb.WriteString(")\n")
 }
 
-func (q *Inserts_query) compile_fields(ctx *compiler) error {
+func (q *Inserts_query) compile_fields(c *compiler) error {
 	length := len(q.fields)
 	if length == 0 {
 		return fmt.Errorf("No rows to insert")
 	}
 	
-	ctx.alloc_data_capacity(q.col_count * length)
+	c.alloc_data_capacity(q.col_count * length)
 	
 	for i := range q.fields {
 		if i > 0 {
-			ctx.sb.WriteByte(',')
+			c.sb.WriteByte(',')
 		}
 		
-		ctx.sb.WriteByte('(')
-		field_placeholder_list(q.col_count, &ctx.sb)
-		ctx.sb.WriteByte(')')
+		c.sb.WriteByte('(')
+		field_placeholder_list(q.col_count, &c.sb)
+		c.sb.WriteByte(')')
 		
-		ctx.append_data(q.fields[i])
+		c.append_data(q.fields[i])
 	}
 	return nil
 }
 
-func (q *Inserts_query) write_update_duplicate_field(ctx *compiler, field string){
-	ctx.write_field(q.t, field)
-	ctx.sb.WriteString("=VALUES(")
-	ctx.write_field(q.t, field)
-	ctx.sb.WriteByte(')')
+func (q *Inserts_query) write_update_duplicate_field(c *compiler, field string){
+	c.write_field(q.t, field)
+	c.sb.WriteString("=VALUES(")
+	c.write_field(q.t, field)
+	c.sb.WriteByte(')')
 }

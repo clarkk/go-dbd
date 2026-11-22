@@ -66,40 +66,40 @@ func (q *Union_query) Limit(offset uint32, limit uint8) *Union_query {
 }
 
 func (q *Union_query) Compile() (string, []any, error){
-	ctx := compiler_pool.Get().(*compiler)
+	c := compiler_pool.Get().(*compiler)
 	defer func() {
-		ctx.reset()
-		compiler_pool.Put(ctx)
+		c.reset()
+		compiler_pool.Put(c)
 	}()
 	
 	if q.joined {
-		ctx.use_alias = true
+		c.use_alias = true
 	}
 	
 	var err error
-	if err = q.compile_tables(ctx, "t"); err != nil {
+	if err = q.compile_tables(c, "t"); err != nil {
 		return "", nil, err
 	}
 	
-	q.compile_select(ctx)
-	if err = q.compile_from(ctx); err != nil {
+	q.compile_select(c)
+	if err = q.compile_from(c); err != nil {
 		return "", nil, err
 	}
-	if err = q.compile_joins(ctx, nil); err != nil {
+	if err = q.compile_joins(c, nil); err != nil {
 		return "", nil, err
 	}
-	if err = q.compile_where(ctx, nil); err != nil {
+	if err = q.compile_where(c, nil); err != nil {
 		return "", nil, err
 	}
-	q.compile_group(ctx)
-	q.compile_order(ctx)
-	q.compile_limit(ctx)
-	ctx.sb.WriteByte('\n')
+	q.compile_group(c)
+	q.compile_order(c)
+	q.compile_limit(c)
+	c.sb.WriteByte('\n')
 	
-	return ctx.sb.String(), ctx.data_copy(), nil
+	return c.sb.String(), c.data_copy(), nil
 }
 
-func (q *Union_query) compile_from(ctx *compiler) error {
+func (q *Union_query) compile_from(c *compiler) error {
 	length := len(q.unions)
 	if length < 1 {
 		return fmt.Errorf("Must have at least two queries to union")
@@ -114,10 +114,10 @@ func (q *Union_query) compile_from(ctx *compiler) error {
 	
 	//	Pre-allocation
 	alloc := 10 + len(q.t) + length * (alloc_query + len(sep))	//	"FROM (\n" + ") \n"
-	ctx.sb.Alloc(alloc)
+	c.sb.Alloc(alloc)
 	//audit.Grow(alloc)
 	
-	ctx.sb.WriteString("FROM (\n")
+	c.sb.WriteString("FROM (\n")
 	
 	for i, query := range q.unions {
 		sql, data, err := query.Compile()
@@ -126,16 +126,16 @@ func (q *Union_query) compile_from(ctx *compiler) error {
 		}
 		
 		if i > 0 {
-			ctx.sb.WriteString(sep)
+			c.sb.WriteString(sep)
 		}
-		ctx.sb.WriteString(sql)
+		c.sb.WriteString(sql)
 		
-		ctx.append_data(data)
+		c.append_data(data)
 	}
 	
-	ctx.sb.WriteString(") ")
-	ctx.sb.WriteString(q.t)
-	ctx.sb.WriteByte('\n')
+	c.sb.WriteString(") ")
+	c.sb.WriteString(q.t)
+	c.sb.WriteByte('\n')
 	//audit.Audit()
 	return nil
 }

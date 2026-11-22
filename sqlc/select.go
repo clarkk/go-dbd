@@ -170,16 +170,16 @@ func (q *Select_query) Limit(offset uint32, limit uint8) *Select_query {
 }
 
 func (q *Select_query) Compile() (string, []any, error){
-	ctx := compiler_pool.Get().(*compiler)
+	c := compiler_pool.Get().(*compiler)
 	defer func() {
-		ctx.reset()
-		compiler_pool.Put(ctx)
+		c.reset()
+		compiler_pool.Put(c)
 	}()
 	
 	var aliases alias_collect
 	
 	if q.joined || q.select_jsons != nil {
-		ctx.use_alias = true
+		c.use_alias = true
 		
 		if q.optimize_joins {
 			aliases = alias_collect_pool.Get().(alias_collect)
@@ -194,48 +194,48 @@ func (q *Select_query) Compile() (string, []any, error){
 	}
 	
 	t := q.base_table_short()
-	if err := q.compile_tables(ctx, t); err != nil {
+	if err := q.compile_tables(c, t); err != nil {
 		return "", nil, err
 	}
-	ctx.root_t = q.t
+	c.root_t = q.t
 	
 	//audit := Audit(sb, "select")
 	
 	//	Pre-allocation
-	alloc := q.alloc_field_list(len(q.select_fields), ctx.use_alias)
+	alloc := q.alloc_field_list(len(q.select_fields), c.use_alias)
 	if q.select_distinct {
 		alloc += 17	//	"SELECT DISTINCT \n"
 	} else {
 		alloc += 8	//	"SELECT \n"
 	}
 	alloc += 7 + len(q.table)	//	"FROM .\n"
-	if ctx.use_alias {
+	if c.use_alias {
 		alloc += 1 + len(q.t)
 	}
 	alloc += len(q.select_jsons) * alloc_query
-	ctx.sb.Alloc(alloc)
+	c.sb.Alloc(alloc)
 	//audit.Grow(alloc)
 	
 	var err error
-	if err = q.compile_select(ctx); err != nil {
+	if err = q.compile_select(c); err != nil {
 		return "", nil, err
 	}
-	q.compile_from(ctx)
-	if err = q.compile_joins(ctx, aliases); err != nil {
+	q.compile_from(c)
+	if err = q.compile_joins(c, aliases); err != nil {
 		return "", nil, err
 	}
 	//audit.Audit()
-	if err = q.compile_where(ctx, nil); err != nil {
+	if err = q.compile_where(c, nil); err != nil {
 		return "", nil, err
 	}
-	q.compile_group(ctx)
-	q.compile_order(ctx)
-	q.compile_limit(ctx)
+	q.compile_group(c)
+	q.compile_order(c)
+	q.compile_limit(c)
 	if q.lock_for_update {
-		ctx.sb.WriteString("FOR UPDATE\n")
+		c.sb.WriteString("FOR UPDATE\n")
 	}
 	
-	return ctx.sb.String(), ctx.data_copy(), nil
+	return c.sb.String(), c.data_copy(), nil
 }
 
 func (q *Select_query) collect_aliases(list alias_collect) error {
@@ -248,8 +248,9 @@ func (q *Select_query) collect_aliases(list alias_collect) error {
 		}
 	}
 	for _, f := range q.select_jsons {
-		list.apply(f.inner_field)
-		list.apply(f.outer_field)
+		if f.query != nil && f.inner_field != "" {
+			list.apply(f.outer_field)
+		}
 	}
 	
 	//	Check WHERE clause
@@ -270,62 +271,62 @@ func (q *Select_query) collect_aliases(list alias_collect) error {
 	return q.resolve_alias_join_dependencies(list)
 }
 
-func (q *Select_query) compile_select(ctx *compiler) error {
+func (q *Select_query) compile_select(c *compiler) error {
 	if q.select_distinct {
-		ctx.sb.WriteString("SELECT DISTINCT ")
+		c.sb.WriteString("SELECT DISTINCT ")
 	} else {
-		ctx.sb.WriteString("SELECT ")
+		c.sb.WriteString("SELECT ")
 	}
 	
 	for i := range q.select_fields {
 		s := &q.select_fields[i]	//	Avoid copying data
 		if i > 0 {
-			ctx.sb.WriteString(", ")
+			c.sb.WriteString(", ")
 		}
 		
 		switch s.function {
 		case "":
-			ctx.write_field(q.t, s.field)
+			c.write_field(q.t, s.field)
 		case SELECT_RAW:
 			if strings.Contains(s.field, ROOT_ALIAS) {
-				ctx.sb.WriteString(strings.ReplaceAll(s.field, ROOT_ALIAS+".", q.t+"."))
+				c.sb.WriteString(strings.ReplaceAll(s.field, ROOT_ALIAS+".", q.t+"."))
 			} else {
-				ctx.sb.WriteString(s.field)
+				c.sb.WriteString(s.field)
 			}
 		case SELECT_SUM_ZERO:
-			ctx.sb.WriteString("IFNULL(SUM(")
-			ctx.write_field(q.t, s.field)
-			ctx.sb.WriteString("), 0)")
+			c.sb.WriteString("IFNULL(SUM(")
+			c.write_field(q.t, s.field)
+			c.sb.WriteString("), 0)")
 		default:
-			ctx.sb.WriteString(strings.ToUpper(s.function))
-			ctx.sb.WriteByte('(')
-			ctx.write_field(q.t, s.field)
-			ctx.sb.WriteByte(')')
+			c.sb.WriteString(strings.ToUpper(s.function))
+			c.sb.WriteByte('(')
+			c.write_field(q.t, s.field)
+			c.sb.WriteByte(')')
 		}
 		
 		if s.alias != "" {
-			ctx.sb.WriteByte(' ')
-			ctx.sb.WriteString(s.alias)
+			c.sb.WriteByte(' ')
+			c.sb.WriteString(s.alias)
 		}
 	}
 	
-	if err := q.compile_select_joins(ctx); err != nil {
+	if err := q.compile_select_joins(c); err != nil {
 		return err
 	}
 	
-	ctx.sb.WriteByte('\n')
+	c.sb.WriteByte('\n')
 	return nil
 }
 
-func (q *Select_query) compile_select_joins(ctx *compiler) error {
+func (q *Select_query) compile_select_joins(c *compiler) error {
 	var err error
 	for _, sj := range q.select_jsons {
 		if sj.query == nil {
-			q.compile_select_null(ctx, sj)
+			q.compile_select_null(c, sj)
 			continue
 		}
 		
-		if err = q.compile_select_join(ctx, sj); err != nil {
+		if err = q.compile_select_join(c, sj); err != nil {
 			return err
 		}
 	}
@@ -333,61 +334,62 @@ func (q *Select_query) compile_select_joins(ctx *compiler) error {
 	return nil
 }
 
-func (q *Select_query) compile_select_null(ctx *compiler, sj *select_json) {
-	ctx.sb.WriteString(", NULL ")
-	ctx.sb.WriteString(sj.select_field)
+func (q *Select_query) compile_select_null(c *compiler, sj *select_json) {
+	c.sb.WriteString(", NULL ")
+	c.sb.WriteString(sj.select_field)
 }
 
-func (q *Select_query) compile_select_join(ctx *compiler, sj *select_json) error {
+func (q *Select_query) compile_select_join(c *compiler, sj *select_json) error {
 	if len(sj.query.select_fields) < 2 {
 		return fmt.Errorf("Minimum 2 fields in select json")
 	}
 	
-	var sub_aliases alias_collect
+	var sub_list alias_collect
 	
 	if sj.query.joined && sj.query.optimize_joins {
-		sub_aliases = alias_collect_pool.Get().(alias_collect)
+		sub_list = alias_collect_pool.Get().(alias_collect)
 		defer func() {
-			sub_aliases.reset()
-			alias_collect_pool.Put(sub_aliases)
+			sub_list.reset()
+			alias_collect_pool.Put(sub_list)
 		}()
-		if err := sj.query.collect_aliases(sub_aliases); err != nil {
+		sub_list.apply(sj.inner_field)
+		if err := sj.query.collect_aliases(sub_list); err != nil {
 			return err
 		}
 	}
 	
 	t := sj.query.base_table_short()
-	if err := sj.query.compile_tables(ctx, t); err != nil {
+	if err := sj.query.compile_tables(c, t); err != nil {
 		return err
 	}
 	
-	ctx.sb.WriteString(",\n(\nSELECT JSON_ARRAYAGG(JSON_OBJECT(")
+	c.sb.WriteString(",\n(\nSELECT JSON_ARRAYAGG(JSON_OBJECT(")
 	for i := range sj.query.select_fields {
 		field := &sj.query.select_fields[i]	//	Avoid copying data
 		if i > 0 {
-			ctx.sb.WriteString(", ")
+			c.sb.WriteString(", ")
 		}
-		ctx.sb.WriteByte('\'')
+		c.sb.WriteByte('\'')
 		if field.alias == "" {
 			if pos := strings.IndexByte(field.field, '.'); pos != -1 {
-				ctx.sb.WriteString(field.field[pos+1:])
+				c.sb.WriteString(field.field[pos+1:])
 			} else {
-				ctx.sb.WriteString(field.field)
+				c.sb.WriteString(field.field)
 			}
 		} else {
-			ctx.sb.WriteString(field.alias)
+			c.sb.WriteString(field.alias)
 		}
-		ctx.sb.WriteString("', ")
-		ctx.write_field(sj.query.t, field.field)
+		c.sb.WriteString("', ")
+		c.write_field(sj.query.t, field.field)
 	}
-	ctx.sb.WriteString("))\n")
+	c.sb.WriteString("))\n")
 	
-	sj.query.compile_from(ctx)
-	if err := sj.query.compile_joins(ctx, sub_aliases); err != nil {
+	sj.query.compile_from(c)
+	if err := sj.query.compile_joins(c, sub_list); err != nil {
 		return err
 	}
 	
-	if err := sj.query.compile_where(ctx, func(ctx *compiler, first *bool){
+	if err := sj.query.compile_where(c, func(c *compiler, first *bool){
 		if sj.inner_field == "" {
 			return
 		}
@@ -395,77 +397,77 @@ func (q *Select_query) compile_select_join(ctx *compiler, sj *select_json) error
 		if *first {
 			*first = false
 		} else {
-			ctx.sb.WriteString(" AND ")
+			c.sb.WriteString(" AND ")
 		}
 		
-		ctx.write_field(sj.query.t, sj.inner_field)
-		ctx.sb.WriteByte('=')
-		ctx.write_field(q.t, sj.outer_field)
+		c.write_field(sj.query.t, sj.inner_field)
+		c.sb.WriteByte('=')
+		c.write_field(q.t, sj.outer_field)
 	}); err != nil {
 		return err
 	}
 	
-	sj.query.compile_group(ctx)
-	sj.query.compile_order(ctx)
-	sj.query.compile_limit(ctx)
+	sj.query.compile_group(c)
+	sj.query.compile_order(c)
+	sj.query.compile_limit(c)
 	
-	ctx.sb.WriteString(") ")
-	ctx.sb.WriteString(sj.select_field)
+	c.sb.WriteString(") ")
+	c.sb.WriteString(sj.select_field)
 	
 	return nil
 }
 
-func (q *Select_query) compile_group(ctx *compiler){
+func (q *Select_query) compile_group(c *compiler){
 	length := len(q.group)
 	if length == 0 {
 		return
 	}
 	
 	//	Pre-allocation
-	ctx.sb.Alloc(10 + q.alloc_field_list(length, ctx.use_alias))
+	c.sb.Alloc(10 + q.alloc_field_list(length, c.use_alias))
 	
-	ctx.sb.WriteString("GROUP BY ")
+	c.sb.WriteString("GROUP BY ")
 	for i, v := range q.group {
 		if i > 0 {
-			ctx.sb.WriteString(", ")
+			c.sb.WriteString(", ")
 		}
-		ctx.write_field(q.t, v)
+		c.write_field(q.t, v)
 	}
-	ctx.sb.WriteByte('\n')
+	c.sb.WriteByte('\n')
 }
 
-func (q *Select_query) compile_order(ctx *compiler){
+func (q *Select_query) compile_order(c *compiler){
 	length := len(q.order)
 	if length == 0 {
 		return
 	}
 	
 	//	Pre-allocation
-	ctx.sb.Alloc(10 + q.alloc_field_list(length, ctx.use_alias))
+	c.sb.Alloc(10 + q.alloc_field_list(length, c.use_alias))
 	
-	ctx.sb.WriteString("ORDER BY ")
+	c.sb.WriteString("ORDER BY ")
 	for i, v := range q.order {
 		if i > 0 {
-			ctx.sb.WriteString(", ")
+			c.sb.WriteString(", ")
 		}
-		ctx.write_field(q.t, v)
+		c.write_field(q.t, v)
 	}
-	ctx.sb.WriteByte('\n')
+	c.sb.WriteByte('\n')
 }
 
-func (q *Select_query) compile_limit(ctx *compiler){
+func (q *Select_query) compile_limit(c *compiler){
 	if q.limit.limit == 0 {
 		return
 	}
 	
 	//	Pre-allocation
-	ctx.sb.Alloc(8 + 3 + 3)
+	c.sb.Alloc(8 + 3 + 3)
 	
 	var buf [20]byte
 	
-	ctx.sb.WriteString("LIMIT ")
-	ctx.sb.Write(strconv.AppendUint(buf[:0], uint64(q.limit.offset), 10))
-	ctx.sb.WriteByte(',')
-	ctx.sb.Write(strconv.AppendUint(buf[:0], uint64(q.limit.limit), 10))
-	ctx.sb.WriteByte('\n')
+	c.sb.WriteString("LIMIT ")
+	c.sb.Write(strconv.AppendUint(buf[:0], uint64(q.limit.offset), 10))
+	c.sb.WriteByte(',')
+	c.sb.Write(strconv.AppendUint(buf[:0], uint64(q.limit.limit), 10))
+	c.sb.WriteByte('\n')
 }

@@ -65,61 +65,61 @@ func (q *Update_query) Compile() (string, []any, error){
 		return "", nil, fmt.Errorf("Update without where")
 	}
 	
-	ctx := compiler_pool.Get().(*compiler)
+	c := compiler_pool.Get().(*compiler)
 	defer func() {
-		ctx.reset()
-		compiler_pool.Put(ctx)
+		c.reset()
+		compiler_pool.Put(c)
 	}()
 	
 	if q.joined {
-		ctx.use_alias = true
+		c.use_alias = true
 	}
 	
 	var err error
 	t := q.base_table_short()
-	if err = q.compile_tables(ctx, t); err != nil {
+	if err = q.compile_tables(c, t); err != nil {
 		return "", nil, err
 	}
-	ctx.root_t = q.t
+	c.root_t = q.t
 	
 	//audit := Audit(sb, "update")
 	
 	//	Pre-allocation
 	alloc := 14 + len(q.table) + alloc_field_assign(len(q.fields.entries))	//	"UPDATE .\n" + "SET \n"
-	if ctx.use_alias {
+	if c.use_alias {
 		alloc += 2 + len(q.t)
 	}
-	ctx.sb.Alloc(alloc)
+	c.sb.Alloc(alloc)
 	//audit.Grow(alloc)
 	
-	ctx.sb.WriteString("UPDATE .")
-	ctx.sb.WriteString(q.table)
-	if ctx.use_alias {
-		ctx.sb.WriteByte(' ')
-		ctx.sb.WriteString(q.t)
-		ctx.sb.WriteByte('\n')
-		if err = q.compile_joins(ctx, nil); err != nil {
+	c.sb.WriteString("UPDATE .")
+	c.sb.WriteString(q.table)
+	if c.use_alias {
+		c.sb.WriteByte(' ')
+		c.sb.WriteString(q.t)
+		c.sb.WriteByte('\n')
+		if err = q.compile_joins(c, nil); err != nil {
 			return "", nil, err
 		}
 	} else {
-		ctx.sb.WriteByte('\n')
+		c.sb.WriteByte('\n')
 	}
-	ctx.sb.WriteString("SET ")
-	if err = q.compile_fields(ctx); err != nil {
+	c.sb.WriteString("SET ")
+	if err = q.compile_fields(c); err != nil {
 		return "", nil, err
 	}
-	ctx.sb.WriteByte('\n')
+	c.sb.WriteByte('\n')
 	//audit.Audit()
-	if err = q.compile_where(ctx, nil); err != nil {
+	if err = q.compile_where(c, nil); err != nil {
 		return "", nil, err
 	}
 	
-	return ctx.sb.String(), ctx.data_copy(), nil
+	return c.sb.String(), c.data_copy(), nil
 }
 
-func (q *Update_query) compile_fields(ctx *compiler) error {
+func (q *Update_query) compile_fields(c *compiler) error {
 	length := len(q.fields.entries)
-	ctx.alloc_data_capacity(len(ctx.data) + length)
+	c.alloc_data_capacity(len(c.data) + length)
 	unique := make(map[string]struct{}, length)
 	
 	for i, entry := range q.fields.entries {
@@ -127,12 +127,12 @@ func (q *Update_query) compile_fields(ctx *compiler) error {
 			return fmt.Errorf("Duplicate field: %s", entry.field)
 		}
 		if i > 0 {
-			ctx.sb.WriteString(", ")
+			c.sb.WriteString(", ")
 		}
 		
-		q.write_update_field(ctx, entry.field, entry.operator)
+		q.write_update_field(c, entry.field, entry.operator)
 		
-		ctx.append_data(entry.value)
+		c.append_data(entry.value)
 		unique[entry.field]	= struct{}{}
 	}
 	return nil

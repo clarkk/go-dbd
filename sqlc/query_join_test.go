@@ -276,7 +276,7 @@ func Test_optimize_joins(t *testing.T){
 		}
 	})
 	
-	t.Run("inner_join_first_at_same_depth", func(t *testing.T){
+	t.Run("unused_inner_join_is_removed", func(t *testing.T){
 		q := Query_join_test("table")
 		
 		q.left_join("account", "a", "id", "account_id")
@@ -350,6 +350,72 @@ func Test_optimize_joins(t *testing.T){
 				Field_foreign:	"account_id",
 			}},
 			depth:			0,
+		}}
+		got_joins := q.compile_optimize_joins()
+		if !reflect.DeepEqual(want_joins, got_joins) {
+			t.Fatalf("Joins want:\n%v\nJoins got:\n%v", want_joins, got_joins)
+		}
+	})
+	
+	t.Run("multiple_dependencies_use_max_depth", func(t *testing.T){
+		q := Query_join_test("table")
+		
+		q.left_join("bank", "b", "id", "bank_id")
+		q.left_join("invoice", "i", "bank_id", "b.id")
+		q.left_join_multi("payment", "p", Join_conditions{{
+			Field:			"invoice_id",
+			Field_foreign:	"i.id",
+		}, {
+			Field:			"bank_id",
+			Field_foreign:	"b.id",
+		}})
+		
+		q.aliases_apply("p.amount")
+		
+		if err := q.resolve_alias_join_dependencies(); err != nil {
+			t.Fatal(err)
+		}
+		
+		want_alias	:= []string{"b", "i", "p"}
+		got_alias	:= q.aliases_sorted()
+		if !slices.Equal(want_alias, got_alias) {
+			t.Fatalf("Alias want:\n%s\nAlias got:\n%s", want_alias, got_alias)
+		}
+		
+		want_joins := []join{{
+			mode:			join_left,
+			table:			"bank",
+			t:				"b",
+			join_t:			nil,
+			on: Join_conditions{{
+				Field:			"id",
+				Field_foreign:	"bank_id",
+			}},
+			depth:			0,
+			force:			false,
+		},{
+			mode:			join_left,
+			table:			"invoice",
+			t:				"i",
+			join_t:			[]string{"b"},
+			on: Join_conditions{{
+				Field:			"bank_id",
+				Field_foreign:	"b.id",
+			}},
+			depth:			1,
+		},{
+			mode:			join_left,
+			table:			"payment",
+			t:				"p",
+			join_t:			[]string{"i", "b"},
+			on: Join_conditions{{
+				Field:			"invoice_id",
+				Field_foreign:	"i.id",
+			},{
+				Field:			"bank_id",
+				Field_foreign:	"b.id",
+			}},
+			depth:			2,
 		}}
 		got_joins := q.compile_optimize_joins()
 		if !reflect.DeepEqual(want_joins, got_joins) {

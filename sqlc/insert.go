@@ -59,17 +59,17 @@ func (q *Insert_query) Left_join(table, t, field, field_foreign string) *Insert_
 }
 
 func (q *Insert_query) Compile() (string, []any, error){
-	ctx := compiler_pool.Get().(*compiler)
+	c := compiler_pool.Get().(*compiler)
 	defer func() {
-		ctx.reset()
-		compiler_pool.Put(ctx)
+		c.reset()
+		compiler_pool.Put(c)
 	}()
 	
 	t := q.base_table_short()
-	if err := q.compile_tables(ctx, t); err != nil {
+	if err := q.compile_tables(c, t); err != nil {
 		return "", nil, err
 	}
-	ctx.root_t = q.t
+	c.root_t = q.t
 	
 	//audit := Audit(sb, "insert")
 	
@@ -83,32 +83,32 @@ func (q *Insert_query) Compile() (string, []any, error){
 			alloc += alloc_field_assign(len(q.fields.entries))
 		}
 	}
-	ctx.sb.Alloc(alloc)
+	c.sb.Alloc(alloc)
 	//audit.Grow(alloc)
-	ctx.sb.WriteString("INSERT .")
-	ctx.sb.WriteString(q.table)
-	ctx.sb.WriteByte('\n')
-	ctx.sb.WriteString("SET ")
-	if err := q.compile_fields(ctx); err != nil {
+	c.sb.WriteString("INSERT .")
+	c.sb.WriteString(q.table)
+	c.sb.WriteByte('\n')
+	c.sb.WriteString("SET ")
+	if err := q.compile_fields(c); err != nil {
 		return "", nil, err
 	}
-	ctx.sb.WriteByte('\n')
+	c.sb.WriteByte('\n')
 	if q.update_duplicate {
-		ctx.sb.WriteString("ON DUPLICATE KEY UPDATE ")
-		err := q.compile_update_duplicate_fields(ctx)
+		c.sb.WriteString("ON DUPLICATE KEY UPDATE ")
+		err := q.compile_update_duplicate_fields(c)
 		if err != nil {
 			return "", nil, err
 		}
-		ctx.sb.WriteByte('\n')
+		c.sb.WriteByte('\n')
 	}
 	//audit.Audit()
 	
-	return ctx.sb.String(), ctx.data_copy(), nil
+	return c.sb.String(), c.data_copy(), nil
 }
 
-func (q *Insert_query) compile_fields(ctx *compiler) error {
+func (q *Insert_query) compile_fields(c *compiler) error {
 	length	:= len(q.fields.entries)
-	ctx.alloc_data_capacity(len(ctx.data) + length)
+	c.alloc_data_capacity(len(c.data) + length)
 	unique	:= make(map[string]struct{}, length)
 	
 	for i, entry := range q.fields.entries {
@@ -116,24 +116,24 @@ func (q *Insert_query) compile_fields(ctx *compiler) error {
 			return fmt.Errorf("Duplicate field: %s", entry.field)
 		}
 		if i > 0 {
-			ctx.sb.WriteString(", ")
+			c.sb.WriteString(", ")
 		}
 		
-		ctx.write_field(q.t, entry.field)
-		ctx.sb.WriteString("=?")
+		c.write_field(q.t, entry.field)
+		c.sb.WriteString("=?")
 		
-		ctx.append_data(entry.value)
+		c.append_data(entry.value)
 		unique[entry.field]			= struct{}{}
 		q.map_fields[entry.field]	= i
 	}
 	return nil
 }
 
-func (q *Insert_query) compile_update_duplicate_fields(ctx *compiler) error {
+func (q *Insert_query) compile_update_duplicate_fields(c *compiler) error {
 	if q.update_duplicate_fields != nil {
 		length := len(q.update_duplicate_fields)
 		
-		ctx.alloc_data_capacity(len(ctx.data) + length)
+		c.alloc_data_capacity(len(c.data) + length)
 		
 		for i, field := range q.update_duplicate_fields {
 			j, found := q.map_fields[field]
@@ -142,26 +142,26 @@ func (q *Insert_query) compile_update_duplicate_fields(ctx *compiler) error {
 			}
 			
 			if i > 0 {
-				ctx.sb.WriteString(", ")
+				c.sb.WriteString(", ")
 			}
 			
-			q.write_update_field(ctx, field, q.fields.entries[j].operator)
+			q.write_update_field(c, field, q.fields.entries[j].operator)
 			
-			ctx.append_data(q.fields.entries[j].value)
+			c.append_data(q.fields.entries[j].value)
 		}
 	} else {
 		length := len(q.fields.entries)
 		
-		ctx.alloc_data_capacity(len(ctx.data) + length)
+		c.alloc_data_capacity(len(c.data) + length)
 		
 		for i, entry := range q.fields.entries {
 			if i > 0 {
-				ctx.sb.WriteString(", ")
+				c.sb.WriteString(", ")
 			}
 			
-			q.write_update_field(ctx, entry.field, entry.operator)
+			q.write_update_field(c, entry.field, entry.operator)
 			
-			ctx.append_data(entry.value)
+			c.append_data(entry.value)
 		}
 	}
 	return nil
