@@ -53,7 +53,16 @@ func (q *query_where) compile_where(c *compiler, inner_condition func(c *compile
 	}
 	
 	if q.where_clause != nil {
-		var duplicates map[string]Operator
+		writer := where_writer{
+			q:			q,
+			c:			c,
+			has_term:	!first,
+		}
+		if err := writer.write_clause(q.where_clause); err != nil {
+			return err
+		}
+		
+		/*var duplicates map[string]Operator
 		//	Only allocate if at least 2 conditions
 		if len(q.where_clause.conditions) > 1 {
 			//	Pre-allocation
@@ -62,14 +71,14 @@ func (q *query_where) compile_where(c *compiler, inner_condition func(c *compile
 		
 		if err := q.walk_where_clause(c, q.where_clause, &duplicates, &first); err != nil {
 			return err
-		}
+		}*/
 	}
 	c.sb.WriteByte('\n')
 	//audit.Audit()
 	return nil
 }
 
-func (q *query_where) walk_where_clause(c *compiler, clause *Where_clause, duplicates *map[string]Operator, first *bool) error {
+/*func (q *query_where) walk_where_clause(c *compiler, clause *Where_clause, duplicates *map[string]Operator, first *bool) error {
 	//	Apply wrapped conditions
 	if clause.wrapped != nil {
 		if err := q.walk_where_clause(c, clause.wrapped, duplicates, first); err != nil {
@@ -131,7 +140,7 @@ func (q *query_where) walk_where_clause(c *compiler, clause *Where_clause, dupli
 	}
 	
 	return nil
-}
+}*/
 
 func (q *query_where) write_condition_data(c *compiler, condition *where_condition) error {
 	c.write_field(q.t, condition.field)
