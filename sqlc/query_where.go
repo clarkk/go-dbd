@@ -36,7 +36,7 @@ func (q *query_where) compile_where(c *compiler, inner_condition func(c *compile
 	
 	c.sb.Alloc(alloc)
 	//audit.Grow(alloc)
-	c.alloc_data_capacity(alloc_data + len(c.data))
+	c.alloc_data_capacity(alloc_data)
 	
 	c.sb.WriteString("WHERE ")
 	first := true
@@ -44,7 +44,7 @@ func (q *query_where) compile_where(c *compiler, inner_condition func(c *compile
 	if q.use_id {
 		c.write_field(q.t, "id")
 		c.sb.WriteString("=?")
-		c.append_data(q.id)
+		c.data = append(c.data, q.id)
 		first = false
 	}
 	
@@ -135,20 +135,7 @@ func (q *query_where) walk_where_clause(c *compiler, clause *Where_clause, dupli
 
 func (q *query_where) write_condition_data(c *compiler, condition *where_condition) error {
 	c.write_field(q.t, condition.field)
-	sub_data, err := write_operator_condition(&c.sb, condition.operator, condition.value)
-	if err != nil {
-		return err
-	}
-	
-	//	Apply data
-	switch condition.operator {
-	case Op_null, Op_not_null:
-	case Op_in_subquery:
-		c.append_data(sub_data)
-	default:
-		c.append_data(condition.value)
-	}
-	return nil
+	return c.write_operator_condition(condition.operator, condition.value)
 }
 
 func (q *query_where) get_alloc() (int, int, int){

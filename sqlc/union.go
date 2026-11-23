@@ -67,10 +67,7 @@ func (q *Union_query) Limit(offset uint32, limit uint8) *Union_query {
 
 func (q *Union_query) Compile() (string, []any, error){
 	c := compiler_pool.Get().(*compiler)
-	defer func() {
-		c.reset()
-		compiler_pool.Put(c)
-	}()
+	defer c.release()
 	
 	if q.joined {
 		c.use_alias = true
@@ -81,7 +78,9 @@ func (q *Union_query) Compile() (string, []any, error){
 		return "", nil, err
 	}
 	
-	q.compile_select(c)
+	if err = q.compile_select(c); err != nil {
+		return "", nil, err
+	}
 	if err = q.compile_from(c); err != nil {
 		return "", nil, err
 	}
@@ -101,7 +100,7 @@ func (q *Union_query) Compile() (string, []any, error){
 
 func (q *Union_query) compile_from(c *compiler) error {
 	length := len(q.unions)
-	if length < 1 {
+	if length < 2 {
 		return fmt.Errorf("Must have at least two queries to union")
 	}
 	
@@ -129,8 +128,8 @@ func (q *Union_query) compile_from(c *compiler) error {
 			c.sb.WriteString(sep)
 		}
 		c.sb.WriteString(sql)
-		
-		c.append_data(data)
+		c.alloc_data_capacity(len(data))
+		c.data = append(c.data, data...)
 	}
 	
 	c.sb.WriteString(") ")

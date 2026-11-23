@@ -73,10 +73,7 @@ func (q *Inserts_query) Left_join(table, t, field, field_foreign string) *Insert
 
 func (q *Inserts_query) Compile() (string, []any, error){
 	c := compiler_pool.Get().(*compiler)
-	defer func() {
-		c.reset()
-		compiler_pool.Put(c)
-	}()
+	defer c.release()
 	
 	t := q.base_table_short()
 	if err := q.compile_tables(c, t); err != nil {
@@ -159,10 +156,10 @@ func (q *Inserts_query) compile_fields(c *compiler) error {
 		}
 		
 		c.sb.WriteByte('(')
-		field_placeholder_list(q.col_count, &c.sb)
+		c.write_field_placeholder_list(q.col_count)
 		c.sb.WriteByte(')')
-		
-		c.append_data(q.fields[i])
+		c.alloc_data_capacity(len(q.fields[i]))
+		c.data = append(c.data, q.fields[i]...)
 	}
 	return nil
 }

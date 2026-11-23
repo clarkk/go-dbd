@@ -81,6 +81,7 @@ func (m alias_collect) sorted() []string {
 	return keys
 }
 
-func (m alias_collect) reset(){
+func (m alias_collect) release(){
 	clear(m)
+	alias_collect_pool.Put(m)
 }

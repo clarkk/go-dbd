@@ -146,52 +146,6 @@ func (w *Where_clause) In_subquery(field string, query *Select_query) *Where_cla
 	return w
 }
 
-func write_operator_condition(sb *sbuilder, operator Operator, value any) ([]any, error){
-	var subquery_data []any
-	
-	switch operator {
-	case Op_null:
-		sb.WriteString(" IS NULL")
-		
-	case Op_not_null:
-		sb.WriteString(" IS NOT NULL")
-		
-	case Op_bt, Op_not_bt:
-		if operator == Op_not_bt {
-			sb.WriteString(" NOT")
-		}
-		sb.WriteByte(' ')
-		sb.WriteString(sql_op_bt)
-		
-	case Op_in, Op_not_in:
-		if operator == Op_not_in {
-			sb.WriteString(" NOT")
-		}
-		sb.WriteString(" IN (")
-		field_placeholder_list(len(value.([]any)), sb)
-		sb.WriteByte(')')
-		
-	case Op_in_subquery:
-		var (
-			err error
-			sql	string
-		)
-		sql, subquery_data, err = value.(*Select_query).Compile()
-		if err != nil {
-			return nil, err
-		}
-		sb.WriteString(" IN (\n")
-		sb.WriteString(sql)
-		sb.WriteByte(')')
-		
-	default:
-		sb.WriteString(sql_ops[operator])
-		sb.WriteByte('?')
-	}
-	
-	return subquery_data, nil
-}
-
 func (w *Where_clause) clause(field string, operator Operator, value any){
 	var (
 		alloc		int

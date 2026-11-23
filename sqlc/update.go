@@ -61,15 +61,19 @@ func (q *Update_query) Where(clause *Where_clause) *Update_query {
 }
 
 func (q *Update_query) Compile() (string, []any, error){
-	if !q.use_id && q.where_clause == nil {
-		return "", nil, fmt.Errorf("Update without where")
+	if !q.use_id {
+		num, _, _ := q.get_alloc()
+		if num == 0 {
+			return "", nil, fmt.Errorf("Update requires a WHERE condition")
+		}
+	}
+	
+	if q.fields == nil || len(q.fields.entries) == 0 {
+		return "", nil, fmt.Errorf("update requires at least one field")
 	}
 	
 	c := compiler_pool.Get().(*compiler)
-	defer func() {
-		c.reset()
-		compiler_pool.Put(c)
-	}()
+	defer c.release()
 	
 	if q.joined {
 		c.use_alias = true
@@ -119,7 +123,7 @@ func (q *Update_query) Compile() (string, []any, error){
 
 func (q *Update_query) compile_fields(c *compiler) error {
 	length := len(q.fields.entries)
-	c.alloc_data_capacity(len(c.data) + length)
+	c.alloc_data_capacity(length)
 	unique := make(map[string]struct{}, length)
 	
 	for i, entry := range q.fields.entries {
@@ -130,9 +134,8 @@ func (q *Update_query) compile_fields(c *compiler) error {
 			c.sb.WriteString(", ")
 		}
 		
-		q.write_update_field(c, entry.field, entry.operator)
+		q.write_update_field(c, entry.field, entry.operator, entry.value)
 		
-		c.append_data(entry.value)
 		unique[entry.field]	= struct{}{}
 	}
 	return nil

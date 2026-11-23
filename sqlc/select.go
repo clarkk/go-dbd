@@ -171,10 +171,7 @@ func (q *Select_query) Limit(offset uint32, limit uint8) *Select_query {
 
 func (q *Select_query) Compile() (string, []any, error){
 	c := compiler_pool.Get().(*compiler)
-	defer func() {
-		c.reset()
-		compiler_pool.Put(c)
-	}()
+	defer c.release()
 	
 	var aliases alias_collect
 	
@@ -183,10 +180,8 @@ func (q *Select_query) Compile() (string, []any, error){
 		
 		if q.optimize_joins {
 			aliases = alias_collect_pool.Get().(alias_collect)
-			defer func() {
-				aliases.reset()
-				alias_collect_pool.Put(aliases)
-			}()
+			defer aliases.release()
+			
 			if err := q.collect_aliases(aliases); err != nil {
 				return "", nil, err
 			}
@@ -308,7 +303,7 @@ func (q *Select_query) compile_select(c *compiler) error {
 		}
 	}
 	
-	if err := q.compile_select_joins(c); err != nil {
+	if err := q.compile_select_jsons(c); err != nil {
 		return err
 	}
 	
@@ -316,28 +311,22 @@ func (q *Select_query) compile_select(c *compiler) error {
 	return nil
 }
 
-func (q *Select_query) compile_select_joins(c *compiler) error {
+func (q *Select_query) compile_select_jsons(c *compiler) error {
 	var err error
 	for _, sj := range q.select_jsons {
 		if sj.query == nil {
-			q.compile_select_null(c, sj)
+			c.sb.WriteString(", NULL ")
+			c.sb.WriteString(sj.select_field)
 			continue
 		}
-		
-		if err = q.compile_select_join(c, sj); err != nil {
+		if err = q.compile_select_json(c, sj); err != nil {
 			return err
 		}
 	}
-	
 	return nil
 }
 
-func (q *Select_query) compile_select_null(c *compiler, sj *select_json) {
-	c.sb.WriteString(", NULL ")
-	c.sb.WriteString(sj.select_field)
-}
-
-func (q *Select_query) compile_select_join(c *compiler, sj *select_json) error {
+func (q *Select_query) compile_select_json(c *compiler, sj *select_json) error {
 	if len(sj.query.select_fields) < 2 {
 		return fmt.Errorf("Minimum 2 fields in select json")
 	}
@@ -346,10 +335,8 @@ func (q *Select_query) compile_select_join(c *compiler, sj *select_json) error {
 	
 	if sj.query.joined && sj.query.optimize_joins {
 		sub_list = alias_collect_pool.Get().(alias_collect)
-		defer func() {
-			sub_list.reset()
-			alias_collect_pool.Put(sub_list)
-		}()
+		defer sub_list.release()
+		
 		sub_list.apply(sj.inner_field)
 		if err := sj.query.collect_aliases(sub_list); err != nil {
 			return err

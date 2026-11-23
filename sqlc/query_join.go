@@ -315,18 +315,8 @@ func (q *query_join) compile_joins(c *compiler, aliases alias_collect) error {
 			c.sb.WriteString(jf.Field)
 			
 			if jf.Fixed_value {
-				sub_data, err := write_operator_condition(&c.sb, jf.Operator, jf.Field_value)
-				if err != nil {
+				if err := c.write_operator_condition(jf.Operator, jf.Field_value); err != nil {
 					return err
-				}
-				
-				//	Apply data
-				switch jf.Operator {
-				case Op_null, Op_not_null:
-				case Op_in_subquery:
-					c.append_data(sub_data)
-				default:
-					c.append_data(jf.Field_value)
 				}
 			} else {
 				c.sb.WriteByte('=')
@@ -366,7 +356,7 @@ func (q *query_join) compile_optimize_joins(aliases alias_collect) []join {
 	return joins_compile
 }
 
-func (q *query_join) write_update_field(c *compiler, field, operator string){
+func (q *query_join) write_update_field(c *compiler, field, operator string, value any){
 	switch operator {
 	case op_update_add:
 		c.write_field(q.t, field)
@@ -377,6 +367,7 @@ func (q *query_join) write_update_field(c *compiler, field, operator string){
 		c.write_field(q.t, field)
 		c.sb.WriteString("=?")
 	}
+	c.data = append(c.data, value)
 }
 
 func (q *query_join) base_table_short() string {

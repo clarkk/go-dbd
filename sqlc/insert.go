@@ -59,11 +59,12 @@ func (q *Insert_query) Left_join(table, t, field, field_foreign string) *Insert_
 }
 
 func (q *Insert_query) Compile() (string, []any, error){
+	if q.fields == nil || len(q.fields.entries) == 0 {
+		return "", nil, fmt.Errorf("Insert requires at least one field")
+	}
+	
 	c := compiler_pool.Get().(*compiler)
-	defer func() {
-		c.reset()
-		compiler_pool.Put(c)
-	}()
+	defer c.release()
 	
 	t := q.base_table_short()
 	if err := q.compile_tables(c, t); err != nil {
@@ -108,7 +109,7 @@ func (q *Insert_query) Compile() (string, []any, error){
 
 func (q *Insert_query) compile_fields(c *compiler) error {
 	length	:= len(q.fields.entries)
-	c.alloc_data_capacity(len(c.data) + length)
+	c.alloc_data_capacity(length)
 	unique	:= make(map[string]struct{}, length)
 	
 	for i, entry := range q.fields.entries {
@@ -121,8 +122,8 @@ func (q *Insert_query) compile_fields(c *compiler) error {
 		
 		c.write_field(q.t, entry.field)
 		c.sb.WriteString("=?")
+		c.data = append(c.data, entry.value)
 		
-		c.append_data(entry.value)
 		unique[entry.field]			= struct{}{}
 		q.map_fields[entry.field]	= i
 	}
@@ -133,7 +134,7 @@ func (q *Insert_query) compile_update_duplicate_fields(c *compiler) error {
 	if q.update_duplicate_fields != nil {
 		length := len(q.update_duplicate_fields)
 		
-		c.alloc_data_capacity(len(c.data) + length)
+		c.alloc_data_capacity(length)
 		
 		for i, field := range q.update_duplicate_fields {
 			j, found := q.map_fields[field]
@@ -145,23 +146,19 @@ func (q *Insert_query) compile_update_duplicate_fields(c *compiler) error {
 				c.sb.WriteString(", ")
 			}
 			
-			q.write_update_field(c, field, q.fields.entries[j].operator)
-			
-			c.append_data(q.fields.entries[j].value)
+			q.write_update_field(c, field, q.fields.entries[j].operator, q.fields.entries[j].value)
 		}
 	} else {
 		length := len(q.fields.entries)
 		
-		c.alloc_data_capacity(len(c.data) + length)
+		c.alloc_data_capacity(length)
 		
 		for i, entry := range q.fields.entries {
 			if i > 0 {
 				c.sb.WriteString(", ")
 			}
 			
-			q.write_update_field(c, entry.field, entry.operator)
-			
-			c.append_data(entry.value)
+			q.write_update_field(c, entry.field, entry.operator, entry.value)
 		}
 	}
 	return nil

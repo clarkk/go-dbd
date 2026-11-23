@@ -36,15 +36,15 @@ func (q *Delete_query) Where(clause *Where_clause) *Delete_query {
 }
 
 func (q *Delete_query) Compile() (string, []any, error){
-	if !q.use_id && q.where_clause == nil {
-		return "", nil, fmt.Errorf("Delete without where")
+	if !q.use_id {
+		num, _, _ := q.get_alloc()
+		if num == 0 {
+			return "", nil, fmt.Errorf("Delete requires a WHERE condition")
+		}
 	}
 	
 	c := compiler_pool.Get().(*compiler)
-	defer func() {
-		c.reset()
-		compiler_pool.Put(c)
-	}()
+	defer c.release()
 	
 	if q.joined {
 		c.use_alias = true
