@@ -37,7 +37,7 @@ func (q *Delete_query) Where(clause *Where_clause) *Delete_query {
 
 func (q *Delete_query) Compile() (string, []any, error){
 	if !q.use_id {
-		num, _, _ := q.get_alloc()
+		num, _, _ := q.where_clause.get_alloc()
 		if num == 0 {
 			return "", nil, fmt.Errorf("Delete requires a WHERE condition")
 		}
@@ -63,17 +63,16 @@ func (q *Delete_query) Compile() (string, []any, error){
 	}
 	c.sb.Alloc(alloc)
 	
-	var err error
 	c.sb.WriteString("DELETE ")
 	if c.use_alias {
 		c.sb.WriteString(q.t)
 		c.sb.WriteByte(' ')
 	}
 	q.compile_from(c)
-	if err = q.compile_joins(c, nil); err != nil {
+	if err := q.compile_joins(c, nil); err != nil {
 		return "", nil, err
 	}
-	if err = q.compile_where(c, nil); err != nil {
+	if err := q.compile_where(c, nil); err != nil {
 		return "", nil, err
 	}
 	

@@ -18,11 +18,9 @@ func Union() *Union_query {
 }
 
 func Union_all() *Union_query {
-	return &Union_query{
-		//	Pre-allocation with 2 queries
-		unions:	make([]*Select_query, 0, 2),
-		all:	true,
-	}
+	q := Union()
+	q.all = true
+	return q
 }
 
 func (q *Union_query) Union(query *Select_query) *Union_query {
@@ -90,8 +88,8 @@ func (q *Union_query) Compile() (string, []any, error){
 	if err = q.compile_where(c, nil); err != nil {
 		return "", nil, err
 	}
-	q.compile_group(c)
-	q.compile_order(c)
+	q.compile_field_clause(c, "GROUP BY ", q.group)
+	q.compile_field_clause(c, "ORDER BY ", q.order)
 	q.compile_limit(c)
 	c.sb.WriteByte('\n')
 	
@@ -119,6 +117,10 @@ func (q *Union_query) compile_from(c *compiler) error {
 	c.sb.WriteString("FROM (\n")
 	
 	for i, query := range q.unions {
+		if query == nil {
+			return fmt.Errorf("Union query %d is nil", i+1)
+		}
+		
 		sql, data, err := query.Compile()
 		if err != nil {
 			return err

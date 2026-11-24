@@ -1,9 +1,6 @@
 package sqlc
 
-import (
-	"fmt"
-	"slices"
-)
+import "fmt"
 
 type Update_query struct {
 	query_where
@@ -30,18 +27,7 @@ func Update(table string) *Update_query {
 }
 
 func (q *Update_query) Fields(fields map[string]any) *Update_query {
-	q.fields = Fields()
-	//	Sort keys
-	keys := make([]string, len(fields))
-	var i int
-	for k := range fields {
-		keys[i] = k
-		i++
-	}
-	slices.Sort(keys)
-	for _, field := range keys {
-		q.fields.Value(field, fields[field])
-	}
+	q.fields = fields_from_map(fields)
 	return q
 }
 
@@ -62,7 +48,7 @@ func (q *Update_query) Where(clause *Where_clause) *Update_query {
 
 func (q *Update_query) Compile() (string, []any, error){
 	if !q.use_id {
-		num, _, _ := q.get_alloc()
+		num, _, _ := q.where_clause.get_alloc()
 		if num == 0 {
 			return "", nil, fmt.Errorf("Update requires a WHERE condition")
 		}

@@ -1,9 +1,6 @@
 package sqlc
 
-import (
-	"fmt"
-	"slices"
-)
+import "fmt"
 
 type Insert_query struct {
 	query_join
@@ -38,18 +35,7 @@ func (q *Insert_query) Update_duplicate_operator(fields *Fields_clause, update_f
 }
 
 func (q *Insert_query) Fields(fields map[string]any) *Insert_query {
-	q.fields = Fields()
-	//	Sort keys
-	keys := make([]string, len(fields))
-	var i int
-	for k := range fields {
-		keys[i] = k
-		i++
-	}
-	slices.Sort(keys)
-	for _, field := range keys {
-		q.fields.Value(field, fields[field])
-	}
+	q.fields = fields_from_map(fields)
 	return q
 }
 
@@ -108,24 +94,21 @@ func (q *Insert_query) Compile() (string, []any, error){
 }
 
 func (q *Insert_query) compile_fields(c *compiler) error {
-	length	:= len(q.fields.entries)
-	c.alloc_data_capacity(length)
-	unique	:= make(map[string]struct{}, length)
+	clear(q.map_fields)
+	c.alloc_data_capacity(len(q.fields.entries))
 	
 	for i, entry := range q.fields.entries {
-		if _, found := unique[entry.field]; found {
+		if _, found := q.map_fields[entry.field]; found {
 			return fmt.Errorf("Duplicate field: %s", entry.field)
 		}
+		q.map_fields[entry.field] = i
+		
 		if i > 0 {
 			c.sb.WriteString(", ")
 		}
-		
 		c.write_field(q.t, entry.field)
 		c.sb.WriteString("=?")
 		c.data = append(c.data, entry.value)
-		
-		unique[entry.field]			= struct{}{}
-		q.map_fields[entry.field]	= i
 	}
 	return nil
 }

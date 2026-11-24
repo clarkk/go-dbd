@@ -33,7 +33,6 @@ type (
 		query
 		t 				string		//	Base table alias
 		joined 			bool
-		joined_t		bool		//	Joined on a non-base (pre-defined) table
 		joins 			[]join
 		optimize_joins	bool
 	}
@@ -134,7 +133,7 @@ func (q *query_join) join_multi(mode, table, t string, conditions Join_condition
 		mode:		mode,
 		table:		table,
 		t:			t,
-		join_t:		q.join_condition_foreign(conditions),
+		join_t:		conditions.foreign_aliases(),
 		on:			conditions,
 	})
 }
@@ -145,25 +144,24 @@ func (q *query_join) join_multi_force(mode, table, t string, conditions Join_con
 		mode:		mode,
 		table:		table,
 		t:			t,
-		join_t:		q.join_condition_foreign(conditions),
+		join_t:		conditions.foreign_aliases(),
 		on:			conditions,
 		force:		true,
 	})
 }
 
-func (q *query_join) join_condition_foreign(conditions Join_conditions) []string {
+func (j Join_conditions) foreign_aliases() []string {
 	var join_t []string
-	for _, f := range conditions {
-		if f.Fixed_value {
+	for _, c := range j {
+		if c.Fixed_value {
 			continue
 		}
 		
 		//	Join on a non-base (pre-defined) table
-		if i := strings.IndexByte(f.Field_foreign, '.'); i != -1 {
-			alias := f.Field_foreign[:i]
+		if i := strings.IndexByte(c.Field_foreign, '.'); i != -1 {
+			alias := c.Field_foreign[:i]
 			if alias != ROOT_ALIAS {
-				q.joined_t	= true
-				join_t		= append(join_t, alias)
+				join_t = append(join_t, alias)
 			}
 		}
 	}

@@ -9,7 +9,7 @@ type Inserts_query struct {
 	query_join
 	fields 					[][]any
 	update_duplicate		bool
-	update_dublicate_fields []string
+	update_duplicate_fields []string
 	col_count				int
 	col_map					map[string]int
 	col_keys				[]string
@@ -27,13 +27,17 @@ func Inserts(table string) *Inserts_query {
 
 func (q *Inserts_query) Update_duplicate(update_fields []string) *Inserts_query {
 	q.update_duplicate			= true
-	q.update_dublicate_fields	= update_fields
+	q.update_duplicate_fields	= update_fields
 	return q
 }
 
 func (q *Inserts_query) Fields(fields map[string]any) error {
 	length := len(fields)
-	if q.col_count == 0 {
+	if len(q.fields) > 0 && length != q.col_count {
+		return fmt.Errorf("Invalid insert consistency: row %d has %d fields, expected %d", len(q.fields)+1, length, q.col_count)
+	}
+	
+	if len(q.fields) == 0 {
 		q.col_count	= length
 		q.col_map	= make(map[string]int, length)
 		//	Sort keys
@@ -46,10 +50,6 @@ func (q *Inserts_query) Fields(fields map[string]any) error {
 		slices.Sort(q.col_keys)
 		for i, key := range q.col_keys {
 			q.col_map[key] = i
-		}
-	} else {
-		if length != q.col_count {
-			return fmt.Errorf("Invalid insert consistency: row %d has %d fields, expected %d", len(q.fields)+1, length, q.col_count)
 		}
 	}
 	
@@ -72,6 +72,10 @@ func (q *Inserts_query) Left_join(table, t, field, field_foreign string) *Insert
 }
 
 func (q *Inserts_query) Compile() (string, []any, error){
+	if q.update_duplicate_fields != nil && len(q.update_duplicate_fields) == 0 {
+		return "", nil, fmt.Errorf("Update_duplicate requires at least one field")
+	}
+	
 	c := compiler_pool.Get().(*compiler)
 	defer c.release()
 	
@@ -102,9 +106,9 @@ func (q *Inserts_query) Compile() (string, []any, error){
 	if q.update_duplicate {
 		c.sb.WriteString("ON DUPLICATE KEY UPDATE ")
 		
-		if q.update_dublicate_fields != nil {
+		if q.update_duplicate_fields != nil {
 			var found bool
-			for i, field := range q.update_dublicate_fields {
+			for i, field := range q.update_duplicate_fields {
 				if _, found = q.col_map[field]; !found {
 					return "", nil, fmt.Errorf("Invalid update duplicate field: %s", field)
 				}
@@ -150,7 +154,7 @@ func (q *Inserts_query) compile_fields(c *compiler) error {
 	
 	c.alloc_data_capacity(q.col_count * length)
 	
-	for i := range q.fields {
+	for i, row := range q.fields {
 		if i > 0 {
 			c.sb.WriteByte(',')
 		}
@@ -158,8 +162,7 @@ func (q *Inserts_query) compile_fields(c *compiler) error {
 		c.sb.WriteByte('(')
 		c.write_field_placeholder_list(q.col_count)
 		c.sb.WriteByte(')')
-		c.alloc_data_capacity(len(q.fields[i]))
-		c.data = append(c.data, q.fields[i]...)
+		c.data = append(c.data, row...)
 	}
 	return nil
 }

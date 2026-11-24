@@ -1,5 +1,7 @@
 package sqlc
 
+import "slices"
+
 const (
 	alloc_field			= 15
 	alloc_join_clause	= 50
@@ -17,6 +19,23 @@ type (
 		table	string	//	Base table
 	}
 )
+
+func fields_from_map(fields map[string]any) *Fields_clause {
+	//	Sort keys
+	keys := make([]string, len(fields))
+	var i int
+	for field := range fields {
+		keys[i] = field
+		i++
+	}
+	slices.Sort(keys)
+	
+	clause := Fields()
+	for _, field := range keys {
+		clause.Value(field, fields[field])
+	}
+	return clause
+}
 
 func (q *query_join) alloc_field_list(count int, use_alias bool) int {
 	alloc := alloc_field + 2	//	", "

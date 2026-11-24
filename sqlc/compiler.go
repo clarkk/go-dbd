@@ -65,7 +65,8 @@ func (c *compiler) write_operator_condition(operator Operator, value any) error 
 		
 	case Op_bt, Op_not_bt:
 		values, ok := value.([]any)
-		if !ok || len(values) != 2 {
+		length := len(values)
+		if !ok || length != 2 {
 			return fmt.Errorf("BETWEEN requires exactly two values")
 		}
 		
@@ -74,12 +75,13 @@ func (c *compiler) write_operator_condition(operator Operator, value any) error 
 		}
 		c.sb.WriteByte(' ')
 		c.sb.WriteString(sql_op_bt)
-		c.alloc_data_capacity(len(values))
+		c.alloc_data_capacity(length)
 		c.data = append(c.data, values...)
 		
 	case Op_in, Op_not_in:
 		values, ok := value.([]any)
-		if !ok || len(values) == 0 {
+		length := len(values)
+		if !ok || length == 0 {
 			return fmt.Errorf("IN requires a non-empty []any")
 		}
 		
@@ -87,9 +89,9 @@ func (c *compiler) write_operator_condition(operator Operator, value any) error 
 			c.sb.WriteString(" NOT")
 		}
 		c.sb.WriteString(" IN (")
-		c.write_field_placeholder_list(len(value.([]any)))
+		c.write_field_placeholder_list(length)
 		c.sb.WriteByte(')')
-		c.alloc_data_capacity(len(values))
+		c.alloc_data_capacity(length)
 		c.data = append(c.data, values...)
 		
 	case Op_in_subquery:

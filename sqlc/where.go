@@ -192,6 +192,10 @@ func (w *Where_clause) clause(field string, operator Operator, value any){
 }
 
 func (w *Where_clause) get_alloc() (num, alloc, alloc_data int){
+	if w == nil {
+		return 0, 0, 0
+	}
+	
 	num			= w.num
 	alloc		= w.alloc
 	alloc_data	= w.alloc_data

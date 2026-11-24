@@ -97,11 +97,7 @@ func (q *Select_query) Select_distinct(list []string) *Select_query {
 }
 
 func (q *Select_query) Select_json(field string, query *Select_query) *Select_query {
-	q.select_jsons = append(q.select_jsons, &select_json{
-		select_field:	field,
-		query:			query,
-	})
-	return q
+	return q.Select_json_condition(field, query, "", "")
 }
 
 func (q *Select_query) Select_json_condition(field string, query *Select_query, inner_field, outer_field string) *Select_query {
@@ -223,8 +219,8 @@ func (q *Select_query) Compile() (string, []any, error){
 	if err = q.compile_where(c, nil); err != nil {
 		return "", nil, err
 	}
-	q.compile_group(c)
-	q.compile_order(c)
+	q.compile_field_clause(c, "GROUP BY ", q.group)
+	q.compile_field_clause(c, "ORDER BY ", q.order)
 	q.compile_limit(c)
 	if q.lock_for_update {
 		c.sb.WriteString("FOR UPDATE\n")
@@ -392,8 +388,8 @@ func (q *Select_query) compile_select_json(c *compiler, sj *select_json) error {
 		return err
 	}
 	
-	sj.query.compile_group(c)
-	sj.query.compile_order(c)
+	sj.query.compile_field_clause(c, "GROUP BY ", sj.query.group)
+	sj.query.compile_field_clause(c, "ORDER BY ", sj.query.order)
 	sj.query.compile_limit(c)
 	
 	c.sb.WriteString(") ")
@@ -402,8 +398,8 @@ func (q *Select_query) compile_select_json(c *compiler, sj *select_json) error {
 	return nil
 }
 
-func (q *Select_query) compile_group(c *compiler){
-	length := len(q.group)
+func (q *Select_query) compile_field_clause(c *compiler, prefix string, fields []string){
+	length := len(fields)
 	if length == 0 {
 		return
 	}
@@ -411,31 +407,12 @@ func (q *Select_query) compile_group(c *compiler){
 	//	Pre-allocation
 	c.sb.Alloc(10 + q.alloc_field_list(length, c.use_alias))
 	
-	c.sb.WriteString("GROUP BY ")
-	for i, v := range q.group {
+	c.sb.WriteString(prefix)
+	for i, field := range fields {
 		if i > 0 {
 			c.sb.WriteString(", ")
 		}
-		c.write_field(q.t, v)
-	}
-	c.sb.WriteByte('\n')
-}
-
-func (q *Select_query) compile_order(c *compiler){
-	length := len(q.order)
-	if length == 0 {
-		return
-	}
-	
-	//	Pre-allocation
-	c.sb.Alloc(10 + q.alloc_field_list(length, c.use_alias))
-	
-	c.sb.WriteString("ORDER BY ")
-	for i, v := range q.order {
-		if i > 0 {
-			c.sb.WriteString(", ")
-		}
-		c.write_field(q.t, v)
+		c.write_field(q.t, field)
 	}
 	c.sb.WriteByte('\n')
 }

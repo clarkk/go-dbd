@@ -17,7 +17,7 @@ func (q *query_where) set_where(clause *Where_clause){
 }
 
 func (q *query_where) compile_where(c *compiler, inner_condition func(c *compiler, first *bool)) error {
-	num, alloc, alloc_data := q.get_alloc()
+	num, alloc, alloc_data := q.where_clause.get_alloc()
 	
 	if q.where_clause != nil && num == 0 {
 		return fmt.Errorf("Empty WHERE clause")
@@ -81,11 +81,4 @@ func (q *query_where) compile_where(c *compiler, inner_condition func(c *compile
 func (q *query_where) write_condition_data(c *compiler, condition *where_condition) error {
 	c.write_field(q.t, condition.field)
 	return c.write_operator_condition(condition.operator, condition.value)
-}
-
-func (q *query_where) get_alloc() (int, int, int){
-	if q.where_clause == nil {
-		return 0, 0, 0
-	}
-	return q.where_clause.get_alloc()
 }
