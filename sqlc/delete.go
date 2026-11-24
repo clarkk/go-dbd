@@ -31,7 +31,7 @@ func (q *Delete_query) Left_join(table, t, field, field_foreign string) *Delete_
 }
 
 func (q *Delete_query) Where(clause *Where_clause) *Delete_query {
-	q.where_clause = clause
+	q.set_where(clause)
 	return q
 }
 

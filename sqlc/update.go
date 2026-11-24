@@ -56,7 +56,7 @@ func (q *Update_query) Left_join(table, t, field, field_foreign string) *Update_
 }
 
 func (q *Update_query) Where(clause *Where_clause) *Update_query {
-	q.where_clause = clause
+	q.set_where(clause)
 	return q
 }
 

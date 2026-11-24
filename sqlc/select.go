@@ -150,7 +150,7 @@ func (q *Select_query) Left_join_multi(table, t string, fields Join_conditions) 
 }
 
 func (q *Select_query) Where(clause *Where_clause) *Select_query {
-	q.where_clause = clause
+	q.set_where(clause)
 	return q
 }
 
@@ -374,21 +374,21 @@ func (q *Select_query) compile_select_json(c *compiler, sj *select_json) error {
 		return err
 	}
 	
-	if err := sj.query.compile_where(c, func(c *compiler, first *bool){
-		if sj.inner_field == "" {
-			return
+	var inner_condition func(*compiler, *bool)
+	if sj.inner_field != "" {
+		inner_condition = func(c *compiler, first *bool){
+			if *first {
+				*first = false
+			} else {
+				c.sb.WriteString(" AND ")
+			}
+			
+			c.write_field(sj.query.t, sj.inner_field)
+			c.sb.WriteByte('=')
+			c.write_field(q.t, sj.outer_field)
 		}
-		
-		if *first {
-			*first = false
-		} else {
-			c.sb.WriteString(" AND ")
-		}
-		
-		c.write_field(sj.query.t, sj.inner_field)
-		c.sb.WriteByte('=')
-		c.write_field(q.t, sj.outer_field)
-	}); err != nil {
+	}
+	if err := sj.query.compile_where(c, inner_condition); err != nil {
 		return err
 	}
 	

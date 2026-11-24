@@ -114,6 +114,86 @@ func run_operator_compatibility_oposite(tb testing.TB){
 	}
 }
 
+func Test_empty_where(t *testing.T){
+	clauses := []struct {
+		name	string
+		where	*Where_clause
+	}{
+		{"nil", nil},
+		{"empty", Where()},
+	}
+	
+	for _, clause := range clauses {
+		t.Run(clause.name, func(t *testing.T){
+			tests := []struct {
+				name	string
+				query	SQL
+				want	string
+			}{
+				{"select", Select("user").
+					Select([]string{"id"}).
+					Where(clause.where), "Empty WHERE clause"},
+				{"delete", Delete("user").
+					Where(clause.where), "Delete requires a WHERE condition"},
+				{"update", Update("user").
+					Fields(Map{"active": false}).
+					Where(clause.where), "Update requires a WHERE condition"},
+				{"select_id", Select_id("user", 7).
+					Select([]string{"id"}).
+					Where(clause.where), "Empty WHERE clause"},
+				{"delete_id", Delete_id("user", 7).
+					Where(clause.where), "Empty WHERE clause"},
+				{"update_id", Update_id("user", 7).
+					Fields(Map{"active": false}).
+					Where(clause.where), "Empty WHERE clause"},
+				{"union", Union().
+					Union(Select("user").Select([]string{"id"})).
+					Union(Select("admin").Select([]string{"id"})).
+					Select([]string{"id"}).
+					Where(clause.where), "Empty WHERE clause"},
+			}
+			
+			for _, test := range tests {
+				t.Run(test.name, func(t *testing.T) {
+					sql, args, err := test.query.Compile()
+					if err == nil || err.Error() != test.want {
+						t.Fatalf("Compile() error = %v, want %q", err, test.want)
+					}
+					if sql != "" || args != nil {
+						t.Fatalf("Compile() returned SQL %q and args %v on error", sql, args)
+					}
+				})
+			}
+		})
+	}
+}
+
+func Test_invalid_or_group(t *testing.T) {
+	tests := []struct {
+		name	string
+		group	*Where_clause
+		want	string
+	}{
+		{"nil", nil, "nil WHERE group"},
+		{"empty", Where(), "Empty WHERE group"},
+	}
+	
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T){
+			query := Delete("user").
+				Where(Where().Eq("id", 1).Or_group(test.group))
+				
+			sql, args, err := query.Compile()
+			if err == nil || err.Error() != test.want {
+				t.Fatalf("Compile() error = %v, want %q", err, test.want)
+			}
+			if sql != "" || args != nil {
+				t.Fatalf("Compile() returned SQL %q and args %v on error", sql, args)
+			}
+		})
+	}
+}
+
 func Benchmark_select_where_wrap(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		run_where_wrap(b)
