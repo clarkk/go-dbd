@@ -82,191 +82,63 @@ func (t *Tx) Commit() error {
 }
 
 func (t *Tx) Exec(query sqlc.SQL) (sql.Result, error){
+	const operation = "DB transaction execute"
 	if t.tx == nil {
-		panic("DB transaction execute: No active transaction")
+		panic(operation+": No active transaction")
 	}
-	
-	sql, data, err := query.Compile()
-	if err != nil {
-		return nil, &Error{"DB transaction execute compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
-	}
-	
-	if debug_log {
-		t.log(sqlc.SQL_debug(query))
-	}
-	
-	result, err := t.tx.ExecContext(t.ctx, sql, data...)
-	if err != nil {
-		msg 	:= sqlc.SQL_error("DB transaction execute", query, err)
-		stack 	:= errors.Wrap(err, 0).ErrorStack()
-		if ctx_canceled(err) {
-			return nil, &Timeout_error{msg, stack}
-		}
-		return nil, &Error{msg, stack}
-	}
-	return result, nil
+	return exec(t.ctx, query, t.tx.ExecContext, t.log, operation)
 }
 
-func (t *Tx) Query_row(query sqlc.SQL, scan []any) (bool, error){
+func (t *Tx) Query_row(query sqlc.SQL, scan []any) (empty bool, err error){
+	const operation = "DB transaction query row"
 	if t.tx == nil {
-		panic("DB transaction query row: No active transaction")
+		panic(operation+": No active transaction")
 	}
-	
-	sql, data, err := query.Compile()
-	if err != nil {
-		return false, &Error{"DB transaction query row compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
-	}
-	
-	if debug_log {
-		t.log(sqlc.SQL_debug(query))
-	}
-	
-	if err := t.tx.QueryRowContext(t.ctx, sql, data...).Scan(scan...); err != nil {
-		if No_rows_error(err) {
-			return true, ErrNotFound
-		}
-		msg 	:= sqlc.SQL_error("DB transaction query row", query, err)
-		stack 	:= errors.Wrap(err, 0).ErrorStack()
-		if ctx_canceled(err) {
-			return false, &Timeout_error{msg, stack}
-		}
-		return false, &Error{msg, stack}
-	}
-	return false, nil
+	return query_row(t.ctx, query, scan, t.tx.QueryRowContext, t.log, operation)
 }
 
 func (t *Tx) Query(query sqlc.SQL) (*sql.Rows, error){
+	const operation = "DB transaction query"
 	if t.tx == nil {
-		panic("DB transaction query: No active transaction")
+		panic(operation+": No active transaction")
 	}
-	
-	sql, data, err := query.Compile()
-	if err != nil {
-		return nil, &Error{"DB transaction query compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
-	}
-	
-	if debug_log {
-		t.log(sqlc.SQL_debug(query))
-	}
-	
-	rows, err := t.tx.QueryContext(t.ctx, sql, data...)
-	if err != nil {
-		msg 	:= sqlc.SQL_error("DB transaction query", query, err)
-		stack 	:= errors.Wrap(err, 0).ErrorStack()
-		if ctx_canceled(err) {
-			return nil, &Timeout_error{msg, stack}
-		}
-		return nil, &Error{msg, stack}
-	}
-	return rows, nil
+	return query_rows(t.ctx, query, t.tx.QueryContext, t.log, operation)
 }
 
 func (t *Tx) Insert(query sqlc.SQL) (uint64, error){
+	const operation = "DB transaction insert"
 	if t.tx == nil {
-		panic("DB transaction insert: No active transaction")
+		panic(operation + ": No active transaction")
 	}
-	
-	var id uint64
-	sql, data, err := query.Compile()
-	if err != nil {
-		return id, &Error{"DB transaction insert compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
-	}
-	
-	if debug_log {
-		t.log(sqlc.SQL_debug(query))
-	}
-	
-	if err := t.tx.QueryRowContext(t.ctx, sql+"RETURNING id", data...).Scan(&id); err != nil {
-		msg 	:= sqlc.SQL_error("DB transaction insert", query, err)
-		stack 	:= errors.Wrap(err, 0).ErrorStack()
-		if ctx_canceled(err) {
-			return 0, &Timeout_error{msg, stack}
-		}
-		return 0, &Error{msg, stack}
-	}
-	return id, nil
+	return insert(t.ctx, query, t.tx.QueryRowContext, t.log, operation)
 }
 
 func (t *Tx) Insert_no_return(query sqlc.SQL) error {
+	const operation = "DB transaction insert no return"
 	if t.tx == nil {
-		panic("DB transaction insert no return: No active transaction")
+		panic(operation+": No active transaction")
 	}
-	
-	sql, data, err := query.Compile()
-	if err != nil {
-		return &Error{"DB transaction insert no return compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
-	}
-	
-	if debug_log {
-		t.log(sqlc.SQL_debug(query))
-	}
-	
-	_, err = t.tx.ExecContext(t.ctx, sql, data...)
-	if err != nil {
-		msg 	:= sqlc.SQL_error("DB transaction insert no return", query, err)
-		stack 	:= errors.Wrap(err, 0).ErrorStack()
-		if ctx_canceled(err) {
-			return &Timeout_error{msg, stack}
-		}
-		return &Error{msg, stack}
-	}
-	return nil
+	_, err := exec(t.ctx, query, t.tx.ExecContext, t.log, operation)
+	return err
 }
 
 func (t *Tx) Update(query sqlc.SQL) error {
+	const operation = "DB transaction update"
 	if t.tx == nil {
-		panic("DB transaction update: No active transaction")
+		panic(operation+": No active transaction")
 	}
-	
-	sql, data, err := query.Compile()
-	if err != nil {
-		return &Error{"DB transaction update compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
-	}
-	
-	if debug_log {
-		t.log(sqlc.SQL_debug(query))
-	}
-	
-	if _, err := t.tx.ExecContext(t.ctx, sql, data...); err != nil {
-		msg 	:= sqlc.SQL_error("DB transaction update", query, err)
-		stack 	:= errors.Wrap(err, 0).ErrorStack()
-		if ctx_canceled(err) {
-			return &Timeout_error{msg, stack}
-		}
-		return &Error{msg, stack}
-	}
-	return nil
+	_, err := exec(t.ctx, query, t.tx.ExecContext, t.log, operation)
+	return err
 }
 
 func (t *Tx) Delete(query sqlc.SQL) (bool, error){
+	const operation = "DB transaction delete"
 	if t.tx == nil {
-		panic("DB transaction delete: No active transaction")
+		panic(operation+": No active transaction")
 	}
-	
-	sql, data, err := query.Compile()
-	if err != nil {
-		return false, &Error{"DB transaction delete compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
-	}
-	
-	if debug_log {
-		t.log(sqlc.SQL_debug(query))
-	}
-	
-	var id uint64
-	if err := t.tx.QueryRowContext(t.ctx, sql+"RETURNING id", data...).Scan(&id); err != nil {
-		if No_rows_error(err) {
-			return true, ErrNotFound
-		}
-		msg 	:= sqlc.SQL_error("DB transaction delete", query, err)
-		stack 	:= errors.Wrap(err, 0).ErrorStack()
-		if ctx_canceled(err) {
-			return false, &Timeout_error{msg, stack}
-		}
-		return false, &Error{msg, stack}
-	}
-	return false, nil
+	return delete(t.ctx, query, t.tx.QueryRowContext, t.log, operation)
 }
 
 func (t *Tx) log(msg string){
-	log_sql(fmt.Sprintf("[TX #%d] %s", t.log_id, msg))
+	debug_log_sql(fmt.Sprintf("[TX #%d] %s", t.log_id, msg))
 }

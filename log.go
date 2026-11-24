@@ -11,6 +11,6 @@ func Debug_log(){
 	debug_log = true
 }
 
-func log_sql(sql string){
+func debug_log_sql(sql string){
 	log.Printf("[DB LOG] %s", strings.ReplaceAll(sql, "\n", "\n\t"))
 }

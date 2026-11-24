@@ -1,7 +1,8 @@
 package dbd
 
 import (
-	"log"
+	"fmt"
+	"time"
 	"runtime"
 	"context"
 	"database/sql"
@@ -10,157 +11,154 @@ import (
 	"github.com/clarkk/go-dbd/sqlc"
 )
 
-var (
-	db 			*sql.DB
-	connected 	bool
+var db *sql.DB
+
+type (
+	exec_func		func(ctx context.Context, sql string, data ...any) (sql.Result, error)
+	query_row_func	func(ctx context.Context, sql string, data ...any) *sql.Row
+	query_func		func(ctx context.Context, sql string, data ...any) (*sql.Rows, error)
+	
+	log_func		func(msg string)
 )
 
-func Connect(dsn string, conn_cpu int){
-	if connected {
-		panic("DB is already connected")
+func Connect(dsn string, conn_cpu int) error {
+	if db != nil {
+		return fmt.Errorf("dbd: Database already open")
+	}
+	if conn_cpu <= 0 {
+		return fmt.Errorf("dbd: conn_cpu must be positive")
 	}
 	
 	var err error
-	if db, err = sql.Open("mysql", dsn); err != nil {
-		log.Fatalf("Unable to parse DSN and connect to DB: %v", err)
+	db, err = sql.Open("mysql", dsn)
+	if err != nil {
+		return fmt.Errorf("dbd: Open: %w", err)
 	}
 	
 	db.SetMaxOpenConns(runtime.NumCPU() * conn_cpu)
 	db.SetMaxIdleConns(10)
-	db.SetConnMaxLifetime(60 * 30)
-	db.SetConnMaxIdleTime(60 * 5)
+	db.SetConnMaxLifetime(30 * time.Minute)
+	db.SetConnMaxIdleTime(5 * time.Minute)
 	
-	connected = true
-	
-	if !Ping() {
-		log.Fatalf("Unable to connect to DB: %v", err)
+	if err := Ping(); err != nil {
+		Close()
+		return fmt.Errorf("dbd: ping: %w", err)
 	}
+	
+	return nil
 }
 
-func Ping() bool {
-	if err := db.Ping(); err != nil {
-		connected = false
-		return false
-	}
-	return true
+func Ping() error {
+	return db.Ping()
 }
 
 func Exec(ctx context.Context, query sqlc.SQL) (sql.Result, error){
+	return exec(ctx, query, db.ExecContext, debug_log_sql, "DB execute")
+}
+
+func Query_row(ctx context.Context, query sqlc.SQL, scan []any) (empty bool, err error){
+	return query_row(ctx, query, scan, db.QueryRowContext, debug_log_sql, "DB query row")
+}
+
+func Query(ctx context.Context, query sqlc.SQL) (*sql.Rows, error){
+	return query_rows(ctx, query, db.QueryContext, debug_log_sql, "DB query")
+}
+
+func Insert(ctx context.Context, query sqlc.SQL) (uint64, error){
+	return insert(ctx, query, db.QueryRowContext, debug_log_sql, "DB insert")
+}
+
+func Update(ctx context.Context, query sqlc.SQL) (sql.Result, error){
+	return exec(ctx, query, db.ExecContext, debug_log_sql, "DB update")
+}
+
+func Delete(ctx context.Context, query sqlc.SQL) (bool, error){
+	return delete(ctx, query, db.QueryRowContext, debug_log_sql, "DB delete")
+}
+
+func Close() error {
+	if db == nil {
+		return nil
+	}
+	err := db.Close()
+	db = nil
+	return err
+}
+
+func exec(ctx context.Context, query sqlc.SQL, run exec_func, log_sql log_func, operation string) (sql.Result, error){
 	sql, data, err := query.Compile()
 	if err != nil {
-		return nil, &Error{"DB execute compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
+		return nil, compile_error(operation, err)
 	}
 	
 	if debug_log {
 		log_sql(sqlc.SQL_debug(query))
 	}
 	
-	result, err := db.ExecContext(ctx, sql, data...)
+	result, err := run(ctx, sql, data...)
 	if err != nil {
-		msg 	:= sqlc.SQL_error("DB execute", query, err)
-		stack 	:= errors.Wrap(err, 0).ErrorStack()
-		if ctx_canceled(err) {
-			return nil, &Timeout_error{msg, stack}
-		}
-		return nil, &Error{msg, stack}
+		return nil, query_error(operation, query, err)
 	}
 	return result, nil
 }
 
-func Query_row(ctx context.Context, query sqlc.SQL, scan []any) (bool, error){
+func query_row(ctx context.Context, query sqlc.SQL, scan []any, run query_row_func, log_sql log_func, operation string) (empty bool, err error){
 	sql, data, err := query.Compile()
 	if err != nil {
-		return false, &Error{"DB query row compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
+		return false, compile_error(operation, err)
 	}
 	
 	if debug_log {
 		log_sql(sqlc.SQL_debug(query))
 	}
 	
-	if err := db.QueryRowContext(ctx, sql, data...).Scan(scan...); err != nil {
-		if No_rows_error(err) {
-			return true, ErrNotFound
-		}
-		msg := sqlc.SQL_error("DB query row", query, err)
-		stack := errors.Wrap(err, 0).ErrorStack()
-		if ctx_canceled(err) {
-			return false, &Timeout_error{msg, stack}
-		}
-		return false, &Error{msg, stack}
+	if err = run(ctx, sql, data...).Scan(scan...); err == nil {
+		return false, nil
 	}
-	return false, nil
+	if No_rows_error(err) {
+		return true, ErrNotFound
+	}
+	return false, query_error(operation, query, err)
 }
 
-func Query(ctx context.Context, query sqlc.SQL) (*sql.Rows, error){
+func query_rows(ctx context.Context, query sqlc.SQL, run query_func, log_sql log_func, operation string) (*sql.Rows, error){
 	sql, data, err := query.Compile()
 	if err != nil {
-		return nil, &Error{"DB query compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
+		return nil, compile_error(operation, err)
 	}
 	
 	if debug_log {
 		log_sql(sqlc.SQL_debug(query))
 	}
 	
-	rows, err := db.QueryContext(ctx, sql, data...)
+	rows, err := run(ctx, sql, data...)
 	if err != nil {
-		msg := sqlc.SQL_error("DB query", query, err)
-		stack := errors.Wrap(err, 0).ErrorStack()
-		if ctx_canceled(err) {
-			return nil, &Timeout_error{msg, stack}
-		}
-		return nil, &Error{msg, stack}
+		return nil, query_error(operation, query, err)
 	}
 	return rows, nil
 }
 
-func Insert(ctx context.Context, query sqlc.SQL) (uint64, error){
-	var id uint64
+func insert(ctx context.Context, query sqlc.SQL, run query_row_func, log_sql log_func, operation string) (uint64, error){
 	sql, data, err := query.Compile()
 	if err != nil {
-		return id, &Error{"DB insert compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
+		return 0, compile_error(operation, err)
 	}
 	
 	if debug_log {
 		log_sql(sqlc.SQL_debug(query))
 	}
 	
-	if err := db.QueryRowContext(ctx, sql+"RETURNING id", data...).Scan(&id); err != nil {
-		msg := sqlc.SQL_error("DB insert", query, err)
-		stack := errors.Wrap(err, 0).ErrorStack()
-		if ctx_canceled(err) {
-			return 0, &Timeout_error{msg, stack}
-		}
-		return 0, &Error{msg, stack}
+	var id uint64
+	if err := run(ctx, sql+" RETURNING id", data...).Scan(&id); err != nil {
+		return 0, query_error(operation, query, err)
 	}
 	return id, nil
 }
 
-func Update(ctx context.Context, query sqlc.SQL) (sql.Result, error){
+func delete(ctx context.Context, query sqlc.SQL, run query_row_func, log_sql log_func, operation string) (bool, error){
 	sql, data, err := query.Compile()
 	if err != nil {
-		return nil, &Error{"DB update compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
-	}
-	
-	if debug_log {
-		log_sql(sqlc.SQL_debug(query))
-	}
-	
-	result, err := db.ExecContext(ctx, sql, data...)
-	if err != nil {
-		msg := sqlc.SQL_error("DB update", query, err)
-		stack := errors.Wrap(err, 0).ErrorStack()
-		if ctx_canceled(err) {
-			return nil, &Timeout_error{msg, stack}
-		}
-		return nil, &Error{msg, stack}
-	}
-	return result, nil
-}
-
-func Delete(ctx context.Context, query sqlc.SQL) (bool, error){
-	sql, data, err := query.Compile()
-	if err != nil {
-		return false, &Error{"DB delete compile: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
+		return false, compile_error(operation, err)
 	}
 	
 	if debug_log {
@@ -168,20 +166,24 @@ func Delete(ctx context.Context, query sqlc.SQL) (bool, error){
 	}
 	
 	var id uint64
-	if err := db.QueryRowContext(ctx, sql+"RETURNING id", data...).Scan(&id); err != nil {
-		if No_rows_error(err) {
-			return true, ErrNotFound
-		}
-		msg 	:= sqlc.SQL_error("DB delete", query, err)
-		stack 	:= errors.Wrap(err, 0).ErrorStack()
-		if ctx_canceled(err) {
-			return false, &Timeout_error{msg, stack}
-		}
-		return false, &Error{msg, stack}
+	if err = run(ctx, sql+" RETURNING id", data...).Scan(&id); err == nil {
+		return false, nil
 	}
-	return false, nil
+	if No_rows_error(err) {
+		return true, ErrNotFound
+	}
+	return false, query_error(operation, query, err)
 }
 
-func Close(){
-	db.Close()
+func compile_error(operation string, err error) error {
+	return &Error{operation+" compile: "+err.Error(), errors.Wrap(err, 1).ErrorStack()}
+}
+
+func query_error(operation string, query sqlc.SQL, err error) error {
+	msg := sqlc.SQL_error(operation, query, err)
+	stack := errors.Wrap(err, 1).ErrorStack()
+	if ctx_canceled(err) {
+		return &Timeout_error{msg, stack}
+	}
+	return &Error{msg, stack}
 }
