@@ -3,6 +3,7 @@ package dbd
 import (
 	"fmt"
 	"net"
+	"strconv"
 )
 
 type DSN struct {
