@@ -18,6 +18,7 @@ type Tx struct {
 }
 
 func NewTx(ctx context.Context) (*Tx, error){
+	const operation = "DB transaction begin"
 	tx := &Tx{
 		ctx: ctx,
 	}
@@ -30,9 +31,9 @@ func NewTx(ctx context.Context) (*Tx, error){
 	var err error
 	if tx.tx, err = db.BeginTx(ctx, nil); err != nil {
 		if ctx_canceled(err) {
-			return nil, &Timeout_error{"DB transaction begin: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
+			return nil, &Timeout_error{operation+": "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 		}
-		panic("DB transaction begin: "+err.Error())
+		panic(operation+": "+err.Error())
 	}
 	return tx, nil
 }
@@ -42,6 +43,7 @@ func (t *Tx) Context() context.Context {
 }
 
 func (t *Tx) Rollback() error {
+	const operation = "DB transaction rollback"
 	if t.tx == nil {
 		return nil
 	}
@@ -53,17 +55,18 @@ func (t *Tx) Rollback() error {
 	if err := t.tx.Rollback(); err != nil {
 		t.tx = nil
 		if ctx_canceled(err) {
-			return &Timeout_error{"DB transaction rollback: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
+			return &Timeout_error{operation+": "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 		}
-		return &Error{"DB transaction rollback: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
+		return &Error{operation+": "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 	}
 	t.tx = nil
 	return nil
 }
 
 func (t *Tx) Commit() error {
+	const operation = "DB transaction commit"
 	if t.tx == nil {
-		panic("DB transaction commit: No active transaction")
+		panic(operation+": No active transaction")
 	}
 	
 	if debug_log {
@@ -73,9 +76,9 @@ func (t *Tx) Commit() error {
 	if err := t.tx.Commit(); err != nil {
 		t.tx = nil
 		if ctx_canceled(err) {
-			return &Timeout_error{"DB transaction commit: "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
+			return &Timeout_error{operation+": "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
 		}
-		panic("DB transaction commit: "+err.Error())
+		panic(operation+": "+err.Error())
 	}
 	t.tx = nil
 	return nil
@@ -108,7 +111,7 @@ func (t *Tx) Query(query sqlc.SQL) (*sql.Rows, error){
 func (t *Tx) Insert(query sqlc.SQL) (uint64, error){
 	const operation = "DB transaction insert"
 	if t.tx == nil {
-		panic(operation + ": No active transaction")
+		panic(operation+": No active transaction")
 	}
 	return insert(t.ctx, query, t.tx.QueryRowContext, t.log, operation)
 }

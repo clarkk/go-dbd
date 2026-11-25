@@ -72,7 +72,7 @@ func Update(ctx context.Context, query sqlc.SQL) (sql.Result, error){
 	return exec(ctx, query, db.ExecContext, debug_log_sql, "DB update")
 }
 
-func Delete(ctx context.Context, query sqlc.SQL) (bool, error){
+func Delete(ctx context.Context, query sqlc.SQL) (empty bool, err error){
 	return delete(ctx, query, db.QueryRowContext, debug_log_sql, "DB delete")
 }
 
@@ -155,7 +155,7 @@ func insert(ctx context.Context, query sqlc.SQL, run query_row_func, log_sql log
 	return id, nil
 }
 
-func delete(ctx context.Context, query sqlc.SQL, run query_row_func, log_sql log_func, operation string) (bool, error){
+func delete(ctx context.Context, query sqlc.SQL, run query_row_func, log_sql log_func, operation string) (empty bool, err error){
 	sql, data, err := query.Compile()
 	if err != nil {
 		return false, compile_error(operation, err)
