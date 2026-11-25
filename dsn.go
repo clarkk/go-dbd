@@ -1,6 +1,9 @@
 package dbd
 
-import "fmt"
+import (
+	"fmt"
+	"net"
+)
 
 type DSN struct {
 	user 	string
@@ -29,11 +32,11 @@ func (d DSN) Socket(socket string) string {
 }
 
 func (d DSN) TCP(host string, port int) string {
-	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s",
+	addr := net.JoinHostPort(host, strconv.Itoa(port))
+	return fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=%s",
 		d.user,
 		d.pass,
-		host,
-		port,
+		addr,
 		d.db,
 		d.charset,
 	)

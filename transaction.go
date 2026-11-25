@@ -30,10 +30,11 @@ func NewTx(ctx context.Context) (*Tx, error){
 	
 	var err error
 	if tx.tx, err = db.BeginTx(ctx, nil); err != nil {
+		msg := operation+": "+err.Error()
 		if ctx_canceled(err) {
-			return nil, &Timeout_error{operation+": "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
+			return nil, &Timeout_error{msg, errors.Wrap(err, 0).ErrorStack()}
 		}
-		panic(operation+": "+err.Error())
+		panic(msg)
 	}
 	return tx, nil
 }
@@ -52,15 +53,7 @@ func (t *Tx) Rollback() error {
 		t.log("ROLLBACK")
 	}
 	
-	if err := t.tx.Rollback(); err != nil {
-		t.tx = nil
-		if ctx_canceled(err) {
-			return &Timeout_error{operation+": "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
-		}
-		return &Error{operation+": "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
-	}
-	t.tx = nil
-	return nil
+	return t.finish(operation, t.tx.Rollback())
 }
 
 func (t *Tx) Commit() error {
@@ -73,15 +66,7 @@ func (t *Tx) Commit() error {
 		t.log("COMMIT")
 	}
 	
-	if err := t.tx.Commit(); err != nil {
-		t.tx = nil
-		if ctx_canceled(err) {
-			return &Timeout_error{operation+": "+err.Error(), errors.Wrap(err, 0).ErrorStack()}
-		}
-		panic(operation+": "+err.Error())
-	}
-	t.tx = nil
-	return nil
+	return t.finish(operation, t.tx.Commit())
 }
 
 func (t *Tx) Exec(query sqlc.SQL) (sql.Result, error){
@@ -140,6 +125,23 @@ func (t *Tx) Delete(query sqlc.SQL) (bool, error){
 		panic(operation+": No active transaction")
 	}
 	return delete(t.ctx, query, t.tx.QueryRowContext, t.log, operation)
+}
+
+func (t *Tx) finish(operation string, err error) error {
+	t.tx = nil
+	if err == nil {
+		return nil
+	}
+	if err == sql.ErrTxDone {
+		if ctx_err := t.ctx.Err(); ctx_err != nil {
+			err = ctx_err
+		}
+	}
+	msg := operation+": "+err.Error()
+	if ctx_canceled(err) {
+		return &Timeout_error{msg, errors.Wrap(err, 1).ErrorStack()}
+	}
+	panic(msg)
 }
 
 func (t *Tx) log(msg string){

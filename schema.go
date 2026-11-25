@@ -123,7 +123,7 @@ func Schema_table_columns(table string) []string {
 	if !found {
 		panic("Unable to lookup table schema: "+table)
 	}
-	return slices.Collect(maps.Keys(table_schema))
+	return slices.Sorted(maps.Keys(table_schema))
 }
 
 func (s schema_column) Type() string {
