@@ -88,8 +88,9 @@ type (
 	}
 	
 	length_range_dec struct {
-		Min 		float64
-		Max			float64
+		Min 		int64
+		Max			int64
+		Factor		int64
 	}
 )
 
@@ -233,7 +234,6 @@ func fetch_schema_table(table string) schema_table {
 			dec		:= parse_int(matches[3], "decimal length")
 			
 			is_unsigned 	= column_unsigned(matches[4])
-			min, max		:= decimal_range(length, dec, is_unsigned)
 			
 			table_cols[column] = schema_column{
 				data_type:		SCHEMA_DEC,
@@ -242,10 +242,7 @@ func fetch_schema_table(table string) schema_table {
 				length_dec:		dec,
 				unsigned:		is_unsigned,
 				null:			is_null,
-				range_dec: length_range_dec{
-					Min: min,
-					Max: max,
-				},
+				range_dec:		decimal_range(length, dec, is_unsigned),
 			}
 			continue
 		}
@@ -277,30 +274,38 @@ func fetch_schema_table(table string) schema_table {
 	return table_cols
 }
 
-func decimal_range(length, dec int, unsigned bool) (float64, float64){
-	l := parse_float(strings.Repeat("9", length), "decimal length")
-	d := parse_float("1"+strings.Repeat("0", dec), "decimal scale")
+func decimal_range(length, dec int, unsigned bool) length_range_dec {
+	if length < 1 || length > 18 || dec < 0 || dec > length {
+		log.Fatalf("Unsupported decimal(%d,%d)", length, dec)
+	}
 	
 	var (
-		min float64
-		max = l / d
+		min		int64
+		max		int64
+		factor	int64 = 1
 	)
+	
+	for i := 0; i < length; i++ {
+		max = max * 10 + 9
+	}
+	
+	for i := 0; i < dec; i++ {
+		factor *= 10
+	}
+	
 	if !unsigned {
 		min = -max
 	}
-	return min, max
+	
+	return length_range_dec{
+		Min:	min,
+		Max:	max,
+		Factor:	factor,
+	}
 }
 
 func parse_int(s, field string) int {
 	n, err := strconv.Atoi(s)
-	if err != nil {
-		log.Fatalf("Unable to parse schema %s %q: %v", field, s, err)
-	}
-	return n
-}
-
-func parse_float(s, field string) float64 {
-	n, err := strconv.ParseFloat(s, 64)
 	if err != nil {
 		log.Fatalf("Unable to parse schema %s %q: %v", field, s, err)
 	}
